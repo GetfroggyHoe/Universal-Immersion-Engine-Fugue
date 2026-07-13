@@ -1,0 +1,385 @@
+<!-- ═══════════════════════════════════════════════════════════════════════
+     UNIVERSAL TRANSIT LOCK OVERLAY
+     Full-screen in-transit experience with separate interiors per mode.
+     Standalone transit overlay.
+     ═══════════════════════════════════════════════════════════════════════ -->
+
+<style>
+/* ── Root ────────────────────────────────────────────────────────────── */
+#transit-lock-overlay {
+    position: fixed; inset: 0; z-index: 24000;
+    display: none; flex-direction: column;
+    font-family: 'Inter', 'Segoe UI', sans-serif;
+    color: #e2eeff; overflow: hidden;
+}
+#transit-lock-overlay.active { display: flex; }
+
+/* ── Background Scenes ───────────────────────────────────────────────── */
+.tlock-bg {
+    position: absolute; inset: 0; z-index: 0;
+    transition: opacity .5s;
+}
+
+/* Train: scrolling landscape */
+#tlock-bg-train {
+    background: linear-gradient(180deg, #08111b 0%, #121d2c 40%, #10190f 60%, #0a1209 100%);
+}
+#tlock-bg-train::after {
+    content: '';
+    position: absolute; inset: 0;
+    background: repeating-linear-gradient(90deg,
+        transparent 0px, transparent 60px,
+        rgba(180,220,255,0.03) 60px, rgba(180,220,255,0.03) 62px);
+    animation: trainScroll 2.5s linear infinite;
+}
+@keyframes trainScroll { from { background-position: 0 0; } to { background-position: -120px 0; } }
+
+/* Bus: city street */
+#tlock-bg-bus {
+    background: linear-gradient(180deg, #0a121d 0%, #121d2c 50%, #0b1118 100%);
+}
+#tlock-bg-bus::after {
+    content: '';
+    position: absolute; bottom: 30%; left: 0; right: 0; height: 4px;
+    background: repeating-linear-gradient(90deg, rgba(255,200,50,0.4) 0 40px, transparent 40px 80px);
+    animation: busScroll 1.4s linear infinite;
+}
+@keyframes busScroll { from { background-position: 0; } to { background-position: -80px; } }
+
+/* Car: road */
+#tlock-bg-car {
+    background: linear-gradient(180deg, #060b12 0%, #0d141f 60%, #111826 100%);
+}
+#tlock-bg-car::after {
+    content: '';
+    position: absolute; bottom: 25%; left: 0; right: 0; height: 2px;
+    background: repeating-linear-gradient(90deg, rgba(255,255,200,0.5) 0 30px, transparent 30px 60px);
+    animation: carScroll 0.8s linear infinite;
+}
+@keyframes carScroll { from { background-position: 0; } to { background-position: -60px; } }
+
+/* Horse: trail/countryside */
+#tlock-bg-horse {
+    background: linear-gradient(180deg, #071006 0%, #10180d 50%, #18210b 100%);
+}
+
+/* Carriage: dirt road */
+#tlock-bg-carriage {
+    background: linear-gradient(180deg, #0a0d06 0%, #161c0e 50%, #1a160d 100%);
+}
+
+/* Boat: ocean */
+#tlock-bg-boat {
+    background: linear-gradient(180deg, #06101f 0%, #0b1733 40%, #06101d 100%);
+}
+#tlock-bg-boat::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: repeating-linear-gradient(0deg, transparent 0, transparent 18px, rgba(100,180,255,0.04) 18px, rgba(100,180,255,0.04) 20px);
+    animation: boatWave 4s ease-in-out infinite;
+}
+@keyframes boatWave {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(6px); }
+}
+
+/* Plane: sky/clouds */
+#tlock-bg-plane {
+    background: linear-gradient(180deg, #07101d 0%, #13233f 40%, #20325a 70%, #9ab7d6 100%);
+}
+#tlock-bg-plane::after {
+    content: '';
+    position: absolute; top: 35%; left: 0; right: 0; height: 60px;
+    background: repeating-linear-gradient(90deg,
+        transparent 0 100px, rgba(255,255,255,0.06) 100px 200px, transparent 200px 260px);
+    animation: cloudScroll 12s linear infinite;
+}
+@keyframes cloudScroll { from { background-position: 0; } to { background-position: -260px; } }
+
+/* Spaceship: stars */
+#tlock-bg-spaceship {
+    background: #030408;
+}
+#tlock-bg-spaceship::before {
+    content: '';
+    position: absolute; inset: 0;
+    background-image:
+        radial-gradient(1px 1px at 20% 30%, rgba(255,255,255,0.8), transparent),
+        radial-gradient(1px 1px at 60% 15%, rgba(255,255,255,0.6), transparent),
+        radial-gradient(1.5px 1.5px at 85% 60%, rgba(180,200,255,0.7), transparent),
+        radial-gradient(1px 1px at 40% 75%, rgba(255,255,255,0.5), transparent),
+        radial-gradient(1px 1px at 10% 85%, rgba(255,255,255,0.6), transparent),
+        radial-gradient(2px 2px at 70% 45%, rgba(200,220,255,0.8), transparent),
+        radial-gradient(1px 1px at 33% 55%, rgba(255,255,255,0.4), transparent),
+        radial-gradient(1.5px 1.5px at 90% 20%, rgba(180,200,255,0.6), transparent);
+    animation: starDrift 80s linear infinite;
+}
+@keyframes starDrift { from { transform: translateX(0); } to { transform: translateX(-50px); } }
+
+/* Portal: vortex */
+#tlock-bg-portal {
+    background: radial-gradient(ellipse at center, rgba(62,20,126,0.92), rgba(12,6,34,0.98) 70%, #020004);
+    animation: portalPulse 3s ease-in-out infinite;
+}
+@keyframes portalPulse {
+    0%, 100% { filter: hue-rotate(0deg) brightness(1); }
+    50% { filter: hue-rotate(40deg) brightness(1.15); }
+}
+#tlock-bg-portal::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: repeating-conic-gradient(from 0deg at 50% 50%,
+        rgba(160,80,255,0.08) 0deg 10deg,
+        transparent 10deg 20deg);
+    animation: vortexSpin 8s linear infinite;
+}
+@keyframes vortexSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+/* ── Window Frame (vehicle interior) ─────────────────────────────────── */
+.tlock-interior {
+    position: absolute; inset: 0; z-index: 1;
+    display: flex; flex-direction: column;
+    pointer-events: none;
+}
+
+/* Vehicle window cutout */
+.tlock-window-frame {
+    position: absolute;
+    border-radius: 20px;
+    border: 3px solid rgba(180,210,255,0.16);
+    box-shadow: inset 0 0 40px rgba(0,0,0,0.6);
+    pointer-events: none;
+}
+/* Train window: left side */
+.tlock-train-window-l { top: 20%; left: 8%; width: 22%; height: 42%; }
+.tlock-train-window-r { top: 20%; right: 8%; width: 22%; height: 42%; }
+/* Carriage window */
+.tlock-carriage-window-l { top: 25%; left: 12%; width: 28%; height: 36%; }
+.tlock-carriage-window-r { top: 25%; right: 12%; width: 28%; height: 36%; }
+/* Boat porthole */
+.tlock-boat-porthole { top: 22%; left: 50%; transform: translateX(-50%);
+    width: 180px; height: 180px; border-radius: 50%; }
+/* Plane oval window */
+.tlock-plane-window-l { top: 28%; left: 10%; width: 18%; height: 30%; border-radius: 50%; }
+.tlock-plane-window-r { top: 28%; right: 10%; width: 18%; height: 30%; border-radius: 50%; }
+/* Spaceship viewport */
+.tlock-space-viewport {
+    top: 15%; left: 50%; transform: translateX(-50%);
+    width: 50%; height: 55%; border-radius: 20px;
+    border-color: rgba(100,180,255,0.3);
+    box-shadow: inset 0 0 60px rgba(0,0,0,0.8), 0 0 20px rgba(100,200,255,0.1);
+}
+
+/* ── HUD (foreground UI) ─────────────────────────────────────────────── */
+#transit-lock-hud {
+    position: absolute; inset: 0; z-index: 10;
+    display: flex; flex-direction: column;
+    justify-content: space-between;
+    padding: 0;
+    pointer-events: none;
+}
+
+/* Top status bar */
+#tlock-status-bar {
+    display: flex; align-items: center; gap: 14px;
+    padding: 18px 28px;
+    background: linear-gradient(180deg, rgba(5,10,18,.92) 0%, transparent 100%);
+    pointer-events: auto;
+}
+#tlock-mode-badge {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 14px; border-radius: 10px;
+    background: rgba(45,212,191,0.1);
+    border: 1px solid rgba(45,212,191,0.22);
+    font-size: 13px; font-weight: 700; color: #9ff3e6;
+}
+#tlock-route-info { flex: 1; min-width: 0; }
+#tlock-origin { font-size: 11px; color: rgba(180,210,255,0.5); }
+#tlock-route-arrow {
+    font-size: 18px; font-weight: 800; color: #dbe4f0;
+    display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+}
+#tlock-asset-badge {
+    font-size: 11px; font-weight: 600;
+    padding: 5px 11px; border-radius: 8px;
+    background: rgba(168,85,247,0.1);
+    border: 1px solid rgba(168,85,247,0.24);
+    color: #c4b5fd;
+}
+
+/* Bottom controls */
+#tlock-controls {
+    padding: 22px 28px;
+    background: linear-gradient(0deg, rgba(5,10,18,.96) 0%, transparent 100%);
+    pointer-events: auto;
+    display: flex; flex-direction: column; gap: 12px;
+}
+#tlock-progress-wrap {
+    display: flex; align-items: center; gap: 14px;
+}
+#tlock-progress-track {
+    flex: 1; height: 8px;
+    background: rgba(255,255,255,0.08);
+    border-radius: 4px; overflow: hidden;
+}
+#tlock-progress-fill {
+    height: 100%; width: 0%;
+    background: linear-gradient(90deg, #2dd4bf, #38bdf8);
+    border-radius: 4px;
+    transition: width .8s ease;
+    box-shadow: 0 0 10px rgba(45,212,191,0.22);
+}
+#tlock-progress-pct { font-size: 13px; font-weight: 700; color: #9ff3e6; min-width: 36px; }
+#tlock-time-info {
+    display: flex; gap: 20px;
+    font-size: 12px; color: rgba(180,210,255,0.6);
+}
+#tlock-time-info strong { color: #e2eeff; }
+#tlock-btn-row { display: flex; gap: 10px; }
+#tlock-skip-btn {
+    padding: 10px 22px; border-radius: 10px;
+    border: 1px solid rgba(45,212,191,0.34);
+    background: rgba(45,212,191,0.1);
+    color: #9ff3e6; font-size: 13px; font-weight: 700;
+    cursor: pointer; transition: all .15s;
+    display: flex; align-items: center; gap: 7px;
+}
+#tlock-skip-btn:hover { background: rgba(45,212,191,0.18); }
+#tlock-skip-btn:disabled { opacity: .35; cursor: not-allowed; }
+#tlock-interact-btn {
+    padding: 10px 22px; border-radius: 10px;
+    border: 1px solid rgba(168,85,247,0.34);
+    background: rgba(168,85,247,0.1);
+    color: #c4b5fd; font-size: 13px; font-weight: 700;
+    cursor: pointer; transition: all .15s;
+    display: none; align-items: center; gap: 7px;
+}
+#tlock-interact-btn.visible { display: flex; }
+#tlock-interact-btn:hover { background: rgba(168,85,247,0.18); }
+#tlock-abort-btn {
+    padding: 10px 22px; border-radius: 10px;
+    border: 1px solid rgba(248,113,113,0.35);
+    background: rgba(248,113,113,0.08);
+    color: #f87171; font-size: 13px; font-weight: 700;
+    cursor: pointer; transition: all .15s;
+    margin-left: auto;
+}
+#tlock-abort-btn:hover { background: rgba(248,113,113,0.2); }
+
+/* Portal specific text */
+#tlock-portal-text {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    text-align: center; z-index: 5;
+    animation: portalTextPulse 2s ease-in-out infinite;
+}
+@keyframes portalTextPulse {
+    0%, 100% { opacity: 0.7; transform: translate(-50%,-50%) scale(1); }
+    50% { opacity: 1; transform: translate(-50%,-50%) scale(1.04); }
+}
+#tlock-portal-text .portal-glyph { font-size: 72px; display: block; margin-bottom: 8px; }
+#tlock-portal-text .portal-label { font-size: 18px; font-weight: 800; color: #c4b5fd; letter-spacing: .1em; }
+</style>
+
+<div id="transit-lock-overlay">
+
+    <!-- ── Background scenes (only one visible at a time) ── -->
+    <div class="tlock-bg" id="tlock-bg-train" style="display:none;"></div>
+    <div class="tlock-bg" id="tlock-bg-bus" style="display:none;"></div>
+    <div class="tlock-bg" id="tlock-bg-car" style="display:none;"></div>
+    <div class="tlock-bg" id="tlock-bg-horse" style="display:none;"></div>
+    <div class="tlock-bg" id="tlock-bg-carriage" style="display:none;"></div>
+    <div class="tlock-bg" id="tlock-bg-boat" style="display:none;"></div>
+    <div class="tlock-bg" id="tlock-bg-plane" style="display:none;"></div>
+    <div class="tlock-bg" id="tlock-bg-spaceship" style="display:none;"></div>
+    <div class="tlock-bg" id="tlock-bg-portal" style="display:none;"></div>
+    <div class="tlock-bg" id="tlock-bg-rideshare" style="display:none;"></div>
+    <div class="tlock-bg" id="tlock-bg-amtrak" style="display:none;"></div>
+    <div class="tlock-bg" id="tlock-bg-fast"
+        style="display:none; background:radial-gradient(ellipse at center, rgba(45,212,191,0.22), rgba(5,10,18,1) 80%);">
+    </div>
+
+    <!-- ── Interior overlays (window frames etc.) ── -->
+    <!-- Train -->
+    <div class="tlock-interior" id="tlock-interior-train" style="display:none;">
+        <div class="tlock-window-frame tlock-train-window-l"></div>
+        <div class="tlock-window-frame tlock-train-window-r"></div>
+    </div>
+    <!-- Carriage -->
+    <div class="tlock-interior" id="tlock-interior-carriage" style="display:none;">
+        <div class="tlock-window-frame tlock-carriage-window-l"></div>
+        <div class="tlock-window-frame tlock-carriage-window-r"></div>
+    </div>
+    <!-- Boat porthole -->
+    <div class="tlock-interior" id="tlock-interior-boat" style="display:none;">
+        <div class="tlock-window-frame tlock-boat-porthole"></div>
+    </div>
+    <!-- Plane oval windows -->
+    <div class="tlock-interior" id="tlock-interior-plane" style="display:none;">
+        <div class="tlock-window-frame tlock-plane-window-l"></div>
+        <div class="tlock-window-frame tlock-plane-window-r"></div>
+    </div>
+    <!-- Spaceship viewport -->
+    <div class="tlock-interior" id="tlock-interior-spaceship" style="display:none;">
+        <div class="tlock-window-frame tlock-space-viewport"></div>
+    </div>
+    <!-- Portal: floating text -->
+    <div class="tlock-interior" id="tlock-interior-portal" style="display:none;">
+        <div id="tlock-portal-text">
+            <span class="portal-glyph">⬡</span>
+            <span class="portal-label">TRAVERSING GATE</span>
+        </div>
+    </div>
+
+    <!-- ── HUD ── -->
+    <div id="transit-lock-hud">
+        <!-- Status Bar -->
+        <div id="tlock-status-bar">
+            <div id="tlock-mode-badge">
+                <i class="fa-solid fa-train" id="tlock-mode-icon"></i>
+                <span id="tlock-mode-label">Transit</span>
+            </div>
+            <div id="tlock-route-info">
+                <div id="tlock-origin" style="font-size:11px; color:rgba(180,210,255,.5);"></div>
+                <div id="tlock-route-arrow">
+                    <span id="tlock-from-name">Origin</span>
+                    <span>→</span>
+                    <span id="tlock-to-name">Destination</span>
+                </div>
+            </div>
+            <div id="tlock-asset-badge" style="display:none;">
+                <i class="fa-solid fa-car"></i>
+                <span id="tlock-asset-name">Vehicle</span>
+            </div>
+        </div>
+
+        <!-- Spacer fills middle (background visible) -->
+        <div style="flex:1;"></div>
+
+        <!-- Controls -->
+        <div id="tlock-controls">
+            <div id="tlock-progress-wrap">
+                <div id="tlock-progress-track">
+                    <div id="tlock-progress-fill"></div>
+                </div>
+                <div id="tlock-progress-pct">0%</div>
+            </div>
+            <div id="tlock-time-info">
+                <div>Elapsed: <strong id="tlock-elapsed">0m</strong></div>
+                <div>ETA: <strong id="tlock-eta">—</strong></div>
+                <div>Distance: <strong id="tlock-distance">—</strong></div>
+            </div>
+            <div id="tlock-btn-row">
+                <button id="tlock-skip-btn">
+                    <i class="fa-solid fa-forward-fast"></i> Skip Transit
+                </button>
+                <button id="tlock-interact-btn">
+                    <i class="fa-solid fa-wrench"></i> Interact with Vehicle
+                </button>
+                <button id="tlock-abort-btn">
+                    <i class="fa-solid fa-ban"></i> Abort Trip
+                </button>
+            </div>
+        </div>
+    </div><!-- /hud -->
+
+</div><!-- /transit-lock-overlay -->

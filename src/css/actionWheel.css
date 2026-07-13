@@ -1,0 +1,55 @@
+/* Compact in-game Actions launcher. The menu is anchored to its floating icon. */
+#uie-action-wheel {
+    position: fixed !important;
+    right: max(12px, env(safe-area-inset-right)) !important;
+    bottom: calc(108px + env(safe-area-inset-bottom)) !important;
+    inset: auto !important;
+    z-index: 2147483640 !important;
+    width: min(292px, calc(100vw - 24px)) !important;
+    pointer-events: auto !important;
+    background: transparent !important;
+}
+
+#uie-action-wheel::before { display: none !important; }
+
+#uie-action-wheel-fab {
+    position: fixed !important;
+    right: max(18px, env(safe-area-inset-right)) !important;
+    bottom: calc(42px + env(safe-area-inset-bottom)) !important;
+    width: 44px !important;
+    height: 44px !important;
+    border: 1px solid rgba(111, 211, 255, .6) !important;
+    border-radius: 12px !important;
+    color: #dff7ff !important;
+    background: linear-gradient(145deg, rgba(18, 38, 57, .96), rgba(7, 16, 28, .97)) !important;
+    box-shadow: 0 8px 22px rgba(0, 0, 0, .42), inset 0 1px rgba(255,255,255,.12) !important;
+}
+#uie-action-wheel-fab i { font-size: 16px !important; }
+#uie-action-wheel-fab::after { display: none !important; }
+#uie-action-wheel-fab.open { border-color: #8de3ff !important; background: rgba(27, 78, 103, .98) !important; }
+
+.aw-menu {
+    box-sizing: border-box;
+    overflow: hidden;
+    border: 1px solid rgba(111, 211, 255, .35);
+    border-radius: 12px;
+    color: #e8f6fc;
+    background: rgba(7, 17, 29, .97);
+    box-shadow: 0 14px 36px rgba(0,0,0,.5), inset 0 1px rgba(255,255,255,.06);
+    backdrop-filter: blur(10px);
+}
+.aw-menu-header { display:flex; align-items:center; justify-content:space-between; gap:8px; min-height:38px; padding:0 8px 0 11px; border-bottom:1px solid rgba(111,211,255,.17); color:#b8eaff; font-size:11px; font-weight:800; letter-spacing:.04em; }
+.aw-menu-header span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.aw-menu-header i { margin-right:5px; color:#6fd3ff; }
+.aw-menu-close { width:27px; height:27px; padding:0; display:grid; place-items:center; border:0; border-radius:7px; color:#b8eaff; background:transparent; cursor:pointer; }
+.aw-menu-close i { margin:0; }
+.aw-menu-close:hover, .aw-menu-close:focus-visible { color:#fff; background:rgba(111,211,255,.15); outline:none; }
+.aw-menu-actions { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:5px; padding:7px; max-height:min(48dvh,310px); overflow:auto; }
+.aw-menu-action { min-width:0; min-height:43px; display:flex; align-items:center; gap:7px; padding:7px; border:1px solid rgba(148,163,184,.16); border-radius:8px; color:#e6f5fb; background:rgba(255,255,255,.035); text-align:left; cursor:pointer; }
+.aw-menu-action:hover, .aw-menu-action:focus-visible { border-color:rgba(111,211,255,.65); background:rgba(111,211,255,.11); outline:none; }
+.aw-menu-action > i { width:17px; text-align:center; color:#6fd3ff; }
+.aw-menu-action span { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:10px; font-weight:750; }
+.aw-menu-action small { display:block; color:#a8b9c8; font-size:8px; font-weight:600; }
+.aw-menu-action:disabled { opacity:.42; cursor:not-allowed; }
+.aw-empty { grid-column:1/-1; margin:7px; color:#9db0c0; font-size:11px; text-align:center; }
+@media (max-width:620px) { #uie-action-wheel { right:10px !important; bottom:calc(94px + env(safe-area-inset-bottom)) !important; } #uie-action-wheel-fab { right:12px !important; bottom:calc(36px + env(safe-area-inset-bottom)) !important; } }

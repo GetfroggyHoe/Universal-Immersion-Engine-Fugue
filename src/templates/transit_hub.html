@@ -1,0 +1,417 @@
+<!-- ═══════════════════════════════════════════════════════════════════════
+     UNIVERSAL TRANSIT HUB OVERLAY
+     Full-screen hub UI with separate panels per transport mode.
+     Standalone transit hub overlay.
+     ═══════════════════════════════════════════════════════════════════════ -->
+
+<style>
+/* ── Root Overlay ────────────────────────────────────────────────────── */
+#transit-hub-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 22000;
+    display: none;
+    flex-direction: column;
+    background: radial-gradient(circle at top, rgba(12, 18, 30, 0.98), rgba(4, 8, 14, 0.99));
+    backdrop-filter: blur(4px);
+    font-family: 'Inter', 'Segoe UI', sans-serif;
+    color: #e2eeff;
+    animation: hubFadeIn 0.28s ease;
+}
+@keyframes hubFadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:none; } }
+
+/* ── Top Bar ─────────────────────────────────────────────────────────── */
+#transit-hub-topbar {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 18px 28px;
+    background: linear-gradient(135deg, rgba(10,16,24,.98), rgba(8,12,18,.98));
+    border-bottom: 1px solid rgba(148,163,184,0.16);
+    flex-shrink: 0;
+}
+#transit-hub-icon {
+    width: 52px; height: 52px;
+    border-radius: 14px;
+    display: grid; place-items: center;
+    font-size: 24px;
+    background: rgba(45,212,191,0.1);
+    border: 1px solid rgba(45,212,191,0.22);
+    flex-shrink: 0;
+}
+#transit-hub-title { flex: 1; min-width: 0; }
+#transit-hub-name { font-size: 22px; font-weight: 800; letter-spacing: -0.02em; color: #e8f4ff; margin: 0 0 2px; }
+#transit-hub-subtitle { font-size: 12px; color: rgba(180,210,255,0.6); text-transform: uppercase; letter-spacing: 0.08em; }
+#transit-hub-close {
+    width: 40px; height: 40px;
+    border-radius: 10px;
+    border: 1px solid rgba(248,113,113,0.34);
+    background: rgba(24, 28, 42, 0.95);
+    color: #f87171; font-size: 20px; font-weight: bold;
+    cursor: pointer; display: grid; place-items: center;
+    transition: all .15s;
+}
+#transit-hub-close:hover { background: rgba(200,50,50,0.55); }
+
+/* ── Mode Tabs ───────────────────────────────────────────────────────── */
+#transit-hub-tabs {
+    display: flex;
+    gap: 4px;
+    padding: 12px 24px 0;
+    flex-shrink: 0;
+    flex-wrap: wrap;
+    border-bottom: 1px solid rgba(148,163,184,0.1);
+}
+.transit-hub-tab {
+    display: flex; align-items: center; gap: 8px;
+    padding: 9px 16px;
+    border-radius: 10px 10px 0 0;
+    border: 1px solid rgba(148,163,184,0.12);
+    border-bottom: none;
+    background: rgba(15,23,42,0.66);
+    color: rgba(180,210,255,0.55);
+    font-size: 12px; font-weight: 600; cursor: pointer;
+    text-transform: uppercase; letter-spacing: 0.06em;
+    transition: all .15s;
+}
+.transit-hub-tab.active {
+    background: rgba(45,212,191,0.12);
+    border-color: rgba(45,212,191,0.28);
+    color: #9ff3e6;
+}
+.transit-hub-tab:hover:not(.active) { background: rgba(255,255,255,0.05); color: #f8fafc; }
+
+/* ── Body ────────────────────────────────────────────────────────────── */
+#transit-hub-body {
+    flex: 1; overflow-y: auto;
+    display: flex; flex-direction: column;
+    padding: 24px;
+    gap: 20px;
+}
+
+/* ── Mode Panel (one per transport type) ─────────────────────────────── */
+.transit-hub-panel { display: none; flex-direction: column; gap: 18px; }
+.transit-hub-panel.active { display: flex; }
+
+/* ── Section heading ─────────────────────────────────────────────────── */
+.hub-section-head {
+    font-size: 11px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.1em; color: rgba(180,210,255,0.55);
+    padding-bottom: 6px;
+    border-bottom: 1px solid rgba(148,163,184,0.12);
+}
+
+/* ── Departure Board ─────────────────────────────────────────────────── */
+.hub-departure-board {
+    background: rgba(8, 12, 18, 0.72);
+    border: 1px solid rgba(148,163,184,0.14);
+    border-radius: 12px;
+    overflow: hidden;
+}
+.hub-departure-header {
+    display: grid;
+    grid-template-columns: 1fr auto auto 120px;
+    padding: 9px 14px;
+    font-size: 10px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.08em; color: rgba(148,163,184,0.65);
+    background: rgba(255,255,255,0.03);
+    border-bottom: 1px solid rgba(148,163,184,0.1);
+}
+.hub-departure-row {
+    display: grid;
+    grid-template-columns: 1fr auto auto 120px;
+    align-items: center;
+    padding: 12px 14px;
+    gap: 12px;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    cursor: pointer; transition: background .12s;
+}
+.hub-departure-row:last-child { border-bottom: none; }
+.hub-departure-row:hover { background: rgba(45,212,191,0.06); }
+.hub-dest-name { font-size: 14px; font-weight: 600; }
+.hub-dest-range {
+    font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em;
+    padding: 3px 7px; border-radius: 5px;
+}
+.hub-dest-range.local { background: rgba(104,211,145,0.15); color: #68d391; }
+.hub-dest-range.any { background: rgba(45,212,191,0.12); color: #9ff3e6; }
+.hub-dest-range.world { background: rgba(168,85,247,0.15); color: #c4b5fd; }
+.hub-dest-cost { font-size: 13px; color: #c4b5fd; font-weight: 700; }
+.hub-board-btn {
+    padding: 6px 14px; border-radius: 8px;
+    border: 1px solid rgba(45,212,191,0.34);
+    background: rgba(45,212,191,0.1);
+    color: #9ff3e6; font-size: 12px; font-weight: 700;
+    cursor: pointer; transition: all .15s; white-space: nowrap;
+}
+.hub-board-btn:hover { background: rgba(45,212,191,0.18); border-color: rgba(45,212,191,0.55); }
+.hub-board-btn:disabled { opacity: .38; cursor: not-allowed; }
+.hub-no-routes { padding: 18px; text-align: center; color: rgba(180,210,255,0.38); font-size: 13px; }
+
+/* ── Parking / Slot Grid ─────────────────────────────────────────────── */
+.hub-slot-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 10px;
+}
+.hub-slot {
+    border-radius: 12px;
+    border: 1.5px dashed rgba(148,163,184,0.16);
+    background: rgba(10,18,28,0.64);
+    padding: 14px 12px;
+    display: flex; flex-direction: column; align-items: center; gap: 8px;
+    cursor: pointer; transition: all .18s; text-align: center;
+    min-height: 100px;
+}
+.hub-slot.occupied {
+    border-style: solid;
+    border-color: rgba(45,212,191,0.3);
+    background: rgba(45,212,191,0.07);
+}
+.hub-slot:hover { border-color: rgba(45,212,191,0.4); background: rgba(45,212,191,0.09); }
+.hub-slot-icon { font-size: 26px; }
+.hub-slot-name { font-size: 11px; font-weight: 700; color: #dbe4f0; }
+.hub-slot-desc { font-size: 10px; color: rgba(180,210,255,0.5); }
+.hub-slot-label {
+    font-size: 9px; text-transform: uppercase; letter-spacing: .08em;
+    color: rgba(180,210,255,0.32);
+}
+.hub-park-btn {
+    padding: 5px 12px; border-radius: 7px;
+    border: 1px solid rgba(168,85,247,0.34);
+    background: rgba(168,85,247,0.12);
+    color: #c4b5fd; font-size: 11px; font-weight: 700;
+    cursor: pointer; transition: all .15s; margin-top: auto;
+}
+.hub-park-btn:hover { background: rgba(168,85,247,0.2); }
+.hub-retrieve-btn {
+    padding: 5px 12px; border-radius: 7px;
+    border: 1px solid rgba(248,113,113,0.36);
+    background: rgba(248,113,113,0.1);
+    color: #f87171; font-size: 11px; font-weight: 700;
+    cursor: pointer; transition: all .15s; margin-top: auto;
+}
+.hub-retrieve-btn:hover { background: rgba(248,113,113,0.22); }
+
+/* ── Info Badge ──────────────────────────────────────────────────────── */
+.hub-info-badge {
+    display: flex; align-items: flex-start; gap: 10px;
+    padding: 12px 16px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(148,163,184,0.14);
+    border-radius: 10px;
+    font-size: 12px; color: rgba(180,210,255,0.72); line-height: 1.5;
+}
+.hub-info-badge i { margin-top: 2px; color: #9ff3e6; }
+
+/* ── Public badge ────────────────────────────────────────────────────── */
+.hub-public-badge, .hub-private-badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em;
+    padding: 3px 9px; border-radius: 20px;
+}
+.hub-public-badge { background: rgba(45,212,191,0.12); color: #9ff3e6; border: 1px solid rgba(45,212,191,0.24); }
+.hub-private-badge { background: rgba(168,85,247,0.12); color: #c4b5fd; border: 1px solid rgba(168,85,247,0.24); }
+</style>
+
+<div id="transit-hub-overlay">
+    <!-- Top Bar -->
+    <div id="transit-hub-topbar">
+        <div id="transit-hub-icon">🏛️</div>
+        <div id="transit-hub-title">
+            <div id="transit-hub-name">Transit Hub</div>
+            <div id="transit-hub-subtitle">Select a mode to continue</div>
+        </div>
+        <button id="transit-hub-close" title="Close hub" aria-label="Close transit hub">×</button>
+    </div>
+
+    <!-- Mode Tabs (populated dynamically) -->
+    <div id="transit-hub-tabs"></div>
+
+    <!-- Body -->
+    <div id="transit-hub-body">
+
+        <!-- ── TRAIN / SUBWAY / METRO ──────────────────────────────── -->
+        <div class="transit-hub-panel" id="transit-hub-train">
+            <div class="hub-info-badge">
+                <i class="fa-solid fa-train"></i>
+                <div>
+                    <strong>Train Platform</strong> — Public transit. No ownership required.
+                    Trains run fixed routes on a schedule. Long-haul trains (amtrak / intercity rail)
+                    will lock transit until arrival.
+                    <span class="hub-public-badge" style="margin-left:8px;"><i class="fa-solid fa-users"></i> Public</span>
+                </div>
+            </div>
+            <div class="hub-section-head">Departure Board</div>
+            <div class="hub-departure-board" id="hub-train-board">
+                <div class="hub-departure-header"><span>Destination</span><span>Range</span><span>Fare</span><span>Action</span></div>
+                <div class="hub-no-routes" id="hub-train-no-routes">No train routes from this location.</div>
+            </div>
+        </div>
+
+        <!-- ── BUS ───────────────────────────────────────────────── -->
+        <div class="transit-hub-panel" id="transit-hub-bus">
+            <div class="hub-info-badge">
+                <i class="fa-solid fa-bus"></i>
+                <div>
+                    <strong>Bus Terminal</strong> — Public transit. Operates within city/local range.
+                    <span class="hub-public-badge" style="margin-left:8px;"><i class="fa-solid fa-users"></i> Public</span>
+                </div>
+            </div>
+            <div class="hub-section-head">Route Board</div>
+            <div class="hub-departure-board" id="hub-bus-board">
+                <div class="hub-departure-header"><span>Destination</span><span>Range</span><span>Fare</span><span>Action</span></div>
+                <div class="hub-no-routes" id="hub-bus-no-routes">No bus routes from this location.</div>
+            </div>
+        </div>
+
+        <!-- ── RIDESHARE / TAXI ───────────────────────────────────── -->
+        <div class="transit-hub-panel" id="transit-hub-rideshare">
+            <div class="hub-info-badge">
+                <i class="fa-solid fa-mobile-screen-button"></i>
+                <div>
+                    <strong>Rideshare / Taxi Pickup</strong> — On-demand local transit.
+                    <span class="hub-public-badge" style="margin-left:8px;"><i class="fa-solid fa-users"></i> Public</span>
+                </div>
+            </div>
+            <div class="hub-section-head">Available Pickups</div>
+            <div class="hub-departure-board" id="hub-rideshare-board">
+                <div class="hub-departure-header"><span>Destination</span><span>Range</span><span>Fare</span><span>Action</span></div>
+                <div class="hub-no-routes" id="hub-rideshare-no-routes">No rideshare routes available here.</div>
+            </div>
+        </div>
+
+        <!-- ── CAR / GARAGE ──────────────────────────────────────── -->
+        <div class="transit-hub-panel" id="transit-hub-car">
+            <div class="hub-info-badge">
+                <i class="fa-solid fa-car"></i>
+                <div>
+                    <strong>Garage / Parking</strong> — Private vehicles only. Your cars are stored in numbered slots.
+                    Park here to leave your vehicle. Retrieve it to travel.
+                    <span class="hub-private-badge" style="margin-left:8px;"><i class="fa-solid fa-lock"></i> Private</span>
+                </div>
+            </div>
+            <div class="hub-section-head">Parking Slots</div>
+            <div class="hub-slot-grid" id="hub-car-slots"></div>
+            <div class="hub-section-head" style="margin-top:6px;">Drive To</div>
+            <div class="hub-departure-board" id="hub-car-board">
+                <div class="hub-departure-header"><span>Destination</span><span>Range</span><span>Fare</span><span>Action</span></div>
+                <div class="hub-no-routes" id="hub-car-no-routes">Park a vehicle to enable driving routes.</div>
+            </div>
+        </div>
+
+        <!-- ── HORSE / STABLE ────────────────────────────────────── -->
+        <div class="transit-hub-panel" id="transit-hub-horse">
+            <div class="hub-info-badge">
+                <i class="fa-solid fa-horse"></i>
+                <div>
+                    <strong>Stables</strong> — Private mounts. Board your horse here between journeys.
+                    <span class="hub-private-badge" style="margin-left:8px;"><i class="fa-solid fa-lock"></i> Private</span>
+                </div>
+            </div>
+            <div class="hub-section-head">Stalls</div>
+            <div class="hub-slot-grid" id="hub-horse-slots"></div>
+            <div class="hub-section-head" style="margin-top:6px;">Ride To</div>
+            <div class="hub-departure-board" id="hub-horse-board">
+                <div class="hub-departure-header"><span>Destination</span><span>Range</span><span>Fare</span><span>Action</span></div>
+                <div class="hub-no-routes" id="hub-horse-no-routes">Board a mount to ride out.</div>
+            </div>
+        </div>
+
+        <!-- ── CARRIAGE ───────────────────────────────────────────── -->
+        <div class="transit-hub-panel" id="transit-hub-carriage">
+            <div class="hub-info-badge">
+                <i class="fa-solid fa-carriage-baby"></i>
+                <div>
+                    <strong>Carriage House</strong> — Private carriages and wagons.
+                    <span class="hub-private-badge" style="margin-left:8px;"><i class="fa-solid fa-lock"></i> Private</span>
+                </div>
+            </div>
+            <div class="hub-section-head">Carriage Bays</div>
+            <div class="hub-slot-grid" id="hub-carriage-slots"></div>
+            <div class="hub-section-head" style="margin-top:6px;">Depart To</div>
+            <div class="hub-departure-board" id="hub-carriage-board">
+                <div class="hub-departure-header"><span>Destination</span><span>Range</span><span>Fare</span><span>Action</span></div>
+                <div class="hub-no-routes" id="hub-carriage-no-routes">No carriage routes available.</div>
+            </div>
+        </div>
+
+        <!-- ── BOAT / HARBOR ─────────────────────────────────────── -->
+        <div class="transit-hub-panel" id="transit-hub-boat">
+            <div class="hub-info-badge">
+                <i class="fa-solid fa-ship"></i>
+                <div>
+                    <strong>Harbor / Marina</strong> — Both private vessels and public ferries may operate here.
+                    Berths are for private ships. Public ferry board is below.
+                    <span class="hub-public-badge" style="margin-left:8px;"><i class="fa-solid fa-ferry"></i> Ferry</span>
+                    <span class="hub-private-badge" style="margin-left:4px;"><i class="fa-solid fa-anchor"></i> Private</span>
+                </div>
+            </div>
+            <div class="hub-section-head">Berths (Private Vessels)</div>
+            <div class="hub-slot-grid" id="hub-boat-slots"></div>
+            <div class="hub-section-head" style="margin-top:6px;">Departures</div>
+            <div class="hub-departure-board" id="hub-boat-board">
+                <div class="hub-departure-header"><span>Destination</span><span>Range</span><span>Fare</span><span>Action</span></div>
+                <div class="hub-no-routes" id="hub-boat-no-routes">No maritime routes from this port.</div>
+            </div>
+        </div>
+
+        <!-- ── PLANE / AIRPORT ───────────────────────────────────── -->
+        <div class="transit-hub-panel" id="transit-hub-plane">
+            <div class="hub-info-badge">
+                <i class="fa-solid fa-plane"></i>
+                <div>
+                    <strong>Airport / Airfield</strong> — Both private aircraft and commercial flights.
+                    Park your aircraft in a hangar slot. Board commercial flights from the departure board.
+                    <span class="hub-public-badge" style="margin-left:8px;"><i class="fa-solid fa-plane-departure"></i> Commercial</span>
+                    <span class="hub-private-badge" style="margin-left:4px;"><i class="fa-solid fa-lock"></i> Private</span>
+                </div>
+            </div>
+            <div class="hub-section-head">Hangars (Private Aircraft)</div>
+            <div class="hub-slot-grid" id="hub-plane-slots"></div>
+            <div class="hub-section-head" style="margin-top:6px;">Flight Board</div>
+            <div class="hub-departure-board" id="hub-plane-board">
+                <div class="hub-departure-header"><span>Destination</span><span>Range</span><span>Fare</span><span>Action</span></div>
+                <div class="hub-no-routes" id="hub-plane-no-routes">No flights from this location.</div>
+            </div>
+        </div>
+
+        <!-- ── SPACESHIP / SPACEPORT ─────────────────────────────── -->
+        <div class="transit-hub-panel" id="transit-hub-spaceship">
+            <div class="hub-info-badge">
+                <i class="fa-solid fa-rocket"></i>
+                <div>
+                    <strong>Spaceport / Orbital Dock</strong> — Public transit ships and private spacecraft.
+                    Dock your ship in a bay. Public shuttles run scheduled interstellar routes.
+                    <span class="hub-public-badge" style="margin-left:8px;"><i class="fa-solid fa-satellite"></i> Public Shuttle</span>
+                    <span class="hub-private-badge" style="margin-left:4px;"><i class="fa-solid fa-rocket"></i> Private</span>
+                </div>
+            </div>
+            <div class="hub-section-head">Docking Bays (Private Ships)</div>
+            <div class="hub-slot-grid" id="hub-spaceship-slots"></div>
+            <div class="hub-section-head" style="margin-top:6px;">Launch Board</div>
+            <div class="hub-departure-board" id="hub-spaceship-board">
+                <div class="hub-departure-header"><span>Destination</span><span>Range</span><span>Fare</span><span>Action</span></div>
+                <div class="hub-no-routes" id="hub-spaceship-no-routes">No spacecraft routes from this port.</div>
+            </div>
+        </div>
+
+        <!-- ── PORTAL / TELEPORT ─────────────────────────────────── -->
+        <div class="transit-hub-panel" id="transit-hub-portal">
+            <div class="hub-info-badge">
+                <i class="fa-solid fa-dharmachakra"></i>
+                <div>
+                    <strong>Portal Gate</strong> — Magical or technological teleportation. Instant transit.
+                    Some gates require keys, tokens, or energy charges.
+                    <span class="hub-public-badge" style="margin-left:8px;"><i class="fa-solid fa-circle-nodes"></i> Gate</span>
+                </div>
+            </div>
+            <div class="hub-section-head">Active Gate Connections</div>
+            <div class="hub-departure-board" id="hub-portal-board">
+                <div class="hub-departure-header"><span>Destination</span><span>Range</span><span>Cost</span><span>Action</span></div>
+                <div class="hub-no-routes" id="hub-portal-no-routes">No gate connections from this circle.</div>
+            </div>
+        </div>
+
+    </div><!-- /body -->
+</div><!-- /transit-hub-overlay -->

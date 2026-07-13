@@ -1,0 +1,529 @@
+<div id="uie-activities-window" class="uie-window" style="display:none;">
+  <style>
+    #uie-activities-window {
+      --act-ink: #fff8e8;
+      --act-muted: #cbd5e1;
+      --act-panel: rgba(12, 16, 22, 0.85);
+      --act-panel-soft: rgba(148, 163, 184, 0.1);
+      --act-gold: #c99c4e;
+      --act-coral: #7dd3fc;
+      --act-blue: #7dd3fc;
+      position: fixed !important;
+      top: 50% !important;
+      left: 50% !important;
+      transform: translate(-50%, -50%) !important;
+      width: min(1180px, 98vw) !important;
+      height: min(860px, 92vh) !important;
+      display: none;
+      flex-direction: column !important;
+      overflow: hidden !important;
+      color: var(--act-ink);
+      border: 1px solid rgba(201, 156, 78, 0.55);
+      border-radius: 12px;
+      background: rgba(12, 16, 22, 0.85);
+      box-shadow: 0 26px 80px rgba(0, 0, 0, 0.72), inset 0 1px rgba(255,255,255,0.12);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+      font-family: Inter, "Segoe UI", system-ui, sans-serif;
+      isolation: isolate;
+    }
+    #uie-activities-window::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.04), rgba(0,0,0,0.18));
+      pointer-events: none;
+      z-index: 0;
+    }
+    #uie-activities-window > * { position: relative; z-index: 1; }
+    #uie-activities-window button,
+    #uie-activities-window input,
+    #uie-activities-window select {
+      font: inherit;
+    }
+    .uie-act-header {
+      min-height: 62px;
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      border-bottom: 1px solid rgba(241, 192, 106, 0.24);
+      background: rgba(3, 7, 18, 0.48);
+      cursor: move;
+    }
+    .uie-act-title {
+      min-width: 0;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-weight: 900;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .uie-act-title i {
+      width: 38px;
+      height: 38px;
+      display: grid;
+      place-items: center;
+      color: #082332;
+      border-radius: 8px;
+      background: linear-gradient(135deg, var(--act-blue), var(--act-gold));
+      box-shadow: 0 0 22px rgba(101, 199, 231, 0.28);
+    }
+    .uie-act-title small {
+      display: block;
+      margin-top: 2px;
+      color: var(--act-muted);
+      font-size: 11px;
+      font-weight: 750;
+      letter-spacing: 0;
+      text-transform: none;
+    }
+    .uie-act-head-actions { display: flex; gap: 8px; align-items: center; }
+    .uie-act-icon-btn {
+      width: 36px;
+      height: 36px;
+      display: grid;
+      place-items: center;
+      border: 1px solid rgba(241, 192, 106, 0.3);
+      border-radius: 8px;
+      background: rgba(255, 248, 232, 0.1);
+      color: var(--act-ink);
+      cursor: pointer;
+    }
+    .uie-act-icon-btn:hover { background: rgba(241, 192, 106, 0.22); }
+    #uie-activity-menu {
+      position: absolute;
+      top: 48px;
+      right: 48px;
+      display: none;
+      min-width: 210px;
+      padding: 7px;
+      border: 1px solid rgba(241, 192, 106, 0.34);
+      border-radius: 10px;
+      background: rgba(17, 12, 9, 0.96);
+      box-shadow: 0 16px 42px rgba(0,0,0,0.48);
+      z-index: 4;
+    }
+    .uie-dd-item {
+      padding: 10px 12px;
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      color: var(--act-ink);
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 850;
+    }
+    .uie-dd-item:hover { background: rgba(101, 199, 231, 0.16); }
+    .uie-act-content {
+      min-height: 0;
+      flex: 1;
+      display: grid;
+      grid-template-columns: minmax(250px, 0.82fr) minmax(0, 1.18fr);
+      overflow: hidden;
+    }
+    .uie-act-status {
+      min-height: 0;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      border-right: 1px solid rgba(241, 192, 106, 0.2);
+      background: rgba(3, 7, 18, 0.34);
+    }
+    .uie-act-now {
+      padding: 14px;
+      border: 1px solid rgba(241, 192, 106, 0.26);
+      border-radius: 10px;
+      background: var(--act-panel);
+    }
+    .uie-act-label {
+      color: var(--act-muted);
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: 0.09em;
+      text-transform: uppercase;
+    }
+    .uie-act-current {
+      margin: 9px 0 12px;
+      color: #ffffff;
+      font-size: 22px;
+      font-weight: 900;
+      line-height: 1.1;
+    }
+    .uie-act-progress-track {
+      height: 9px;
+      overflow: hidden;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.16);
+    }
+    .uie-act-progress-fill {
+      height: 100%;
+      width: 0%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--act-blue), var(--act-gold));
+      transition: width 0.25s linear;
+    }
+    .uie-act-timer-row {
+      margin-top: 9px;
+      display: flex;
+      justify-content: space-between;
+      color: var(--act-muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
+    #uie-activity-stop { display: none; color: #ff9b8d; cursor: pointer; }
+    .uie-act-tabs { display: none; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .uie-act-tab {
+      height: 38px;
+      border: 1px solid rgba(255,255,255,0.14);
+      border-radius: 8px;
+      background: rgba(255,255,255,0.08);
+      color: var(--act-muted);
+      cursor: pointer;
+      font-weight: 900;
+    }
+    .uie-act-tab.active {
+      color: #061d2a;
+      background: linear-gradient(135deg, var(--act-blue), var(--act-gold));
+      border-color: transparent;
+    }
+    .uie-act-create {
+      margin-top: auto;
+      padding: 12px;
+      border: 1px solid rgba(255,255,255,0.13);
+      border-radius: 10px;
+      background: rgba(255,255,255,0.08);
+    }
+    .uie-act-create-row { display: flex; gap: 8px; margin-top: 8px; }
+    .uie-act-input {
+      min-width: 0;
+      flex: 1;
+      height: 38px;
+      border: 1px solid rgba(255,255,255,0.18);
+      border-radius: 8px;
+      background: rgba(0,0,0,0.34);
+      color: #fff;
+      padding: 0 10px;
+      outline: none;
+    }
+    .uie-act-btn {
+      height: 38px;
+      padding: 0 14px;
+      border: 0;
+      border-radius: 8px;
+      background: var(--act-gold);
+      color: #1d1209;
+      cursor: pointer;
+      font-weight: 950;
+    }
+    .uie-act-main {
+      min-height: 0;
+      overflow: auto;
+      padding: 16px;
+      background: rgba(3, 7, 18, 0.22);
+    }
+    .uie-act-board {
+      min-height: 0;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 16px;
+    }
+    .uie-act-column {
+      min-width: 0;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+    }
+    .uie-act-section-title {
+      margin: 0 0 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--act-ink);
+      font-size: 13px;
+      font-weight: 950;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    #uie-activities-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      gap: 12px;
+    }
+    .uie-activity-card {
+      min-height: 132px;
+      padding: 13px;
+      display: grid;
+      grid-template-columns: 42px minmax(0,1fr) auto;
+      align-items: start;
+      gap: 10px;
+      border: 1px solid rgba(241, 192, 106, 0.25);
+      border-radius: 8px;
+      background: var(--act-panel);
+      cursor: pointer;
+      transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+    }
+    .uie-activity-card:hover {
+      transform: translateY(-2px);
+      border-color: rgba(101, 199, 231, 0.62);
+      background: rgba(31, 25, 18, 0.9);
+    }
+    .uie-activity-card.active {
+      border-color: var(--act-gold);
+      box-shadow: inset 3px 0 var(--act-gold), 0 0 20px rgba(201, 156, 78, 0.16);
+    }
+    .uie-activity-icon {
+      width: 42px;
+      height: 42px;
+      display: grid;
+      place-items: center;
+      border-radius: 8px;
+      color: #062233;
+      background: linear-gradient(135deg, var(--act-blue), var(--act-gold));
+      font-size: 18px;
+    }
+    .uie-activity-info { min-width: 0; }
+    .uie-activity-name {
+      color: #fff;
+      font-size: 15px;
+      font-weight: 950;
+      line-height: 1.15;
+    }
+    .uie-activity-meta {
+      margin-top: 6px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      color: var(--act-muted);
+      font-size: 11px;
+      font-weight: 800;
+    }
+    .uie-activity-rewards {
+      grid-column: 1 / -1;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      min-height: 28px;
+      color: var(--act-ink);
+      font-size: 11px;
+      font-weight: 850;
+    }
+    .uie-stat-item {
+      padding: 5px 7px;
+      border-radius: 999px;
+      background: var(--act-panel-soft);
+      border: 1px solid rgba(255,255,255,0.12);
+    }
+    .uie-activity-action { color: var(--act-blue); }
+    .uie-activity-edit,
+    .uie-activity-del,
+    .uie-activity-assign { display: none; border:0; background:transparent; cursor:pointer; padding:0; }
+    .uie-activity-edit { color: var(--act-blue); }
+    .uie-activity-del { color: #ff9b8d; }
+    .uie-activity-assign { color: var(--act-gold); }
+    .uie-act-party-grid {
+      display: grid;
+      grid-template-rows: auto auto;
+      gap: 12px;
+      min-height: 0;
+      flex: 1;
+    }
+    .uie-act-field label {
+      display: block;
+      margin-bottom: 6px;
+      color: var(--act-muted);
+      font-size: 11px;
+      font-weight: 900;
+      text-transform: uppercase;
+    }
+    .uie-act-select {
+      width: 100%;
+      height: 40px;
+      border: 1px solid rgba(255,255,255,0.18);
+      border-radius: 8px;
+      background: rgba(0,0,0,0.42);
+      color: #fff;
+      padding: 0 10px;
+    }
+    #uie-activity-party-members,
+    #uie-activity-party-actions {
+      display: grid;
+      gap: 10px;
+      align-content: start;
+    }
+    #uie-activity-party-members { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); }
+    #uie-activity-party-actions { display: none !important; }
+    .uie-act-member-card,
+    .uie-act-party-action {
+      width: 100%;
+      padding: 12px;
+      text-align: left;
+      border: 1px solid rgba(241, 192, 106, 0.24);
+      border-radius: 10px;
+      background: var(--act-panel);
+      color: var(--act-ink);
+      cursor: pointer;
+    }
+    .uie-act-member-card.active,
+    .uie-act-party-action:hover {
+      border-color: rgba(101, 199, 231, 0.72);
+      background: rgba(101, 199, 231, 0.14);
+    }
+    .uie-act-member-card strong,
+    .uie-act-party-action strong,
+    .uie-act-member-card span,
+    .uie-act-party-action span {
+      display: block;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .uie-act-member-card span,
+    .uie-act-party-action span {
+      margin-top: 4px;
+      color: var(--act-muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
+    #uie-activities-window * {
+      transition-duration: 0ms !important;
+      animation-duration: 0ms !important;
+    }
+    #uie-activity-party-active-list {
+      grid-column: 1 / -1;
+      display: grid;
+      gap: 10px;
+      margin-top: 2px;
+    }
+    .uie-party-activity-row {
+      padding: 11px;
+      border: 1px solid rgba(101, 199, 231, 0.24);
+      border-radius: 8px;
+      background: rgba(0, 0, 0, 0.26);
+    }
+    .uie-party-activity-row strong,
+    .uie-party-activity-row span {
+      display: block;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .uie-party-activity-row span { color: var(--act-muted); font-size: 12px; font-weight: 800; margin-top: 3px; }
+    @media not all {
+      #uie-activities-window { width: 96vw !important; height: 90vh !important; }
+      .uie-act-content { grid-template-columns: 1fr; }
+      .uie-act-status { border-right: 0; border-bottom: 1px solid rgba(241, 192, 106, 0.2); }
+      .uie-act-create { margin-top: 0; }
+      .uie-act-board { grid-template-columns: 1fr; }
+      .uie-act-party-grid { grid-template-columns: 1fr; }
+    }
+    @media not all {
+      #uie-activities-window { width: 100vw !important; height: 100dvh !important; border-radius: 0; }
+      .uie-act-header { min-height: 54px; padding: 8px 10px; }
+      .uie-act-content { grid-template-rows: auto minmax(0, 1fr); }
+      .uie-act-status { overflow:visible; gap:10px; padding:10px; }
+      .uie-act-now { padding:10px; }
+      .uie-act-current { font-size:18px; margin:6px 0 8px; }
+      .uie-act-create-row { flex-wrap:wrap; }
+      #uie-activity-new-name { flex:1 1 150px; }
+      .uie-act-main { padding: 10px; }
+      #uie-activity-pane-party .uie-act-party-grid { grid-template-rows: auto auto; }
+      #uie-activity-party-members { grid-template-columns: repeat(auto-fit, minmax(132px, 1fr)); }
+    }
+  </style>
+
+  <div class="uie-act-header">
+    <div class="uie-act-title">
+      <i class="fa-solid fa-fire-flame-curved"></i>
+        <div>
+          Activities
+          <small>Select a party member to assign the same activity cards below</small>
+        </div>
+    </div>
+    <div class="uie-act-head-actions">
+      <button class="uie-act-icon-btn" onclick="uie.phone.openBooksGuide('guide-activities')" title="Help / Guide"><i class="fa-solid fa-circle-question"></i></button>
+      <button class="uie-act-icon-btn" id="uie-activity-sparkle" title="Activity tools"><i class="fa-solid fa-wand-magic-sparkles"></i></button>
+      <div class="uie-dropdown" id="uie-activity-menu">
+        <div class="uie-dd-item" id="uie-activity-act-add"><i class="fa-solid fa-plus"></i> Add Activity</div>
+        <div class="uie-dd-item" id="uie-activity-act-station"><i class="fa-solid fa-wand-magic-sparkles"></i> Open Create Station</div>
+      </div>
+      <button class="uie-act-icon-btn" id="uie-activities-close-btn" title="Close"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+  </div>
+
+  <div class="uie-act-content">
+    <aside class="uie-act-status">
+      <div class="uie-act-now">
+        <div class="uie-act-label"><i class="fa-solid fa-hourglass-half"></i> Active Activity</div>
+        <div id="uie-activity-current-display" class="uie-act-current">Free Time</div>
+        <div class="uie-act-progress-track">
+          <div id="uie-activity-progress" class="uie-act-progress-fill"></div>
+        </div>
+        <div class="uie-act-timer-row">
+          <span id="uie-activity-timer">--:--</span>
+          <span id="uie-activity-stop">Cancel</span>
+        </div>
+      </div>
+
+      <div class="uie-act-create">
+        <div class="uie-act-label">Add / edit activity</div>
+        <div class="uie-act-create-row">
+          <input type="text" id="uie-activity-new-name" placeholder="Train, Study, or custom" class="uie-act-input">
+          <input type="number" id="uie-activity-new-duration" min="1" max="999" value="1" title="Minutes" class="uie-act-input" style="max-width:82px;">
+          <button id="uie-activity-create" class="uie-act-btn">Add</button>
+        </div>
+      </div>
+    </aside>
+
+    <main class="uie-act-main">
+      <div class="uie-act-board">
+      <div id="uie-activity-pane-user" class="uie-act-column">
+        <h3 class="uie-act-section-title"><i class="fa-solid fa-seedling"></i> Activities</h3>
+        <div id="uie-activities-list"></div>
+      </div>
+
+      <div id="uie-activity-pane-party" class="uie-act-column">
+        <h3 class="uie-act-section-title"><i class="fa-solid fa-users"></i> Assign Party Member</h3>
+        <div class="uie-act-party-grid">
+          <div>
+            <div class="uie-act-label" style="margin-bottom:8px;">Party</div>
+            <div id="uie-activity-party-members"></div>
+          </div>
+          <div id="uie-activity-party-active-list"></div>
+        </div>
+      </div>
+      </div>
+    </main>
+  </div>
+
+  <template id="uie-activity-card-template">
+    <div class="uie-activity-card">
+      <div class="uie-activity-icon"></div>
+      <div class="uie-activity-info">
+        <div class="uie-activity-name"></div>
+        <div class="uie-activity-meta">
+          <span><i class="fa-regular fa-clock"></i> <span class="duration-text"></span></span>
+        </div>
+      </div>
+      <div class="uie-activity-action"><i class="fa-solid fa-chevron-right"></i></div>
+      <div class="uie-activity-rewards"></div>
+      <button type="button" class="uie-activity-edit" title="Edit Activity"><i class="fa-solid fa-pen"></i></button>
+      <button type="button" class="uie-activity-del" title="Delete Activity"><i class="fa-solid fa-trash"></i></button>
+      <button type="button" class="uie-activity-assign" title="Assign selected party member"><i class="fa-solid fa-user-plus"></i></button>
+    </div>
+  </template>
+
+  <template id="uie-template-activity-stat">
+    <span class="uie-stat-item"><span class="uie-stat-label"></span> <span class="uie-stat-val"></span></span>
+  </template>
+
+  <template id="uie-template-activity-active-label">
+    <span style="color:#ffad9f; font-weight:950; font-size:0.82em;">ACTIVE</span>
+  </template>
+</div>

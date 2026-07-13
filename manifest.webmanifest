@@ -1,0 +1,20 @@
+{
+  "name": "UIE: Fugue",
+  "short_name": "UIE: Fugue",
+  "description": "Visual novel / RP frontend — run the dev server on this device (e.g. Termux) or on your LAN, then open from http.",
+  "start_url": "./game.html",
+  "scope": "./",
+  "display": "fullscreen",
+  "display_override": ["fullscreen", "standalone"],
+  "orientation": "landscape",
+  "background_color": "#0b0f14",
+  "theme_color": "#0b0f14",
+  "icons": [
+    {
+      "src": "./assets/backgrounds/logo.jpg",
+      "sizes": "1000x1000",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    }
+  ]
+}

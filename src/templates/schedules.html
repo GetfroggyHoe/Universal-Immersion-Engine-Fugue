@@ -1,0 +1,9 @@
+<div id="uie-schedules-window" class="uie-window" style="display:none;">
+  <style>
+    #uie-schedules-window{position:fixed;inset:8vh auto auto 50%;transform:translateX(-50%);z-index:2147483640;width:min(820px,94vw);max-height:82vh;overflow:hidden;flex-direction:column;color:#eaf8ff;background:rgba(7,13,24,.97);border:1px solid rgba(103,232,249,.3);border-radius:16px;box-shadow:0 24px 80px rgba(0,0,0,.7);font-family:Inter,system-ui,sans-serif}
+    .uie-schedules-head{display:flex;align-items:center;gap:12px;padding:16px 18px;border-bottom:1px solid rgba(148,163,184,.16)}.uie-schedules-head h2{margin:0;flex:1;font-size:18px}.uie-schedules-head button{border:0;background:transparent;color:#eaf8ff;font-size:20px;cursor:pointer}
+    #uie-schedules-clock{color:#67e8f9;font-size:12px;font-weight:900}.uie-schedules-list{padding:14px;overflow:auto;display:grid;gap:10px}.uie-schedule-card{padding:12px;border:1px solid rgba(148,163,184,.16);border-radius:12px;background:rgba(30,41,59,.48)}.uie-schedule-card__head{display:flex;justify-content:space-between;gap:12px}.uie-schedule-card__head span{color:#67e8f9;font-size:12px}.uie-schedule-card__activity{margin-top:6px;color:#cbd5e1;font-size:12px}.uie-schedule-card__entries{margin-top:9px;white-space:pre-wrap;color:#94a3b8;font-size:12px;line-height:1.5}.uie-schedule-empty{padding:30px;text-align:center;color:#94a3b8}
+  </style>
+  <div class="uie-schedules-head"><h2>Character Schedules</h2><span id="uie-schedules-clock"></span><button id="uie-schedules-close" type="button" aria-label="Close">×</button></div>
+  <div id="uie-schedules-list" class="uie-schedules-list"></div>
+</div>

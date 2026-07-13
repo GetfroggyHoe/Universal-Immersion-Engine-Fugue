@@ -1,0 +1,1608 @@
+/* Shared UI shell styles kept outside game.html for tests and browser loading. */
+
+* {
+    box-sizing: border-box;
+}
+
+* {
+    scrollbar-width: thin !important;
+    scrollbar-color: rgba(203, 163, 92, 0.78) rgba(18, 13, 10, 0.28) !important;
+}
+
+*::-webkit-scrollbar {
+    width: 10px !important;
+    height: 10px !important;
+}
+
+*::-webkit-scrollbar-track {
+    background: linear-gradient(180deg, rgba(18, 13, 10, 0.28), rgba(6, 8, 13, 0.22)) !important;
+    border-radius: 999px !important;
+}
+
+*::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, #d6b16b, #8e5431) !important;
+    border: 2px solid rgba(10, 8, 8, 0.72) !important;
+    border-radius: 999px !important;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, #ffd58a, #a86638) !important;
+}
+
+html,
+body {
+    min-height: 100%;
+}
+
+body {
+    margin: 0;
+    overflow: hidden;
+    background: #08101e;
+    color: #f5f8ff;
+    font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+button,
+input,
+select,
+textarea {
+    font: inherit;
+}
+
+#user-input {
+    background: rgba(3, 7, 15, 0.94) !important;
+    color: #f8fafc !important;
+    border-color: rgba(148, 163, 184, 0.38) !important;
+    color-scheme: dark !important;
+}
+
+#user-input:focus {
+    background: rgba(0, 0, 0, 0.96) !important;
+    color: #ffffff !important;
+    border-color: rgba(83, 186, 242, 0.74) !important;
+    box-shadow: 0 0 0 3px rgba(83, 186, 242, 0.22) !important;
+    outline: none !important;
+}
+
+#user-input::placeholder {
+    color: rgba(226, 232, 240, 0.62) !important;
+    opacity: 1 !important;
+}
+
+.reply-input-shell {
+    position: relative;
+    width: 100%;
+}
+
+.reply-input-shell #user-input {
+    padding-right: 42px !important;
+}
+
+.reply-keyboard-toggle {
+    position: absolute;
+    right: 7px;
+    bottom: 7px;
+    z-index: 3;
+    width: 30px;
+    height: 28px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: 1px solid rgba(255, 255, 255, 0.72);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.04);
+    color: #ffffff;
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.22);
+    cursor: pointer;
+}
+
+.reply-keyboard-toggle:hover,
+.reply-keyboard-toggle.active {
+    background: rgba(255, 255, 255, 0.16);
+    border-color: rgba(255, 255, 255, 0.95);
+}
+
+.floating-portrait-keyboard {
+    position: absolute;
+    right: 0;
+    bottom: calc(100% + 8px);
+    z-index: 10150;
+    width: 280px;
+    height: 272px;
+    min-width: 220px;
+    max-width: min(420px, calc(100vw - 24px));
+    min-height: 200px;
+    max-height: 480px;
+    display: none;
+    flex-direction: column;
+    gap: 7px;
+    padding: 9px;
+    overflow: auto;
+    border: 1px solid rgba(255, 255, 255, 0.38);
+    border-radius: 16px;
+    background:
+        linear-gradient(145deg, rgba(255, 150, 184, 0.94), rgba(255, 220, 128, 0.92) 46%, rgba(111, 211, 255, 0.9));
+    box-shadow: 0 16px 42px rgba(0, 0, 0, 0.42), inset 0 1px 0 rgba(255, 255, 255, 0.45);
+    backdrop-filter: blur(18px);
+    resize: both;
+}
+
+.floating-portrait-keyboard.active {
+    display: flex;
+}
+
+.reply-keyboard-topbar,
+.reply-keyboard-bottom {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.reply-keyboard-predictions { display:flex; gap:5px; min-height:28px; overflow-x:auto; padding:1px; }
+.reply-prediction { flex:0 0 auto; min-height:27px; padding:4px 8px; border:1px solid rgba(167,139,250,.62); border-radius:7px; color:#f5f3ff; background:rgba(49,46,129,.82); font-size:11px; font-weight:700; cursor:pointer; }
+.reply-prediction:hover,.reply-prediction:focus-visible { background:#6d5bd0; outline:2px solid #c4b5fd; outline-offset:1px; }
+.uie-effect-tremble { color:#fbbf24!important; font-style:italic; animation:uie-text-tremble .12s linear infinite; }
+.uie-effect-glitch { color:#67e8f9!important; text-shadow:2px 0 #f472b6,-2px 0 #818cf8; animation:uie-text-glitch .28s steps(2,end) infinite; }
+.uie-effect-blur-dissolve { color:#c4b5fd!important; animation:uie-text-dissolve 1.1s ease-in-out infinite alternate; }
+.uie-pose-transition { animation:uie-pose-enter .32s cubic-bezier(.2,.8,.2,1); }
+@keyframes uie-text-tremble { 25%{transform:translateX(1px)}75%{transform:translateX(-1px)} }
+@keyframes uie-text-glitch { 50%{transform:translate(1px,-1px)} }
+@keyframes uie-text-dissolve { to{filter:blur(.8px);opacity:.8} }
+@keyframes uie-pose-enter { from{opacity:.55;transform:translateY(7px) scale(.985)}to{opacity:1;transform:none} }
+@media (prefers-reduced-motion: reduce) { .uie-effect-tremble,.uie-effect-glitch,.uie-effect-blur-dissolve,.uie-pose-transition{animation:none!important;} }
+@media (orientation: landscape) and (max-height: 620px) { .floating-portrait-keyboard{position:fixed;right:max(8px,env(safe-area-inset-right));bottom:max(8px,env(safe-area-inset-bottom));width:min(390px,48vw);height:min(300px,calc(100dvh - 16px));max-height:calc(100dvh - 16px);z-index:2147483000;} .virtual-key-grid{gap:3px}.reply-keyboard-key{height:28px}.reply-keyboard-predictions{min-height:25px} }
+
+.reply-keyboard-grip {
+    flex: 1;
+    min-width: 0;
+    padding: 5px 8px;
+    border: 1px solid rgba(255, 255, 255, 0.45);
+    border-radius: 999px;
+    color: rgba(14, 19, 28, 0.72);
+    background: rgba(255, 255, 255, 0.42);
+    font-size: 10px;
+    font-weight: 800;
+    text-align: center;
+    cursor: grab;
+    user-select: none;
+}
+
+.reply-keyboard-grip:active {
+    cursor: grabbing;
+}
+
+.reply-keyboard-resize {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.28);
+    color: rgba(14, 19, 28, 0.72);
+    font-size: 12px;
+    font-weight: 800;
+    cursor: nwse-resize;
+    user-select: none;
+    flex-shrink: 0;
+}
+
+.reply-keyboard-resize:hover {
+    background: rgba(255, 255, 255, 0.48);
+}
+
+.reply-keyboard-mini,
+.reply-keyboard-key {
+    border: 1px solid rgba(12, 18, 28, 0.35);
+    border-radius: 8px;
+    background: rgba(38, 44, 56, 0.92);
+    color: #e8ecf2;
+    font-weight: 800;
+    cursor: pointer;
+    box-shadow: 0 2px 0 rgba(0, 0, 0, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.reply-keyboard-mini {
+    height: 26px;
+    padding: 0 8px;
+    font-size: 10px;
+}
+
+.virtual-key-grid {
+    display: grid;
+    grid-template-columns: repeat(10, 1fr);
+    gap: 4px;
+    margin-top: auto;
+}
+
+.reply-keyboard-key {
+    height: 32px;
+    min-width: 0;
+    padding: 0;
+    font-size: 13px;
+}
+
+.reply-keyboard-key:hover,
+.reply-keyboard-mini:hover {
+    background: rgba(58, 66, 82, 0.95);
+    color: #fff;
+    transform: translateY(-1px);
+}
+
+.reply-keyboard-bottom {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 74px;
+}
+
+.reply-keyboard-space,
+.reply-keyboard-enter {
+    height: 34px;
+}
+
+#nav-row {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 48px;
+    width: 100%;
+    padding: 6px 8px;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: thin;
+}
+
+.modal-card,
+.modal-content,
+.modal-panel,
+.modal-window,
+.uie-modal-card,
+.life-modal .box {
+    font-size: 1.08em;
+}
+
+.modal-card,
+.modal-content,
+.modal-panel,
+.modal-window,
+.uie-modal-card {
+    max-width: min(96vw, 1300px) !important;
+}
+
+.uie-window:not(#uie-party-window):not(#uie-party-member-modal):not(#uie-main-menu):not(#uie-map-window):not(#uie-phone-window):not(#uie-inventory-window) {
+    font-size: 1.08em;
+    width: min(1040px, 96vw) !important;
+    height: min(845px, 92vh) !important;
+    max-width: 96vw !important;
+    max-height: 92vh !important;
+}
+
+#nav-row .nav-btn {
+    min-width: 44px;
+    min-height: 40px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(203, 213, 225, 0.45);
+    border-radius: 8px;
+    background: rgba(15, 23, 42, 0.95);
+    color: #eef6ff;
+    cursor: pointer;
+}
+
+#nav-row .nav-btn:hover,
+#nav-row .nav-btn:focus-visible {
+    border-color: rgba(45, 212, 191, 0.78);
+    background: rgba(20, 184, 166, 0.16);
+    outline: none;
+}
+
+#re-nav-arrows {
+    position: absolute;
+    inset: 0;
+    z-index: 35;
+    pointer-events: none !important;
+    display: none !important;
+}
+
+.re-viewport-zone {
+    position: absolute;
+    pointer-events: none !important;
+    display: none !important;
+    border: 1px solid transparent;
+    background: transparent;
+    color: transparent;
+    cursor: pointer;
+    transition: background 140ms ease, border-color 140ms ease, box-shadow 140ms ease;
+}
+
+.re-viewport-zone:hover,
+.re-viewport-zone:focus-visible,
+.re-viewport-zone.is-inspected {
+    border-color: rgba(45, 212, 191, 0.58);
+    background: rgba(8, 145, 178, 0.10);
+    box-shadow: inset 0 0 26px rgba(45, 212, 191, 0.14);
+    outline: none;
+}
+
+.re-viewport-zone--forward {
+    top: 0;
+    left: 24%;
+    width: 52%;
+    height: 42%;
+}
+
+.re-viewport-zone--backward {
+    left: 24%;
+    bottom: 0;
+    width: 52%;
+    height: 32%;
+}
+
+.re-viewport-zone--left {
+    top: 16%;
+    left: 0;
+    width: 30%;
+    height: 68%;
+}
+
+.re-viewport-zone--right {
+    top: 16%;
+    right: 0;
+    width: 30%;
+    height: 68%;
+}
+
+#re-nav-tooltip {
+    position: fixed;
+    z-index: 2147483600;
+    max-width: min(320px, calc(100vw - 24px));
+    padding: 8px 10px;
+    border: 1px solid rgba(148, 163, 184, 0.28);
+    border-radius: 8px;
+    background: rgba(4, 10, 22, 0.92);
+    color: #f8fafc;
+    font-size: 12px;
+    line-height: 1.35;
+    pointer-events: none;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+}
+
+.uie-window {
+    color: #e5e7eb;
+    font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.uie-window button,
+.uie-window input,
+.uie-window select,
+.uie-window textarea {
+    font-family: inherit;
+}
+
+.uie-barrier-inspection {
+    position: fixed;
+    inset: 0;
+    z-index: 2147483601;
+    display: grid;
+    place-items: center;
+    padding: 18px;
+    background: rgba(2, 6, 23, 0.48);
+    backdrop-filter: blur(4px);
+}
+
+.uie-barrier-inspection__lock {
+    width: min(360px, calc(100vw - 36px));
+    min-height: 164px;
+    display: grid;
+    place-items: center;
+    gap: 8px;
+    padding: 22px;
+    border: 1px solid rgba(251, 191, 36, 0.48);
+    border-radius: 8px;
+    background: linear-gradient(180deg, rgba(30, 41, 59, 0.96), rgba(15, 23, 42, 0.96));
+    color: #fff7ed;
+    text-align: center;
+    cursor: pointer;
+    box-shadow: 0 22px 60px rgba(0, 0, 0, 0.45);
+}
+
+.uie-barrier-inspection__lock strong {
+    font-size: 18px;
+    font-weight: 800;
+}
+
+.uie-barrier-inspection__lock span {
+    color: #e2e8f0;
+    font-size: 14px;
+    line-height: 1.45;
+}
+
+.uie-barrier-inspection__lock small {
+    color: #facc15;
+    font-size: 12px;
+    letter-spacing: 0;
+}
+
+.uie-barrier-inspection__close {
+    position: fixed;
+    top: 14px;
+    right: 14px;
+    width: 40px;
+    height: 40px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    background: rgba(15, 23, 42, 0.82);
+    color: #f8fafc;
+    cursor: pointer;
+}
+
+@media not all {
+    #nav-row {
+        justify-content: flex-start;
+    }
+
+    .re-viewport-zone--forward {
+        left: 18%;
+        width: 64%;
+        height: 38%;
+    }
+
+    .re-viewport-zone--backward {
+        left: 18%;
+        width: 64%;
+        height: 28%;
+    }
+}
+
+@media not all {
+    #input-row {
+        display: grid !important;
+        grid-template-columns: minmax(0, 1fr) 48px !important;
+        align-items: stretch !important;
+    }
+
+    #user-input-column {
+        display: flex !important;
+        flex-direction: column !important;
+        grid-column: 1 / 2 !important;
+        min-width: 0 !important;
+        min-height: 44px !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+    }
+
+    #user-input {
+        display: block !important;
+        width: 100% !important;
+        min-height: 42px !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+    }
+}
+
+/* Living UI backplate defaults. Runtime overrides in game.html apply the stronger in-game layer. */
+:root {
+    --uie-living-accent: #53baf2;
+    --uie-living-warm: #ff7a8a;
+    --uie-living-gold: #ffc36f;
+}
+
+#reply-menu-panel {
+    background-image:
+        linear-gradient(160deg, rgba(15, 20, 18, 0.86), rgba(43, 28, 18, 0.8)),
+        url("./assets/backgrounds/Generated image 3.png");
+    background-size: cover;
+    background-position: center;
+    color: #fff8e8;
+}
+
+#reply-menu-panel .reply-menu-title,
+#reply-menu-panel .reply-menu-section-title,
+#reply-menu-panel .reply-menu-item,
+#reply-menu-panel .reply-menu-tab-btn {
+    color: #fff8e8;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
+}
+
+.uie-dialogue-card {
+    background-image:
+        linear-gradient(180deg, rgba(255, 250, 239, 0.86), rgba(255, 233, 214, 0.72)),
+        url("./assets/ui/backplates/ui-dialogue-golden-rehearsal.png");
+    background-size: cover;
+    background-position: center;
+}
+
+@media not all {
+    .uie-dialogue-card {
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+        min-height: 108px !important;
+        padding: 18px !important;
+    }
+
+    .uie-dialogue-text {
+        font-size: 16.5px !important;
+    }
+}
+
+.hud-tracker,
+#hud .hud-item[data-hud="hp"] {
+    border-radius: 8px;
+    font-family: Georgia, "Times New Roman", serif;
+    width: 94% !important;
+    max-width: 94% !important;
+    box-sizing: border-box !important;
+}
+
+#hud .hud-item:not([data-hud="hp"]) {
+    width: 94% !important;
+    max-width: 94% !important;
+    box-sizing: border-box !important;
+}
+
+@media not all {
+    html,
+    body {
+        width: 100vw;
+        height: 100dvh;
+        overflow: hidden;
+    }
+
+    .uie-window {
+        max-width: calc(100vw - 12px) !important;
+        max-height: calc(100dvh - 12px) !important;
+    }
+
+    .modal-card,
+    .modal-content,
+    .modal-panel,
+    .modal-window,
+    .uie-modal-card {
+        max-width: calc(100vw - 12px) !important;
+        max-height: calc(100dvh - 12px) !important;
+        overflow: auto !important;
+    }
+
+    .uie-window:not(#uie-main-menu):not(#uie-map-window):not(#uie-inventory-window):not(#uie-phone-window) {
+        width: min(1040px, calc(100vw - 12px)) !important;
+        height: min(620px, calc(100dvh - 12px)) !important;
+        overflow: auto !important;
+    }
+}
+
+@media not all {
+    #uie-main-menu,
+    #uie-map-window,
+    #uie-inventory-window,
+    #uie-phone-window,
+    #uie-card-manager,
+    #uie-card-editor {
+        inset: 0 !important;
+        width: 100vw !important;
+        height: 100dvh !important;
+        max-width: 100vw !important;
+        max-height: 100dvh !important;
+        transform: none !important;
+    }
+
+    #reply-menu-panel,
+    #q-visibility-panel,
+    #img-gen-dropdown-panel,
+    #persona-quick-panel {
+        max-height: calc(100dvh - 16px) !important;
+        overflow-y: auto !important;
+    }
+}
+
+@media not all {
+    .modal-overlay,
+    .uie-overlay {
+        align-items: center !important;
+        justify-content: center !important;
+        padding: 6px !important;
+        overflow: auto !important;
+    }
+
+    .modal-card,
+    .modal-content,
+    .modal-panel,
+    .modal-window,
+    .uie-modal-card,
+    .life-modal .box {
+        max-width: calc(100vw - 12px) !important;
+        max-height: calc(100dvh - 12px) !important;
+        overflow: auto !important;
+    }
+}
+
+@media not all {
+    #music-genre-filter-row {
+        grid-template-columns: 1fr !important;
+    }
+}
+
+@media not all {
+    html,
+    body {
+        width: 100vw !important;
+        min-height: 100dvh !important;
+        overflow: hidden !important;
+        overscroll-behavior: none !important;
+        touch-action: manipulation !important;
+    }
+
+    .modal-overlay,
+    .uie-overlay {
+        align-items: stretch !important;
+        justify-content: center !important;
+        padding: max(6px, env(safe-area-inset-top)) 6px max(6px, env(safe-area-inset-bottom)) !important;
+        overflow: auto !important;
+        z-index: 2147483648 !important;
+    }
+
+    .modal-card,
+    .modal-content,
+    .modal-panel,
+    .modal-window,
+    .uie-modal-card,
+    .life-modal .box {
+        width: calc(100vw - 12px) !important;
+        max-width: calc(100vw - 12px) !important;
+        max-height: calc(100dvh - 12px) !important;
+        margin: auto !important;
+        overflow: auto !important;
+        border-radius: 8px !important;
+    }
+
+    .uie-window:not(#uie-main-menu):not(#uie-map-window):not(#uie-phone-window):not(#uie-inventory-window):not(#uie-diary-window):not(#uie-social-window):not(#uie-calendar-window):not(#uie-journal-window):not(#uie-card-manager):not(#uie-card-editor) {
+        width: calc(100vw - 12px) !important;
+        height: calc(100dvh - 12px) !important;
+        max-width: calc(100vw - 12px) !important;
+        max-height: calc(100dvh - 12px) !important;
+        overflow: auto !important;
+        border-radius: 8px !important;
+    }
+
+    #reply-menu-panel {
+        max-height: calc(100dvh - 12px) !important;
+        overflow-y: auto !important;
+        overscroll-behavior: contain !important;
+        -webkit-overflow-scrolling: touch !important;
+    }
+
+    #uie-inventory-window,
+    #uie-quick-bag-overlay,
+    #uie-npc-management-modal,
+    #uie-card-manager,
+    #uie-card-editor,
+    [role="dialog"] {
+        position: fixed !important;
+        z-index: 2147483650 !important;
+        transform: none !important;
+    }
+
+    #uie-inventory-window {
+        display: none;
+        inset: 0 !important;
+        width: 100vw !important;
+        height: 100dvh !important;
+        max-width: 100vw !important;
+        max-height: 100dvh !important;
+    }
+
+    #uie-inventory-window[style*="display: block"],
+    #uie-inventory-window[style*="display:block"],
+    #uie-inventory-window.inventory-modal {
+        pointer-events: auto !important;
+    }
+}
+
+@media not all {
+    #hud {
+        top: max(6px, env(safe-area-inset-top)) !important;
+        left: max(6px, env(safe-area-inset-left)) !important;
+        gap: 4px !important;
+        width: auto !important;
+        min-width: 0 !important;
+        max-width: min(238px, calc(100vw - 112px)) !important;
+        max-height: calc(100dvh - 245px) !important;
+        overflow-y: auto !important;
+        overflow-x: hidden !important;
+        scrollbar-width: none !important;
+    }
+
+    #hud::-webkit-scrollbar {
+        width: 0 !important;
+        height: 0 !important;
+    }
+
+    #hud .hud-item {
+        padding: 5px 8px !important;
+        font-size: 11px !important;
+        line-height: 1.2 !important;
+        border-left-width: 3px !important;
+        border-radius: 7px !important;
+        max-width: 100% !important;
+    }
+
+    #hud .hud-item i {
+        font-size: 11px !important;
+        margin-right: 4px !important;
+    }
+
+    #hud-custom-trackers {
+        gap: 5px !important;
+        max-width: 100% !important;
+        max-height: min(42dvh, 260px) !important;
+    }
+
+    .hud-tracker {
+        min-width: 0 !important;
+        width: 75% !important;
+        padding: 7px 8px !important;
+        border-left-width: 3px !important;
+        border-radius: 7px !important;
+    }
+
+    .hud-tracker-head {
+        font-size: 11px !important;
+        gap: 6px !important;
+        margin-bottom: 4px !important;
+    }
+
+    .hud-tracker-bar {
+        height: 7px !important;
+    }
+}
+
+@media not all {
+    html,
+    body,
+    #game-root {
+        width: 100vw !important;
+        height: 100dvh !important;
+        min-height: 100svh !important;
+        overflow: hidden !important;
+        zoom: 1 !important;
+    }
+
+    #vn-ui {
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: flex-end !important;
+        gap: 4px !important;
+        max-height: min(46dvh, 360px) !important;
+        padding: 4px max(8px, env(safe-area-inset-right)) max(4px, calc(env(safe-area-inset-bottom) + 4px)) max(8px, env(safe-area-inset-left)) !important;
+        overflow: visible !important;
+    }
+
+    #message-box-wrap {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-height: 0 !important;
+        margin: 0 !important;
+    }
+
+    #message-box {
+        min-height: 0 !important;
+        max-height: min(17dvh, 128px) !important;
+        overflow-y: auto !important;
+        padding: 6px !important;
+        font-size: 12px !important;
+        line-height: 1.34 !important;
+        border-radius: 8px !important;
+    }
+
+    #message-box.uie-dialogue-card-host {
+        gap: 6px !important;
+        max-height: min(21dvh, 154px) !important;
+        padding: 0 !important;
+        overflow-y: auto !important;
+    }
+
+    .uie-dialogue-card {
+        min-height: 0 !important;
+        padding: 9px 10px !important;
+        gap: 8px !important;
+        border-radius: 8px !important;
+    }
+
+    .uie-dialogue-card img,
+    .uie-dialogue-card .mes_avatar,
+    .uie-dialogue-card .avatar {
+        max-width: 42px !important;
+        max-height: 42px !important;
+        flex: 0 0 auto !important;
+    }
+
+    .uie-dialogue-text {
+        font-size: 12.5px !important;
+        line-height: 1.34 !important;
+        min-width: 0 !important;
+        overflow-wrap: anywhere !important;
+    }
+
+    #custom-quickbar,
+    #physical-action-strip,
+    #music-controls,
+    #direction-controls {
+        max-width: 100% !important;
+        overflow-x: auto !important;
+        overflow-y: hidden !important;
+        flex-wrap: nowrap !important;
+        justify-content: flex-start !important;
+        scrollbar-width: none !important;
+    }
+
+    #custom-quickbar::-webkit-scrollbar,
+    #physical-action-strip::-webkit-scrollbar,
+    #music-controls::-webkit-scrollbar,
+    #direction-controls::-webkit-scrollbar {
+        display: none !important;
+    }
+
+    #nav-row {
+        max-width: 980px !important;
+        margin: 8px auto 0 !important;
+        overflow: visible !important;
+        flex-wrap: wrap !important;
+        justify-content: center !important;
+        scrollbar-width: thin !important;
+    }
+
+    #input-row {
+        display: flex !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        flex-wrap: wrap !important;
+        align-items: stretch !important;
+        gap: 4px !important;
+        margin: 3px 0 0 !important;
+    }
+
+    #reply-tools {
+        order: 1 !important;
+        flex: 1 1 100% !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        margin-left: 0 !important;
+        gap: 4px !important;
+        overflow-x: auto !important;
+        overflow-y: hidden !important;
+        padding-bottom: 0 !important;
+        scrollbar-width: none !important;
+    }
+
+    #reply-tools::-webkit-scrollbar {
+        display: none !important;
+    }
+
+    .persona-target-scene-wrap {
+        order: 2 !important;
+        flex: 1 1 100% !important;
+        max-width: 100% !important;
+        gap: 4px !important;
+        flex-wrap: nowrap !important;
+        overflow-x: auto !important;
+        overflow-y: hidden !important;
+        scrollbar-width: none !important;
+    }
+
+    .persona-target-scene-wrap::-webkit-scrollbar {
+        display: none !important;
+    }
+
+    #user-input-column {
+        order: 3 !important;
+        flex: 1 1 calc(100% - 48px) !important;
+        max-width: calc(100% - 48px) !important;
+        min-width: 0 !important;
+        gap: 3px !important;
+    }
+
+    #user-input {
+        width: 100% !important;
+        min-height: 38px !important;
+        max-height: min(16dvh, 104px) !important;
+        padding: 7px 9px !important;
+        border-radius: 7px !important;
+        font-size: 16px !important;
+        line-height: 1.25 !important;
+        resize: none !important;
+    }
+
+    #send-btn {
+        order: 4 !important;
+        width: 44px !important;
+        flex: 0 0 44px !important;
+        min-height: 38px !important;
+        height: auto !important;
+        align-self: stretch !important;
+        border-radius: 7px !important;
+    }
+
+    #reply-tools > .reply-tool-btn,
+    .persona-target-scene-wrap > .reply-tool-btn {
+        width: 32px !important;
+        height: 32px !important;
+        min-width: 32px !important;
+        flex: 0 0 32px !important;
+        border-radius: 7px !important;
+    }
+
+    #q-chatlog-bar.reply-tool-btn,
+    #uie-target-trigger-btn {
+        width: auto !important;
+        max-width: min(38vw, 138px) !important;
+        min-width: 82px !important;
+    }
+
+    #uie-target-custom-panel,
+    #persona-quick-panel,
+    #q-visibility-panel,
+    #img-gen-dropdown-panel,
+    #expression-dd-panel {
+        max-width: calc(100vw - 16px) !important;
+        max-height: min(48dvh, 340px) !important;
+        overflow-y: auto !important;
+    }
+
+    #reply-menu-panel {
+        left: 8px !important;
+        right: 8px !important;
+        bottom: calc(48px + env(safe-area-inset-bottom)) !important;
+        width: auto !important;
+        max-height: calc(100dvh - 68px) !important;
+        overflow-y: auto !important;
+    }
+}
+
+input:not(#user-input),
+textarea:not(#user-input),
+select,
+[contenteditable="true"] {
+    background-color: rgba(62, 39, 25, 0.92) !important;
+    background-image: none !important;
+    color: #fffaf0 !important;
+    border-color: rgba(213, 166, 101, 0.45) !important;
+    caret-color: #fffaf0 !important;
+    color-scheme: dark !important;
+}
+
+input:not(#user-input)::placeholder,
+textarea:not(#user-input)::placeholder {
+    color: rgba(255, 250, 240, 0.66) !important;
+    opacity: 1 !important;
+}
+
+@media not all {
+    #startup-modal .main-menu-grid .reply-tool-btn {
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: none !important;
+        height: auto !important;
+        min-height: 46px !important;
+        flex: 0 0 auto !important;
+        justify-content: center !important;
+        white-space: normal !important;
+        text-align: center !important;
+    }
+}
+
+@media not all {
+    #hud {
+        max-width: min(290px, 32vw) !important;
+    }
+
+    #hud .hud-item,
+    .hud-tracker {
+        max-width: 100% !important;
+        font-size: 11px !important;
+        padding: 5px 8px !important;
+    }
+
+    #vn-ui {
+        max-height: min(52dvh, 320px) !important;
+        padding: 4px max(8px, env(safe-area-inset-right)) max(4px, calc(env(safe-area-inset-bottom) + 4px)) max(8px, env(safe-area-inset-left)) !important;
+        overflow: visible !important;
+    }
+
+    #input-row {
+        display: grid !important;
+        grid-template-columns: minmax(0, 1fr) 48px !important;
+        gap: 4px !important;
+        align-items: stretch !important;
+    }
+
+    #reply-tools,
+    .persona-target-scene-wrap {
+        grid-column: 1 / -1 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        overflow-x: auto !important;
+        overflow-y: hidden !important;
+        flex-wrap: nowrap !important;
+        scrollbar-width: none !important;
+    }
+
+    #reply-tools::-webkit-scrollbar,
+    .persona-target-scene-wrap::-webkit-scrollbar {
+        display: none !important;
+    }
+
+    #user-input-column {
+        min-width: 0 !important;
+        max-width: 100% !important;
+    }
+
+    #send-btn {
+        width: 48px !important;
+        min-width: 48px !important;
+        flex: 0 0 48px !important;
+    }
+}
+
+@media not all {
+    #hud {
+        max-width: min(188px, calc(100vw - 90px)) !important;
+        max-height: calc(100dvh - 190px) !important;
+        gap: 3px !important;
+    }
+
+    #hud .hud-item,
+    .hud-tracker {
+        font-size: 9px !important;
+        padding: 4px 6px !important;
+        border-radius: 6px !important;
+    }
+
+    #hud .hud-item i {
+        font-size: 9px !important;
+        margin-right: 3px !important;
+    }
+
+    .hud-tracker-head {
+        font-size: 9px !important;
+    }
+
+    .hud-tracker-bar {
+        height: 5px !important;
+    }
+
+    #vn-ui {
+        max-height: min(52dvh, 420px) !important;
+        gap: 4px !important;
+        padding: 4px max(8px, env(safe-area-inset-right)) max(4px, calc(env(safe-area-inset-bottom) + 4px)) max(8px, env(safe-area-inset-left)) !important;
+        overflow: visible !important;
+    }
+
+    #message-box {
+        max-height: min(12dvh, 90px) !important;
+        padding: 5px !important;
+        font-size: 11px !important;
+        line-height: 1.25 !important;
+    }
+
+    #message-box.uie-dialogue-card-host {
+        max-height: min(15dvh, 108px) !important;
+    }
+
+    .uie-dialogue-card {
+        padding: 6px 7px !important;
+        gap: 6px !important;
+    }
+
+    .uie-dialogue-card img,
+    .uie-dialogue-card .mes_avatar,
+    .uie-dialogue-card .avatar {
+        max-width: 30px !important;
+        max-height: 30px !important;
+    }
+
+    .uie-dialogue-text {
+        font-size: 10.5px !important;
+        line-height: 1.25 !important;
+    }
+
+    #input-row {
+        gap: 3px !important;
+        margin-top: 2px !important;
+    }
+
+    #user-input {
+        min-height: 30px !important;
+        max-height: min(11dvh, 72px) !important;
+        padding: 5px 7px !important;
+        font-size: 14px !important;
+    }
+
+    #send-btn {
+        width: 34px !important;
+        min-width: 34px !important;
+        flex-basis: 34px !important;
+        min-height: 30px !important;
+    }
+
+    #reply-tools > .reply-tool-btn,
+    .persona-target-scene-wrap > .reply-tool-btn,
+    .reply-tool-btn,
+    .direction-btn {
+        width: 24px !important;
+        height: 24px !important;
+        min-width: 24px !important;
+        min-height: 24px !important;
+        flex-basis: 24px !important;
+        border-radius: 6px !important;
+        font-size: 11px !important;
+    }
+
+    .nav-btn {
+        min-width: 72px !important;
+        min-height: 40px !important;
+        padding: 8px 16px !important;
+        border-radius: 12px !important;
+        font-size: 11px !important;
+    }
+
+    #q-chatlog-bar.reply-tool-btn,
+    #uie-target-trigger-btn {
+        min-width: 62px !important;
+        max-width: min(32vw, 100px) !important;
+    }
+}
+
+@media not all {
+    #hud {
+        max-width: min(210px, 27vw) !important;
+        max-height: calc(100dvh - 18px) !important;
+        gap: 3px !important;
+        overflow-y: auto !important;
+    }
+
+    #hud .hud-item,
+    .hud-tracker {
+        font-size: 8.5px !important;
+        padding: 3px 6px !important;
+        border-radius: 6px !important;
+    }
+
+    #hud .hud-item i {
+        font-size: 8.5px !important;
+        margin-right: 3px !important;
+    }
+
+    .hud-tracker-head {
+        font-size: 8.5px !important;
+        margin-bottom: 2px !important;
+    }
+
+    .hud-tracker-bar {
+        height: 4px !important;
+    }
+
+    #vn-ui {
+        max-height: min(48dvh, 280px) !important;
+        padding: 4px max(8px, env(safe-area-inset-right)) max(4px, calc(env(safe-area-inset-bottom) + 4px)) max(8px, env(safe-area-inset-left)) !important;
+        gap: 3px !important;
+        overflow: visible !important;
+    }
+
+    #message-box {
+        max-height: min(11dvh, 56px) !important;
+        padding: 4px 6px !important;
+        font-size: 10px !important;
+        line-height: 1.2 !important;
+    }
+
+    #message-box.uie-dialogue-card-host {
+        max-height: min(14dvh, 72px) !important;
+    }
+
+    .uie-dialogue-card {
+        padding: 5px 7px !important;
+        gap: 5px !important;
+    }
+
+    .uie-dialogue-card img,
+    .uie-dialogue-card .mes_avatar,
+    .uie-dialogue-card .avatar {
+        max-width: 28px !important;
+        max-height: 28px !important;
+    }
+
+    .uie-dialogue-text {
+        font-size: 9.5px !important;
+        line-height: 1.2 !important;
+    }
+
+    #input-row {
+        grid-template-columns: minmax(0, 1fr) 34px !important;
+        gap: 3px !important;
+    }
+
+    #user-input {
+        min-height: 28px !important;
+        max-height: min(10dvh, 48px) !important;
+        padding: 4px 6px !important;
+        font-size: 13px !important;
+        line-height: 1.18 !important;
+    }
+
+    #send-btn {
+        width: 34px !important;
+        min-width: 34px !important;
+        flex-basis: 34px !important;
+        min-height: 28px !important;
+    }
+
+    #reply-tools > .reply-tool-btn,
+    .persona-target-scene-wrap > .reply-tool-btn,
+    .reply-tool-btn,
+    .direction-btn {
+        width: 23px !important;
+        height: 23px !important;
+        min-width: 23px !important;
+        min-height: 23px !important;
+        flex-basis: 23px !important;
+        border-radius: 6px !important;
+        font-size: 10px !important;
+    }
+
+    .nav-btn {
+        min-width: 72px !important;
+        min-height: 40px !important;
+        padding: 8px 16px !important;
+        border-radius: 12px !important;
+        font-size: 11px !important;
+    }
+}
+
+
+/* ============================================================
+   POINTER-EVENTS: ensure empty overlay space does not block scene
+   ============================================================ */
+#hud {
+    pointer-events: none;
+}
+
+#hud > * {
+    pointer-events: auto;
+}
+
+#vn-ui {
+    pointer-events: none;
+}
+
+#vn-ui #message-box-wrap,
+#vn-ui #input-row,
+#vn-ui #input-row *,
+#vn-ui button,
+#vn-ui input,
+#vn-ui textarea,
+#vn-ui select,
+#vn-ui .reply-tool-btn,
+#vn-ui #reply-menu-panel,
+#vn-ui #reply-menu-panel *,
+#vn-ui .img-gen-dropdown-panel,
+#vn-ui .expression-dropdown-panel,
+#vn-ui .uie-user-reply-suggest-wrap,
+#vn-ui .uie-user-reply-suggest-wrap *,
+#vn-ui #next-beat-container,
+#vn-ui #next-beat-container *,
+#vn-ui #custom-quickbar,
+#vn-ui #custom-quickbar *,
+#vn-ui #physical-action-strip,
+#vn-ui #physical-action-strip * {
+    pointer-events: auto;
+}
+
+/* Room hotspot and component layers */
+#room-hotspot-layer {
+    pointer-events: none;
+}
+
+#room-hotspot-layer .room-hotspot {
+    pointer-events: auto;
+}
+
+#room-components-layer {
+    pointer-events: none;
+}
+
+#room-components-layer .vn-room-component {
+    pointer-events: auto;
+}
+
+/* Sprite layer: pass-through clicks except on sprites */
+#vn-sprite-layer {
+    pointer-events: none;
+}
+
+#vn-sprite-layer .manual-stage-sprite,
+#vn-sprite-layer .re-sprite,
+#vn-sprite-layer .vn-scene-sprite {
+    pointer-events: auto;
+}
+
+/* Scavenge layer */
+#scavenge-embed {
+    pointer-events: none;
+}
+
+#scavenge-embed.is-active #scavenge-layer {
+    pointer-events: auto;
+}
+
+/* Shared desktop-on-landscape geometry. These values are consumed by every
+   root-level overlay instead of each component inventing its own edge offsets. */
+:root {
+    --ui-edge-gap: clamp(10px, 1.35vw, 22px);
+    --ui-panel-gap: clamp(10px, 1.1vw, 18px);
+    --ui-inner-gap: clamp(8px, 0.9vw, 14px);
+    --ui-bottom-gap: max(clamp(10px, 1.2vw, 18px), env(safe-area-inset-bottom, 0px));
+    --ui-left-safe: max(var(--ui-edge-gap), env(safe-area-inset-left, 0px));
+    --ui-right-safe: max(var(--ui-edge-gap), env(safe-area-inset-right, 0px));
+    --ui-top-safe: max(var(--ui-edge-gap), env(safe-area-inset-top, 0px));
+    --desktop-nav-height: clamp(58px, 9vh, 92px);
+    --desktop-nav-reserved-height: calc(var(--desktop-nav-height) + var(--ui-panel-gap));
+    --hud-edge-gap: clamp(10px, 1vw, 18px);
+    --hud-row-gap: clamp(4px, 0.5vh, 8px);
+    --hud-section-gap: clamp(8px, 1vh, 14px);
+    --hud-row-height: clamp(30px, 4.4vh, 42px);
+    --hud-icon-size: clamp(18px, 2.6vh, 26px);
+    --hud-font-size: clamp(13px, 1.55vw, 18px);
+}
+
+/* HUD: primary rows never shrink; only dynamic secondary meters may scroll. */
+#hud {
+    top: var(--ui-top-safe) !important;
+    left: var(--ui-left-safe) !important;
+    width: clamp(200px, 22vw, 260px) !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    bottom: calc(var(--desktop-nav-reserved-height) + var(--ui-panel-gap));
+    max-height: none !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: var(--hud-section-gap) !important;
+    overflow: visible !important;
+}
+
+#hud-primary,
+#hud-detail-group,
+#hud-custom-trackers {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--hud-row-gap);
+    min-width: 0;
+}
+
+#hud-primary,
+#hud-detail-group,
+#hud-target,
+#hud .hud-item,
+#hud .hud-tracker {
+    flex: 0 0 auto !important;
+    flex-shrink: 0 !important;
+}
+
+#hud-secondary-scroll {
+    flex: 1 1 auto;
+    min-height: 0;
+    min-width: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-right: 3px;
+    scrollbar-width: thin;
+}
+
+#hud-custom-trackers {
+    width: 100% !important;
+    max-width: none !important;
+    max-height: none !important;
+    overflow: visible !important;
+    padding: 0 !important;
+}
+
+#hud .hud-item,
+#hud .hud-tracker {
+    width: 100% !important;
+    max-width: none !important;
+    min-width: 0 !important;
+    min-height: var(--hud-row-height) !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 0 10px !important;
+    box-sizing: border-box;
+    font-size: var(--hud-font-size) !important;
+    line-height: 1.15 !important;
+    overflow: hidden !important;
+}
+
+#hud .hud-item {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+}
+
+#hud .hud-item span:first-of-type {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+#hud .hud-item span + span {
+    flex: 0 0 auto;
+    margin-left: auto;
+    white-space: nowrap;
+}
+
+.hud-tracker {
+    display: flex !important;
+    flex-direction: column;
+    justify-content: center;
+    gap: 4px;
+}
+
+.hud-tracker-head {
+    min-width: 0;
+    min-height: 0;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto !important;
+    align-items: center;
+    gap: 8px !important;
+    margin: 0 !important;
+    font-size: inherit !important;
+    line-height: 1.15 !important;
+}
+
+.hud-tracker-label {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.hud-tracker-value { white-space: nowrap; }
+.hud-tracker-bar { flex: 0 0 7px; height: 7px !important; min-height: 7px; }
+
+#hud-target {
+    display: none;
+    width: 100%;
+    min-width: 0;
+}
+
+#hud-target .uie-target-select-container {
+    display: block !important;
+    width: 100%;
+}
+
+#hud-target #uie-target-trigger-btn {
+    width: 100% !important;
+    max-width: none !important;
+    min-width: 0 !important;
+    min-height: var(--hud-row-height) !important;
+}
+
+/* Android retains desktop proportions while using the measured root bounds. */
+html.uie-landscape-required:not(.uie-portrait) #uie-quick-bag-overlay {
+    left: var(--ui-left-safe) !important;
+    top: var(--ui-top-safe) !important;
+    right: auto !important;
+    bottom: auto !important;
+    width: clamp(330px, 35vw, 500px) !important;
+    max-height: calc(100% - var(--ui-top-safe) - var(--desktop-nav-reserved-height) - var(--ui-bottom-gap)) !important;
+    padding: var(--ui-inner-gap) !important;
+    overflow: hidden !important;
+    gap: var(--ui-inner-gap) !important;
+}
+
+html.uie-landscape-required:not(.uie-portrait) .quick-bag-header,
+html.uie-landscape-required:not(.uie-portrait) .quick-bag-tabs-row,
+html.uie-landscape-required:not(.uie-portrait) .quick-bag-equip-strip,
+html.uie-landscape-required:not(.uie-portrait) .quick-bag-footer-btn {
+    flex: 0 0 auto;
+}
+
+html.uie-landscape-required:not(.uie-portrait) .quick-bag-grid {
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: none;
+    padding: 2px;
+}
+
+html.uie-landscape-required:not(.uie-portrait) #vn-ui {
+    padding: var(--ui-inner-gap) var(--ui-left-safe) var(--ui-bottom-gap) var(--ui-left-safe) !important;
+}
+
+html.uie-landscape-required:not(.uie-portrait) #message-box-wrap,
+html.uie-landscape-required:not(.uie-portrait) #input-row {
+    max-width: min(960px, calc(100% - (var(--ui-left-safe) + var(--ui-right-safe)))) !important;
+}
+
+html.uie-landscape-required:not(.uie-portrait) #reply-tools {
+    /* Preserve the reference's lower-center composer anchor without reserving
+       a fixed desktop-only 280px on a 740–915px landscape viewport. */
+    margin-left: clamp(0px, 8vw, 140px) !important;
+    max-width: min(42vw, 420px) !important;
+}
+
+html.uie-landscape-required:not(.uie-portrait) #nav-row {
+    min-height: var(--desktop-nav-height);
+    height: var(--desktop-nav-height);
+    margin: var(--ui-panel-gap) auto 0 !important;
+    padding: 6px var(--ui-inner-gap);
+    overflow-x: auto;
+    overflow-y: hidden;
+}
+
+@media (orientation: landscape) and (max-height: 600px) {
+    :root { --hud-row-height: 30px; }
+    #hud { width: clamp(200px, 24vw, 240px) !important; }
+}
+
+@media (orientation: landscape) and (max-width: 900px) {
+    html.uie-landscape-required:not(.uie-portrait) #uie-quick-bag-overlay {
+        width: clamp(310px, 34vw, 390px) !important;
+    }
+}
+
+/* Android landscape uses the desktop composition at 60% UI density. The scene
+   itself is never scaled: only HUD, minimap, composer, and nav are zoomed. */
+html.uie-landscape-required:not(.uie-portrait) #hud,
+html.uie-landscape-required:not(.uie-portrait) .re-screen-minimap {
+    zoom: .6;
+}
+
+html.uie-landscape-required:not(.uie-portrait) #vn-ui {
+    zoom: .6;
+    width: 166.666667% !important;
+    /* zoom lays out in a larger logical canvas.  Keep that canvas anchored at
+       the real left edge: offsetting it shifts the composer off-screen and
+       makes the reply box look crushed. */
+    left: 0 !important;
+    right: auto !important;
+}
+
+html.uie-landscape-required:not(.uie-portrait) .re-screen-minimap__stage {
+    grid-template-columns: 1fr 60px 1fr;
+    grid-template-rows: 44px 48px 44px;
+}
+
+/* The root has one visual-viewport owner.  Mobile never receives a separate UI. */
+html.uie-landscape-required.uie-portrait #game-root {
+    visibility: hidden !important;
+    pointer-events: none !important;
+}
+
+#rotate-overlay {
+    display: none;
+}
+
+html.uie-landscape-required.uie-portrait #rotate-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 2147483647;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background: #05070c;
+    color: #f1dcc0;
+    text-align: center;
+}
+
+#rotate-overlay strong,
+#rotate-overlay span {
+    display: block;
+}
+
+#rotate-overlay strong { font-size: 22px; letter-spacing: .06em; }
+#rotate-overlay span { margin-top: 8px; color: #b98765; font: 14px/1.5 system-ui, sans-serif; }
+

@@ -1,0 +1,299 @@
+<div id="uie-tracker-window" class="uie-window" style="display:none; position:fixed; top:5%; left:10%; width:80vw; height:80vh; background:linear-gradient(135deg, #4b2d18, #2a1608); border:6px solid #3c2415; box-shadow: inset 0 0 20px rgba(0,0,0,0.8), 0 20px 60px rgba(0,0,0,0.75); border-radius:16px; color:#4a2c11; font-family:'Trebuchet MS', 'Inter', system-ui, sans-serif; flex-direction:column; z-index:10050; overflow:hidden; box-sizing:border-box;">
+    <style>
+        #uie-tracker-window {
+            --accent-gold: #b8860b;
+            --cozy-yellow: #fdf6e2;
+            --border-color: #3c2415;
+            --danger: #ef476f;
+            --text-dark: #4a2c11;
+            --text-light: #f3e5ab;
+        }
+
+        #uie-tracker-window .uie-header {
+            background: #5c3a21;
+            border-bottom: 4px solid var(--border-color);
+            padding: 16px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-shrink: 0;
+            position: relative;
+        }
+
+        #uie-tracker-window .uie-header h2 {
+            margin: 0;
+            padding: 0;
+            font-weight: 900;
+            font-size: 1.4em;
+            letter-spacing: 1.5px;
+            color: var(--text-light);
+            text-transform: uppercase;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-shadow: 2px 2px 0px rgba(0,0,0,0.5);
+        }
+
+        #uie-tracker-window .uie-header-controls {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        #uie-tracker-window .uie-close-btn {
+            background: rgba(0,0,0,0.3);
+            border: 2px solid var(--border-color);
+            color: var(--text-light);
+            cursor: pointer;
+            font-size: 1.3em;
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            display: grid;
+            place-items: center;
+            transition: all 0.2s;
+        }
+        #uie-tracker-window .uie-close-btn:hover {
+            color: #fff;
+            background: var(--danger);
+            border-color: var(--border-color);
+            transform: scale(1.05);
+        }
+
+        #uie-tracker-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            background: #faedd0;
+            box-shadow: inset 0 0 16px rgba(0,0,0,0.15);
+        }
+
+        /* Cozy Horizontal Tracker Card Styles */
+        .tracker-card {
+            background: linear-gradient(to right, #fdf6e2, #f3edd7);
+            border: 3px solid #8b5a2b;
+            border-radius: 12px;
+            padding: 14px 20px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            transition: all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);
+            position: relative;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+        .tracker-card:hover {
+            transform: scale(1.01);
+            background: linear-gradient(to right, #fff, #fdf6e2);
+            border-color: var(--accent-gold);
+            box-shadow: 0 6px 15px rgba(184, 134, 11, 0.2);
+        }
+
+        .tracker-avatar-wrapper {
+            position: relative;
+            flex-shrink: 0;
+        }
+
+        .tracker-avatar {
+            width: 80px;
+            height: 80px;
+            border-radius: 10px;
+            border: 3px solid #8b5a2b;
+            object-fit: cover;
+            background: #fff;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.15);
+            transition: border-color 0.2s;
+        }
+        .tracker-card:hover .tracker-avatar {
+            border-color: var(--accent-gold);
+        }
+
+        .tracker-info {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            min-width: 0;
+            gap: 16px;
+        }
+
+        @media (min-width: 99999px) {
+            .tracker-card { flex-direction: column; text-align: center; }
+            .tracker-info { flex-direction: column; align-items: center; width: 100%; gap: 10px; }
+        }
+
+        .tracker-details-block {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            min-width: 0;
+        }
+
+        .tracker-name {
+            font-size: 1.3em;
+            font-weight: 800;
+            color: var(--text-dark);
+            margin: 0;
+        }
+
+        .tracker-badges {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            align-items: center;
+        }
+
+        .tracker-badge {
+            font-size: 0.75em;
+            font-weight: 800;
+            padding: 3px 10px;
+            border-radius: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border: 1px solid rgba(0,0,0,0.1);
+        }
+
+        .tracker-location {
+            font-size: 0.9em;
+            color: #5c3a21;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 2px;
+        }
+        .tracker-location i {
+            color: #d35400;
+        }
+
+        .tracker-affinity-meter {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 4px;
+            min-width: 140px;
+        }
+        @media (min-width: 99999px) {
+            .tracker-affinity-meter { align-items: center; }
+        }
+
+        .tracker-hearts {
+            display: flex;
+            gap: 3px;
+            color: #e74c3c;
+            font-size: 1.1em;
+            text-shadow: 1px 1px 0px rgba(0,0,0,0.15);
+        }
+
+        .tracker-affinity-pct {
+            font-size: 0.8em;
+            color: #8b5a2b;
+            font-weight: 800;
+            text-transform: uppercase;
+        }
+
+        .tracker-actions {
+            display: flex;
+            align-items: center;
+        }
+
+        .tracker-nav-btn {
+            background: #e67e22;
+            border: 2px solid var(--border-color);
+            color: #fff;
+            padding: 8px 16px;
+            font-size: 0.9em;
+            font-weight: 800;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+            text-shadow: 1px 1px 0 rgba(0,0,0,0.3);
+        }
+        .tracker-nav-btn:hover {
+            background: #d35400;
+            transform: scale(1.05);
+        }
+
+        .tracker-empty-state {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 80px 20px;
+            color: #8b5a2b;
+            font-size: 1.2em;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+            font-weight: bold;
+        }
+        .tracker-empty-state i {
+            font-size: 4em;
+            color: rgba(139, 90, 43, 0.2);
+        }
+    </style>
+
+    <div class="uie-header">
+        <h2><i class="fa-solid fa-user-group"></i> Social Chronicle</h2>
+        <div class="uie-header-controls">
+            <button id="uie-tracker-close" class="uie-close-btn"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+    </div>
+
+    <div id="uie-tracker-body">
+        <!-- Dynamically Populated Tracker Cards -->
+    </div>
+
+    <!-- Stardew Profile Details Overlay -->
+    <div id="uie-social-details-overlay" style="display:none; position:absolute; inset:0; background:rgba(0,0,0,0.5); z-index:100; align-items:center; justify-content:center;">
+        <div style="background:#fdf6e2; border:4px solid #4a2c11; border-radius:16px; padding:24px; width:90%; max-width:550px; color:#4a2c11; box-shadow:0 15px 40px rgba(0,0,0,0.5); display:flex; flex-direction:column; gap:14px; position:relative; box-sizing:border-box;">
+            <button id="uie-social-details-close" style="position:absolute; top:12px; right:16px; border:none; background:transparent; font-size:26px; color:#4a2c11; cursor:pointer; font-weight:bold;">×</button>
+            <div style="display:flex; gap:20px; align-items:center;">
+                <div id="sd-details-avatar-wrap" style="width:96px; height:96px; border-radius:12px; border:4px solid #8b5a2b; overflow:hidden; background:#fff; flex-shrink:0; box-shadow: 0 3px 6px rgba(0,0,0,0.15);">
+                    <img id="sd-details-avatar" style="width:100%; height:100%; object-fit:cover;">
+                </div>
+                <div style="flex:1; min-width:0;">
+                    <h3 id="sd-details-name" style="margin:0 0 6px 0; font-family:'Cinzel', serif; font-size:1.6em; font-weight:900; border-bottom:3px solid #8b5a2b; padding-bottom:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Character Name</h3>
+                    <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:6px;">
+                        <span id="sd-details-relation-badge" style="font-size:11px; padding:3px 10px; border-radius:12px; background:#e67e22; color:#fff; font-weight:bold; border:1px solid rgba(0,0,0,0.15);">Relationship</span>
+                        <span id="sd-details-role-badge" style="font-size:11px; padding:3px 10px; border-radius:12px; background:#4a2c11; color:#f3e5ab; font-weight:bold; border:1px solid rgba(0,0,0,0.15);">Role</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div style="display:flex; flex-direction:column; gap:10px; font-size:14px; background:#f4eccb; padding:14px; border-radius:10px; border:2px solid #8b5a2b;">
+                <div><strong style="color:#5c3a21;">🎂 Birthday:</strong> <span id="sd-details-birthday">Spring 14</span></div>
+                <div><strong style="color:#5c3a21;">📍 Location:</strong> <span id="sd-details-location">Mountain Room</span></div>
+                <div style="margin-top:8px; border-top:2px dashed #8b5a2b; padding-top:8px;">
+                    <strong style="color:#5c3a21; display:block; margin-bottom:6px;">🎁 Favorite Gifts:</strong>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; font-size:12px;">
+                        <div><span style="color:#27ae60; font-weight:bold;">♥ Loves:</span> <span id="sd-details-loves">Flowers, Gems</span></div>
+                        <div><span style="color:#2980b9; font-weight:bold;">👍 Likes:</span> <span id="sd-details-likes">Fruit, Honey</span></div>
+                        <div><span style="color:#d35400; font-weight:bold;">😐 Dislikes:</span> <span id="sd-details-dislikes">Clay, Stone</span></div>
+                        <div><span style="color:#c0392b; font-weight:bold;">☠ Hates:</span> <span id="sd-details-hates">Weeds, Trash</span></div>
+                    </div>
+                </div>
+            </div>
+            
+            <div style="display:flex; gap:12px; margin-top:8px;">
+                <button type="button" id="sd-details-tree-btn" style="flex:1; padding:10px 14px; background:#b8860b; color:#fff; border:2px solid #4a2c11; border-radius:8px; font-weight:bold; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; text-shadow:1px 1px 0 rgba(0,0,0,0.3);"><i class="fa-solid fa-tree"></i> View Family Tree</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Family Tree Canvas Overlay -->
+    <div id="uie-family-tree-overlay" style="display:none; position:absolute; inset:0; background:rgba(0,0,0,0.6); z-index:110; align-items:center; justify-content:center; padding:16px;">
+        <div style="background:#fdf6e2; border:4px solid #4a2c11; border-radius:16px; padding:24px; width:95%; height:90%; color:#4a2c11; box-shadow:0 15px 40px rgba(0,0,0,0.6); display:flex; flex-direction:column; gap:12px; position:relative; box-sizing:border-box;">
+            <button id="uie-family-tree-close" style="position:absolute; top:12px; right:16px; border:none; background:transparent; font-size:26px; color:#4a2c11; cursor:pointer; font-weight:bold; z-index:10;">×</button>
+            <h3 style="margin:0 0 6px 0; font-family:'Cinzel', serif; font-size:1.5em; font-weight:900; border-bottom:3px solid #8b5a2b; padding-bottom:4px; display:flex; align-items:center; gap:10px;"><i class="fa-solid fa-tree" style="color:#27ae60;"></i> Genealogical Family Tree</h3>
+            <div style="flex:1; background:rgba(255,255,255,0.7); border:2px solid #8b5a2b; border-radius:10px; overflow:hidden; position:relative; display:grid; place-items:center;">
+                <canvas id="uie-family-tree-canvas" style="width:100%; height:100%; display:block; cursor:grab; background: rgba(0,0,0,0.02);"></canvas>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,1313 @@
+<div id="uie-social-window" class="uie-window" style="display:none;">
+    <style>
+        #uie-social-window {
+            --wood: #5c3a21;
+            --wood-dark: #2d1b12;
+            --paper: #fff8df;
+            --paper-2: #ffe2aa;
+            --ink: #3c2415;
+            --muted: #85593c;
+            --accent: #cba35c;
+            --green: #4f8f48;
+            --red: #a43a32;
+            --blue: #3273a4;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: min(980px, 94vw);
+            height: min(840px, 94vh);
+            z-index: 20020;
+            display: none;
+            flex-direction: column;
+            overflow: hidden;
+            color: var(--ink);
+            font-family: "Trebuchet MS", "Inter", system-ui, sans-serif;
+            background: #fdf5e2 !important; /* Cozy parchment background */
+            border: 8px solid var(--wood) !important; /* Thick wood frame */
+            outline: 4px solid var(--wood-dark) !important; /* Dark outer contour */
+            border-radius: 16px !important;
+            box-shadow: 
+                inset 0 0 0 4px #e2ab70, /* inner gold highlight wood trim */
+                inset 0 0 24px rgba(45, 24, 10, 0.28), /* soft depth shadowing */
+                0 24px 70px rgba(22, 12, 5, 0.68) !important;
+            box-sizing: border-box;
+        }
+
+        #uie-social-window * { box-sizing: border-box; }
+        #uie-social-window button,
+        #uie-social-window .uie-dd-item,
+        #uie-social-window .uie-tab,
+        #uie-social-window .uie-social-card { user-select: none; }
+
+        #uie-social-window .uie-header {
+            min-height: auto !important;
+            padding: 22px 24px 8px 24px !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: space-between !important;
+            background: transparent !important;
+            border-bottom: none !important;
+            box-shadow: none !important;
+            position: relative;
+            flex-shrink: 0;
+        }
+
+        #uie-social-window .uie-header h2 {
+            margin: 0 !important;
+            flex: 1;
+            min-width: 0;
+            color: #5d351b !important;
+            font-family: "Cinzel", Georgia, serif !important;
+            font-size: 28px !important;
+            font-weight: bold !important;
+            letter-spacing: 1.5px;
+            text-shadow: 1px 1px 0px rgba(255, 255, 255, 0.8) !important;
+            text-align: center !important;
+        }
+
+        #uie-social-close,
+        #uie-family-tree-close,
+        #uie-social-details-close {
+            width: 34px !important;
+            height: 34px !important;
+            border-radius: 50% !important;
+            border: 3px solid #3e2212 !important;
+            background: #a43a32 !important; /* Stardew Red Close Button */
+            color: #fffdf9 !important;
+            font-weight: bold !important;
+            font-size: 16px !important;
+            box-shadow: inset 0 -3px 0 #6e1c17, 0 3px 0 #1a0f08 !important;
+            display: grid !important;
+            place-items: center !important;
+            cursor: pointer !important;
+            position: absolute !important;
+            top: 20px !important;
+            right: 20px !important;
+            z-index: 10 !important;
+            transition: background-color 0.1s, transform 0.1s;
+        }
+        #uie-social-close:hover,
+        #uie-family-tree-close:hover,
+        #uie-social-details-close:hover {
+            background: #b9483f !important;
+            transform: scale(1.08) !important;
+        }
+        #uie-social-sparkle {
+            width: 34px !important;
+            height: 34px !important;
+            border-radius: 50% !important;
+            border: 3px solid #3e2212 !important;
+            background: #fff8df !important;
+            color: #5d351b !important;
+            box-shadow: inset 0 -3px 0 #c7a475, 0 3px 0 #1a0f08 !important;
+            display: grid !important;
+            place-items: center !important;
+            cursor: pointer !important;
+            position: absolute !important;
+            top: 20px !important;
+            right: 62px !important;
+            z-index: 10 !important;
+            transition: background-color 0.1s, transform 0.1s;
+        }
+        #uie-social-sparkle:hover {
+            background: #ffd48a !important;
+            transform: scale(1.08) !important;
+        }
+
+        #uie-social-window .uie-dropdown {
+            position: absolute;
+            top: 58px;
+            right: 64px;
+            display: none;
+            flex-direction: column;
+            gap: 6px;
+            min-width: 230px;
+            padding: 8px;
+            z-index: 20080;
+            background: #fff8df;
+            border: 3px solid #7b5437;
+            border-radius: 10px;
+            box-shadow: 0 14px 34px rgba(46, 24, 10, 0.38);
+        }
+
+        #uie-social-window .uie-dd-item {
+            min-height: 36px;
+            padding: 8px 10px;
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            border-radius: 7px;
+            border: 1px solid rgba(123,84,55,0.28);
+            background: rgba(255,230,173,0.6);
+            color: var(--ink);
+            font-weight: 800;
+            font-size: 13px;
+            cursor: pointer;
+        }
+        #uie-social-window .uie-dd-item:hover { background: #ffd48a; }
+
+        .uie-social-context-strip {
+            margin: 4px 20px 8px;
+            padding: 9px 12px;
+            border: 2px dashed rgba(92,55,32,0.25);
+            border-radius: 8px;
+            background: rgba(255,248,225,0.45);
+            color: var(--muted);
+            font-size: 12px;
+            line-height: 1.35;
+            flex-shrink: 0;
+            font-family: Georgia, serif;
+            font-style: italic;
+        }
+
+        #uie-social-window .uie-inv-tabs {
+            order: 1 !important;
+            flex-shrink: 0;
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            background: transparent !important;
+            border-top: none !important;
+            border-bottom: 2px solid rgba(92, 55, 32, 0.15) !important;
+            padding: 6px 20px 12px 20px !important;
+            scrollbar-width: none;
+        }
+        #uie-social-window .uie-inv-tabs::-webkit-scrollbar {
+            display: none;
+        }
+
+        #uie-social-window .uie-tab {
+            flex: 0 0 auto;
+            min-width: auto;
+            padding: 6px 16px;
+            text-align: center;
+            color: #ffdcb0 !important;
+            background: #8e5431 !important;
+            border: 2.5px solid #3e2212 !important;
+            border-radius: 6px;
+            font-weight: 900;
+            font-size: 11px;
+            cursor: pointer;
+            text-transform: uppercase;
+            font-family: "Cinzel", Georgia, serif;
+            box-shadow: inset 0 -2px 0 #281408, 0 2px 0 #281408;
+            transition: all 0.1s ease;
+        }
+        #uie-social-window .uie-tab:hover {
+            background: #a2653c !important;
+            transform: translateY(-1px);
+        }
+        #uie-social-window .uie-tab.active {
+            color: #3e2212 !important;
+            background: #e28e43 !important;
+            border-color: #3e2212 !important;
+            box-shadow: inset 0 -2px 0 #9e5b22, 0 1px 0 #281408;
+            transform: translateY(1px);
+        }
+
+        #uie-social-content {
+            order: 2 !important;
+            flex: 1 1 auto;
+            min-height: 0;
+            overflow-y: auto;
+            margin: 0 20px 20px 20px !important;
+            padding: 16px !important;
+            background: #fffdf5 !important; /* Cozy scroll paper background */
+            border: 3.5px solid #7b5437 !important;
+            border-radius: 12px !important;
+            box-shadow: 
+                inset 0 0 14px rgba(92,55,32,0.12),
+                0 3px 0 rgba(0,0,0,0.05) !important;
+        }
+
+        #uie-social-window .uie-social-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        #uie-social-window .uie-social-card {
+            width: 100%;
+            min-height: 94px;
+            display: grid;
+            grid-template-columns: 64px 1.5fr 1fr;
+            align-items: center;
+            gap: 16px;
+            padding: 10px 18px;
+            position: relative;
+            overflow: hidden;
+            cursor: pointer;
+            color: var(--ink);
+            background: #fffdf9 !important; /* solid cozy card */
+            border: 2.5px solid #5c3a21 !important;
+            border-radius: 8px;
+            box-shadow: 0 4px 0 #3b2212;
+            transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+        }
+        #uie-social-window .uie-social-card:hover {
+            border-color: #e28e43 !important;
+            background: #ffffff !important;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 0 #3b2212;
+        }
+        #uie-social-window .uie-social-card.delete-selected {
+            border-color: #b9483f !important;
+            box-shadow: inset 0 0 0 2px rgba(185,72,63,0.15), 0 4px 0 #3b2212 !important;
+        }
+
+        #uie-social-window .uie-s-avatar {
+            width: 56px;
+            height: 56px;
+            border: 2.5px solid #5c3a21 !important;
+            border-radius: 8px;
+            overflow: hidden;
+            display: grid;
+            place-items: center;
+            background: #e8d0ad !important;
+            color: #4b2b17;
+            font-size: 22px;
+            box-shadow: inset 0 2px 5px rgba(0,0,0,0.15);
+        }
+        #uie-social-window .uie-s-avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        #uie-social-window .uie-s-main { min-width: 0; display: grid; gap: 4px; }
+        #uie-social-window .uie-s-name {
+            min-width: 0;
+            color: #3b2212;
+            font-size: 17px;
+            font-weight: 900;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            font-family: Georgia, serif;
+        }
+        #uie-social-window .uie-s-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            align-items: center;
+            min-width: 0;
+        }
+        #uie-social-window .uie-s-chip,
+        #uie-social-window .uie-s-tag-container > div,
+        #uie-family-tree-overlay .uie-family-chip {
+            display: inline-flex;
+            align-items: center;
+            max-width: 100%;
+            min-height: 20px;
+            padding: 2px 8px;
+            border-radius: 4px;
+            border: 1.5px solid #7b5437 !important;
+            background: #fbf2e3 !important;
+            color: #5c3a21 !important;
+            font-size: 10px;
+            font-weight: 800;
+            white-space: nowrap;
+        }
+        #uie-social-window .uie-s-notes {
+            color: var(--muted);
+            font-size: 11.5px;
+            line-height: 1.35;
+            overflow: hidden;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            font-family: Georgia, serif;
+            font-style: italic;
+        }
+        #uie-social-window .uie-s-side {
+            display: grid;
+            gap: 6px;
+            justify-items: end;
+            min-width: 0;
+        }
+        #uie-social-window .uie-s-hearts {
+            color: #ff4a5a;
+            font-size: 13px;
+            letter-spacing: 1px;
+            white-space: nowrap;
+        }
+        #uie-social-window .uie-s-location {
+            max-width: 100%;
+            color: #5f452d;
+            font-size: 11.5px;
+            font-weight: 800;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            font-family: "Trebuchet MS", sans-serif;
+            text-transform: uppercase;
+        }
+
+        #uie-delete-controls {
+            position: absolute;
+            left: 14px;
+            right: 14px;
+            bottom: 56px;
+            display: none;
+            gap: 10px;
+            justify-content: center;
+            pointer-events: auto;
+            z-index: 20045;
+        }
+        #uie-delete-controls .uie-del-confirm,
+        #uie-delete-controls .uie-del-cancel {
+            min-width: 150px;
+            height: 40px;
+            border-radius: 8px;
+            border: 2px solid var(--wood);
+            background: #fff8df;
+            color: var(--ink);
+            display: grid;
+            place-items: center;
+            font-weight: 900;
+            cursor: pointer;
+        }
+        #uie-delete-controls .uie-del-confirm { color: #9d2c26; border-color: #9d2c26; }
+
+        #uie-add-modal,
+        #uie-social-overlay,
+        #uie-social-mem-overlay,
+        #uie-family-tree-overlay,
+        #uie-social-details-overlay {
+            position: fixed;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 14px;
+            background: rgba(42, 24, 12, 0.64);
+            backdrop-filter: blur(3px);
+            z-index: 20070;
+        }
+
+        #uie-add-modal {
+            align-items: flex-start;
+            overflow-y: auto;
+        }
+
+        .uie-paper-box,
+        #uie-add-modal > .uie-add-sheet {
+            width: min(760px, 100%);
+            max-height: calc(100vh - 28px);
+            overflow-y: auto;
+            border: 6px solid #5c3a21 !important; /* Thick wood frame */
+            outline: 3px solid #2d1b12 !important; /* Dark outer contour */
+            border-radius: 12px !important;
+            background: #fdf5e2 !important; /* warm cozy parchment */
+            color: var(--ink) !important;
+            box-shadow: 
+                inset 0 0 0 3px #e2ab70, /* inner gold highlight wood trim */
+                inset 0 0 16px rgba(45, 24, 10, 0.2), 
+                0 20px 50px rgba(0, 0, 0, 0.55) !important;
+        }
+
+        #uie-add-modal > .uie-add-sheet {
+            margin: 18px auto;
+            padding: 16px;
+        }
+
+        .uie-p-close {
+            position: absolute;
+            right: 14px;
+            top: 12px;
+            width: 34px;
+            height: 34px;
+            border-radius: 50% !important;
+            display: grid;
+            place-items: center;
+            border: 2.5px solid #3e2212 !important;
+            background: #a43a32 !important;
+            color: #fffdf9 !important;
+            font-weight: bold !important;
+            font-size: 15px !important;
+            box-shadow: inset 0 -3px 0 #6e1c17, 0 2px 0 #1a0f08 !important;
+            cursor: pointer;
+            z-index: 4;
+            transition: all 0.1s ease;
+        }
+        .uie-p-close:hover {
+            background: #b9483f !important;
+            transform: scale(1.08) !important;
+        }
+
+        .uie-p-top-actions {
+            position: absolute;
+            right: 56px;
+            top: 12px;
+            display: flex;
+            gap: 6px;
+            z-index: 4;
+        }
+        .uie-p-icon-btn {
+            width: 34px;
+            height: 34px;
+            border-radius: 50% !important;
+            border: 2.5px solid #3e2212 !important;
+            background: #fff8df !important;
+            color: #5d351b !important;
+            box-shadow: inset 0 -3px 0 #c7a475, 0 2px 0 #1a0f08 !important;
+            display: grid;
+            place-items: center;
+            cursor: pointer;
+            transition: all 0.1s ease;
+        }
+        .uie-p-icon-btn:hover {
+            background: #ffd48a !important;
+            transform: scale(1.08) !important;
+        }
+        .uie-p-icon-btn.danger { 
+            color: #fffdf9 !important; 
+            background: #a43a32 !important; 
+            box-shadow: inset 0 -3px 0 #6e1c17, 0 2px 0 #1a0f08 !important;
+        }
+        .uie-p-icon-btn.danger:hover {
+            background: #b9483f !important;
+        }
+
+        .uie-paper-inner { padding: 16px; }
+        .uie-p-header {
+            display: grid;
+            grid-template-columns: 128px minmax(0, 1fr);
+            gap: 16px;
+            align-items: center;
+            padding: 20px 20px 10px 20px !important;
+            background: transparent !important;
+            border-bottom: none !important;
+        }
+        .uie-p-portrait {
+            width: 128px;
+            height: 128px;
+            border: 3.5px solid #5c3a21 !important;
+            border-radius: 10px !important;
+            background: #e8d0ad !important;
+            overflow: hidden;
+            display: grid;
+            place-items: center;
+            color: #5d351b;
+            box-shadow: inset 0 2px 6px rgba(0,0,0,0.18);
+        }
+        .uie-p-name-lg {
+            min-width: 0;
+            color: #3b2212;
+            font-family: "Cinzel", Georgia, serif;
+            font-weight: 900;
+            font-size: 28px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .uie-p-hearts-lg { margin-top: 6px; color: #d84343; font-size: 20px; letter-spacing: 2px; }
+        .uie-p-status-line {
+            margin-top: 12px;
+            padding: 12px;
+            border-radius: 8px;
+            border: 2px solid rgba(92,55,32,0.28);
+            background: rgba(255,230,173,0.55);
+            color: #5c3720;
+            font-style: italic;
+            line-height: 1.45;
+        }
+        .uie-affinity-meter {
+            height: 12px;
+            margin-top: 10px;
+            border-radius: 999px;
+            overflow: hidden;
+            background: rgba(92,55,32,0.16);
+            border: 1px solid rgba(92,55,32,0.28);
+        }
+        #p-val-affinity-fill { height: 100%; width: 50%; background: linear-gradient(90deg, #b9483f, #e3a543, #5b9f54); }
+
+        .uie-p-toggle-row,
+        .uie-profile-chip,
+        .uie-profile-notes,
+        .uie-p-list-col {
+            border: 2px solid rgba(92,55,32,0.32);
+            border-radius: 8px;
+            background: rgba(255,230,173,0.5);
+            color: var(--ink);
+        }
+        .uie-p-toggle-row {
+            margin-top: 12px;
+            padding: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+        }
+        .uie-p-toggle-title { font-weight: 900; }
+        .uie-p-toggle-sub { color: var(--muted); font-size: 12px; }
+        .uie-p-toggle-label { display: flex; align-items: center; gap: 7px; font-weight: 900; color: var(--muted); }
+        .uie-p-toggle-label input { accent-color: var(--accent); }
+
+        .uie-profile-summary {
+            margin-top: 12px;
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 10px;
+        }
+        .uie-profile-chip { padding: 10px; min-width: 0; }
+        .uie-profile-chip b {
+            display: block;
+            color: #8a4f1d;
+            font-size: 10px;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            margin-bottom: 4px;
+        }
+        .uie-profile-chip span {
+            display: inline;
+            overflow-wrap: anywhere;
+            font-weight: 800;
+        }
+
+        .uie-p-lists-container {
+            margin-top: 12px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        .uie-p-list-col { padding: 10px; }
+        .uie-p-list-header {
+            color: #8a4f1d;
+            font-weight: 900;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin-bottom: 5px;
+        }
+        .uie-p-list-content { line-height: 1.4; overflow-wrap: anywhere; }
+        .uie-profile-notes { margin-top: 12px; padding: 12px; }
+        .uie-profile-notes h4 { margin: 0 0 8px; color: #8a4f1d; }
+        #p-val-memory-preview { white-space: pre-wrap; line-height: 1.45; color: #5c3720; }
+
+        .uie-profile-actions {
+            margin-top: 12px;
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .uie-p-btn,
+        .uie-add-btn,
+        .uie-profile-actions button {
+            min-height: 38px;
+            padding: 8px 16px;
+            border-radius: 6px;
+            border: 2.5px solid #3e2212 !important;
+            background: #8e5431 !important;
+            color: #ffdcb0 !important;
+            font-weight: 900;
+            cursor: pointer;
+            font-family: "Cinzel", Georgia, serif;
+            box-shadow: inset 0 -2px 0 #281408, 0 2px 0 #281408;
+            transition: all 0.1s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+        .uie-p-btn:hover,
+        .uie-add-btn:hover,
+        .uie-profile-actions button:hover {
+            background: #a2653c !important;
+            transform: translateY(-1px);
+        }
+        .uie-p-btn:active,
+        .uie-add-btn:active,
+        .uie-profile-actions button:active {
+            transform: translateY(1px);
+            box-shadow: inset 0 -2px 0 #281408, 0 1px 0 #281408;
+        }
+        .uie-p-btn.danger { 
+            color: #fffdf9 !important; 
+            background: #a43a32 !important; 
+            border-color: #3e2212 !important;
+            box-shadow: inset 0 -2px 0 #6e1c17, 0 2px 0 #1a0f08 !important;
+        }
+        .uie-p-btn.danger:hover {
+            background: #b9483f !important;
+        }
+
+        .uie-input-group { position: relative; margin-bottom: 10px; }
+        .uie-input-group input,
+        .uie-input-group select,
+        .uie-input-group textarea {
+            width: 100%;
+            min-height: 42px;
+            padding: 14px 10px 6px;
+            border: 2px solid rgba(92,55,32,0.32);
+            border-radius: 7px;
+            background: #fffdf0;
+            color: var(--ink);
+            outline: none;
+        }
+        .uie-input-group input::placeholder,
+        .uie-input-group textarea::placeholder { color: #4f2f1c; opacity: 1; }
+        .uie-input-group input[hidden] { display: none; }
+        .uie-input-group textarea { min-height: 82px; resize: vertical; }
+        .uie-input-group label {
+            position: absolute;
+            left: 10px;
+            top: 4px;
+            color: var(--muted);
+            font-size: 10px;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            pointer-events: none;
+        }
+        .uie-img-preview {
+            width: 112px;
+            height: 112px;
+            margin: 0 auto 12px;
+            border-radius: 10px;
+            border: 3px dashed #8d6e63;
+            background: #efe0bf;
+            display: grid;
+            place-items: center;
+            position: relative;
+            cursor: pointer;
+            overflow: hidden;
+        }
+        #uie-add-img-file { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+        .uie-add-checkbox-row {
+            display: flex;
+            gap: 14px;
+            flex-wrap: wrap;
+            margin: 0 0 10px;
+        }
+        .uie-add-checkbox-label { display: flex; align-items: center; gap: 7px; font-weight: 900; color: var(--muted); }
+        .uie-add-checkbox-label input { accent-color: var(--accent); }
+
+        #uie-social-mem-list { margin-top: 12px; display: flex; flex-direction: column; gap: 10px; }
+        #uie-social-mem-list > div,
+        #uie-family-tree-canvas .uie-family-node {
+            border: 2px solid rgba(92,55,32,0.28);
+            border-radius: 8px;
+            background: rgba(255,230,173,0.58);
+            color: var(--ink);
+        }
+
+        #uie-family-tree-canvas {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 12px;
+            padding: 14px;
+        }
+        #uie-family-tree-canvas .uie-family-node {
+            min-height: 210px;
+            padding: 12px;
+            display: grid;
+            justify-items: center;
+            align-content: start;
+            gap: 8px;
+        }
+        #uie-family-tree-canvas .uie-family-portrait {
+            width: 78px;
+            height: 78px;
+            border-radius: 50%;
+            border: 3px solid #70421f;
+            background: #d7a760;
+            overflow: hidden;
+            display: grid;
+            place-items: center;
+        }
+        #uie-family-tree-canvas .uie-family-portrait img { width: 100%; height: 100%; object-fit: cover; }
+        #uie-family-tree-canvas .uie-family-node-name {
+            max-width: 100%;
+            font-weight: 900;
+            color: #3b2212;
+            text-align: center;
+            overflow-wrap: anywhere;
+        }
+        #uie-family-tree-canvas .uie-family-node-meta {
+            font-size: 11px;
+            line-height: 1.35;
+            color: var(--muted);
+            text-align: center;
+        }
+        #uie-family-tree-canvas .uie-family-node-ties {
+            display: flex;
+            gap: 5px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        /* Dark immersive skin */
+        #uie-social-window {
+            --wood: #2a170e;
+            --wood-dark: #090503;
+            --paper: #130a06;
+            --paper-2: #21120b;
+            --ink: #f1dcc0;
+            --muted: #b98765;
+            --accent: #a7724a;
+            color: var(--ink) !important;
+            background: #100806 !important;
+            border-color: #2a170e !important;
+            outline-color: #090503 !important;
+            box-shadow:
+                inset 0 0 0 3px rgba(167, 114, 74, 0.28),
+                inset 0 0 28px rgba(0, 0, 0, 0.72),
+                0 24px 70px rgba(0, 0, 0, 0.74) !important;
+        }
+
+        #uie-social-window .uie-header {
+            position: absolute !important;
+            inset: 0 0 auto auto !important;
+            width: 112px !important;
+            height: 48px !important;
+            min-height: 0 !important;
+            padding: 0 !important;
+            background: transparent !important;
+            border: 0 !important;
+            box-shadow: none !important;
+            z-index: 20060;
+            pointer-events: none;
+        }
+        #uie-social-window .uie-header h2 { display: none !important; }
+        #uie-social-close,
+        #uie-social-sparkle {
+            top: 12px !important;
+            pointer-events: auto !important;
+            border-color: #090503 !important;
+            box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.55), 0 2px 0 #090503 !important;
+        }
+        #uie-social-sparkle {
+            background: #24140c !important;
+            color: #f1dcc0 !important;
+            right: 54px !important;
+        }
+        #uie-social-sparkle:hover { background: #3a2114 !important; }
+
+        #uie-social-window .uie-dropdown,
+        .uie-paper-box,
+        #uie-add-modal > .uie-add-sheet {
+            background: #130a06 !important;
+            color: var(--ink) !important;
+            border-color: #3a2114 !important;
+            outline-color: #090503 !important;
+            box-shadow:
+                inset 0 0 0 2px rgba(167, 114, 74, 0.22),
+                0 20px 55px rgba(0, 0, 0, 0.72) !important;
+        }
+
+        #uie-social-window .uie-inv-tabs {
+            padding: 18px 70px 12px 20px !important;
+            background: #100806 !important;
+            border-bottom-color: rgba(167, 114, 74, 0.24) !important;
+        }
+        #uie-social-window .uie-tab {
+            color: #f1dcc0 !important;
+            background: #24140c !important;
+            border-color: #090503 !important;
+            box-shadow: inset 0 -2px 0 #090503, 0 2px 0 #090503 !important;
+        }
+        #uie-social-window .uie-tab:hover {
+            background: #332016 !important;
+            color: #fff4e8 !important;
+        }
+        #uie-social-window .uie-tab.active {
+            color: #fff4e8 !important;
+            background: #4a2b1a !important;
+            border-color: #a7724a !important;
+            box-shadow: inset 0 0 0 1px rgba(255, 244, 232, 0.08), 0 2px 0 #090503 !important;
+        }
+
+        #uie-social-content {
+            background: #140b07 !important;
+            border-color: #3a2114 !important;
+            color: var(--ink) !important;
+            box-shadow: inset 0 0 18px rgba(0, 0, 0, 0.48) !important;
+        }
+        .uie-social-context-strip,
+        #uie-social-window .uie-social-card,
+        #uie-social-window .uie-s-chip,
+        #uie-social-window .uie-s-tag-container > div,
+        #uie-family-tree-overlay .uie-family-chip,
+        .uie-p-toggle-row,
+        .uie-profile-chip,
+        .uie-profile-notes,
+        .uie-p-list-col,
+        #uie-social-mem-list > div,
+        #uie-family-tree-canvas .uie-family-node {
+            background: #1b0f09 !important;
+            border-color: rgba(167, 114, 74, 0.36) !important;
+            color: var(--ink) !important;
+        }
+        #uie-social-window .uie-social-card {
+            box-shadow: 0 4px 0 #090503 !important;
+        }
+        #uie-social-window .uie-social-card:hover {
+            background: #21140c !important;
+            border-color: #a7724a !important;
+            box-shadow: 0 6px 0 #090503 !important;
+        }
+        #uie-social-window .uie-s-name,
+        .uie-p-name-lg,
+        #uie-family-tree-canvas .uie-family-node-name,
+        #uie-social-mem-overlay [data-i18n="social.memories.title"] {
+            color: #fff4e8 !important;
+        }
+        #uie-social-window .uie-s-notes,
+        #uie-social-window .uie-s-location,
+        .uie-p-toggle-sub,
+        .uie-p-toggle-label,
+        .uie-profile-chip b,
+        .uie-p-list-header,
+        #uie-social-mem-sub,
+        #uie-family-tree-canvas .uie-family-node-meta {
+            color: var(--muted) !important;
+        }
+        #uie-social-window .uie-s-avatar,
+        .uie-p-portrait,
+        #uie-family-tree-canvas .uie-family-portrait,
+        .uie-img-preview {
+            background: #24140c !important;
+            border-color: #3a2114 !important;
+            color: #f1dcc0 !important;
+        }
+        #uie-social-window .uie-dd-item,
+        .uie-p-btn,
+        .uie-input-group input,
+        .uie-input-group select,
+        .uie-input-group textarea,
+        #uie-lineage-linker-panel,
+        #uie-lineage-link-a,
+        #uie-lineage-link-b,
+        #uie-lineage-link-rel {
+            background: #1b0f09 !important;
+            border-color: rgba(167, 114, 74, 0.42) !important;
+            color: #f1dcc0 !important;
+        }
+        #uie-social-window .uie-dd-item:hover,
+        .uie-p-btn:hover,
+        #uie-lineage-link-add-btn:hover {
+            background: #2b1a10 !important;
+            color: #fff4e8 !important;
+        }
+        .uie-p-status-line,
+        .uie-affinity-meter,
+        details,
+        .uie-profile-actions {
+            background: #1b0f09 !important;
+            border-color: rgba(167, 114, 74, 0.34) !important;
+            color: #f1dcc0 !important;
+        }
+
+        @media not all {
+            #uie-social-window {
+                top: 0;
+                left: 0;
+                width: 100vw;
+                height: 100vh;
+                max-width: none;
+                max-height: none;
+                transform: none;
+                border-radius: 0;
+            }
+            #uie-social-window .uie-social-card {
+                grid-template-columns: 64px minmax(0, 1fr);
+            }
+            #uie-social-window .uie-s-side {
+                grid-column: 1 / -1;
+                justify-items: start;
+                grid-template-columns: 1fr;
+            }
+            .uie-profile-summary,
+            .uie-p-lists-container,
+            .uie-p-header {
+                grid-template-columns: 1fr;
+            }
+            .uie-p-header { padding-right: 16px; }
+            .uie-p-name-lg { white-space: normal; }
+        }
+
+        @media not all {
+            #uie-social-window {
+                flex-direction: column !important;
+                height: 100dvh !important;
+                border-width: 0 !important;
+                outline: 0 !important;
+                border-radius: 0 !important;
+            }
+
+            #uie-social-window .uie-header {
+                position: relative !important;
+                inset: auto !important;
+                width: 100% !important;
+                height: auto !important;
+                min-height: 52px !important;
+                padding: 8px 8px 6px 12px !important;
+                display: grid !important;
+                grid-template-columns: minmax(0, 1fr) 38px 38px !important;
+                gap: 7px !important;
+                align-items: center !important;
+                background: #100806 !important;
+                border-bottom: 1px solid rgba(167, 114, 74, 0.24) !important;
+                z-index: 20060 !important;
+                pointer-events: auto !important;
+            }
+
+            #uie-social-window .uie-header h2 {
+                display: block !important;
+                margin: 0 !important;
+                min-width: 0 !important;
+                overflow: hidden !important;
+                color: #fff4e8 !important;
+                font-size: 16px !important;
+                line-height: 1.1 !important;
+                text-align: left !important;
+                text-overflow: ellipsis !important;
+                white-space: nowrap !important;
+            }
+
+            #uie-social-close,
+            #uie-social-sparkle {
+                position: static !important;
+                width: 34px !important;
+                height: 34px !important;
+                top: auto !important;
+                right: auto !important;
+                justify-self: center !important;
+            }
+
+            #uie-social-window .uie-dropdown {
+                top: 46px !important;
+                right: 8px !important;
+                min-width: min(250px, calc(100vw - 16px)) !important;
+                max-height: calc(100dvh - 62px) !important;
+                overflow-y: auto !important;
+            }
+
+            #uie-social-window .uie-inv-tabs {
+                padding: 7px 8px 8px !important;
+                display: grid !important;
+                grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+                gap: 6px !important;
+                overflow: visible !important;
+            }
+
+            #uie-social-window .uie-tab {
+                min-width: 0 !important;
+                padding: 6px 4px !important;
+                font-size: 9px !important;
+                line-height: 1.05 !important;
+                overflow: hidden !important;
+                text-overflow: ellipsis !important;
+                white-space: nowrap !important;
+            }
+
+            #uie-social-content {
+                margin: 0 8px 8px !important;
+                padding: 10px !important;
+                min-height: 0 !important;
+            }
+        }
+
+        @media not all {
+            #uie-social-window {
+                top: 50% !important;
+                left: 50% !important;
+                width: min(980px, calc(100vw - 12px)) !important;
+                height: calc(100dvh - 12px) !important;
+                max-width: calc(100vw - 12px) !important;
+                max-height: calc(100dvh - 12px) !important;
+                transform: translate(-50%, -50%) !important;
+                border-radius: 10px !important;
+            }
+
+            #uie-social-window .uie-header {
+                position: relative !important;
+                inset: auto !important;
+                width: 100% !important;
+                height: 44px !important;
+                padding: 6px 8px !important;
+                display: grid !important;
+                grid-template-columns: minmax(0, 1fr) 34px 34px !important;
+                gap: 7px !important;
+                pointer-events: auto !important;
+            }
+
+            #uie-social-window .uie-header h2 {
+                display: block !important;
+                color: #fff4e8 !important;
+                font-size: 15px !important;
+                text-align: left !important;
+            }
+
+            #uie-social-close,
+            #uie-social-sparkle {
+                position: static !important;
+                width: 32px !important;
+                height: 32px !important;
+            }
+
+            #uie-social-window .uie-inv-tabs {
+                padding: 6px 8px !important;
+            }
+
+            #uie-social-content {
+                margin: 0 8px 8px !important;
+            }
+        }
+    </style>
+
+    <div class="uie-header">
+        <h2 data-i18n="social.title">Social Chronicle</h2>
+        <button type="button" id="uie-social-sparkle" title="Manage Contacts" data-i18n-title="social.manage_contacts"><i class="fa-solid fa-wand-magic-sparkles"></i></button>
+        <button type="button" id="uie-social-close" title="Close"><i class="fa-solid fa-xmark"></i></button>
+
+        <div class="uie-dropdown" id="uie-social-menu">
+            <div class="uie-dd-item" onclick="UIE_openGuide('guide-social')"><i class="fa-solid fa-circle-question" style="color:#d84315;"></i><span data-i18n="social.menu.help_guide">Help / Guide</span></div>
+            <div class="uie-dd-item" id="uie-act-scan"><i class="fa-solid fa-users-viewfinder"></i><span data-i18n="social.menu.scan_chat">Scan Chat Log</span></div>
+            <div class="uie-dd-item" id="uie-act-toggle-auto"><i class="fa-solid fa-robot"></i><span data-i18n="social.menu.auto_scan">Auto Scan:</span> <span id="uie-auto-scan-state">OFF</span></div>
+            <div class="uie-dd-item" id="uie-act-add"><i class="fa-solid fa-plus"></i><span data-i18n="social.menu.manual_add">Manual Add</span></div>
+            <div class="uie-dd-item" id="uie-act-delete"><i class="fa-solid fa-trash"></i><span data-i18n="social.menu.mass_delete">Mass Delete</span></div>
+            <div class="uie-dd-item" id="uie-act-bg"><i class="fa-solid fa-image"></i><span data-i18n="social.menu.change_bg">Change Background</span></div>
+            <div class="uie-dd-item" id="uie-act-heart"><i class="fa-solid fa-heart"></i><span data-i18n="social.menu.change_heart">Change Heart Icon</span></div>
+        </div>
+    </div>
+
+    <div class="uie-inv-tabs">
+        <div class="uie-tab active" data-tab="friends" data-i18n="social.tab.friends">FRIENDS</div>
+        <div class="uie-tab" data-tab="associates" data-i18n="social.tab.associates">ASSOCIATES</div>
+        <div class="uie-tab" data-tab="romance" data-i18n="social.tab.relationships">RELATIONSHIPS</div>
+        <div class="uie-tab" data-tab="family" data-i18n="social.tab.family">FAMILY</div>
+        <div class="uie-tab" data-tab="rivals" data-i18n="social.tab.rivals">RIVALS</div>
+        <div class="uie-tab" data-tab="tracker" data-i18n="social.tab.tracker">TRACKER</div>
+    </div>
+
+    <div class="uie-content custom-scroll" id="uie-social-content"></div>
+
+    <div id="uie-delete-controls">
+        <div class="uie-del-confirm" data-i18n="social.delete.confirm">CONFIRM DELETE</div>
+        <div class="uie-del-cancel" data-i18n="social.delete.cancel">CANCEL</div>
+    </div>
+
+    <div id="uie-add-modal">
+        <div class="uie-add-sheet">
+            <div style="text-align:center; font-weight:900; color:#8a4f1d; margin-bottom:14px; font-size:1.25em; font-family:'Cinzel', Georgia, serif; border-bottom:3px solid #8d6e63; padding-bottom:10px;" data-i18n="social.add.title">CONTACT DETAILS</div>
+            <label class="uie-img-preview" title="Click to upload image" data-i18n-title="social.add.upload_image">
+                <img id="uie-add-preview" src="" style="width:100%; height:100%; display:none; object-fit:cover;">
+                <i class="fa-solid fa-camera" id="uie-add-icon" style="font-size:2em; color:#8d6e63;"></i>
+                <input type="file" id="uie-add-img-file" accept="image/*">
+            </label>
+            <div class="uie-input-group"><input type="text" id="uie-add-url" placeholder=" "><label data-i18n="social.add.image_url">Image URL (Optional)</label></div>
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
+                <div class="uie-input-group"><input type="text" id="uie-add-name" placeholder=" "><label data-i18n="social.add.name">Name</label></div>
+                <div class="uie-input-group"><input type="text" id="uie-add-age" placeholder=" "><label data-i18n="social.add.age">Age</label></div>
+            </div>
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
+                <div class="uie-input-group">
+                    <select id="uie-add-gender">
+                        <option value=""></option>
+                        <option value="Man">Man</option>
+                        <option value="Woman">Woman</option>
+                        <option value="Custom">Custom</option>
+                    </select>
+                    <label>Gender</label>
+                </div>
+                <div class="uie-input-group"><input type="text" id="uie-add-gender-custom" placeholder=" " hidden><label>Custom Gender</label></div>
+            </div>
+            <div class="uie-input-group"><input type="text" id="uie-add-family" placeholder=" "><label data-i18n="social.add.known_family">Known Family</label></div>
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
+                <div class="uie-input-group">
+                    <select id="uie-add-tab" required>
+                        <option value="" disabled selected></option>
+                        <option value="friends" data-i18n="social.add.category.friend">Friend</option>
+                        <option value="associates" data-i18n="social.add.category.associate">Associate</option>
+                        <option value="romance" data-i18n="social.add.category.relationship">Relationship</option>
+                        <option value="family" data-i18n="social.add.category.family">Family</option>
+                        <option value="rivals" data-i18n="social.add.category.rival">Rival</option>
+                    </select>
+                    <label data-i18n="social.add.category">Category</label>
+                </div>
+                <div class="uie-input-group"><input type="number" id="uie-add-affinity" value="50" min="0" max="100" placeholder=" "><label data-i18n="social.add.affinity">Affinity (0-100)</label></div>
+            </div>
+            <div class="uie-add-checkbox-row">
+                <label class="uie-add-checkbox-label"><input type="checkbox" id="uie-add-known-past"><span data-i18n="social.add.known_past">Known from Past</span></label>
+                <label class="uie-add-checkbox-label"><input type="checkbox" id="uie-add-met-phys"><span data-i18n="social.add.met_phys">Met Physically</span></label>
+                <label class="uie-add-checkbox-label"><input type="checkbox" id="uie-add-live-sync" checked><span>Auto-update from chat</span></label>
+                <label class="uie-add-checkbox-label"><input type="checkbox" id="uie-add-map-track"><span>Track on map</span></label>
+            </div>
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
+                <div class="uie-input-group"><select id="uie-add-social-role"><option value="" disabled selected></option></select><label>Select Role / Status</label></div>
+                <div class="uie-input-group"><input type="text" id="uie-add-custom-role" placeholder=" "><label>Custom Role / Status</label></div>
+            </div>
+            <details style="margin-top:6px; border:2px solid rgba(92,55,32,0.28); border-radius:8px; background:#fff2cf; padding:12px;">
+                <summary style="cursor:pointer; font-weight:900; color:#8a4f1d; font-size:0.9em;" data-i18n="social.add.more_details">More Details</summary>
+                <div class="uie-input-group" style="margin-top:12px;"><textarea id="uie-add-thoughts" placeholder=" "></textarea><label data-i18n="social.add.background_notes">Background / Notes</label></div>
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
+                    <div class="uie-input-group"><input type="text" id="uie-add-bday" placeholder=" "><label data-i18n="social.add.birthday">Birthday</label></div>
+                    <div class="uie-input-group"><input type="text" id="uie-add-loc" placeholder=" "><label data-i18n="social.add.location">Location</label></div>
+                </div>
+                <div class="uie-input-group"><input type="text" id="uie-add-likes" placeholder=" "><label data-i18n="social.add.likes">Likes (comma sep)</label></div>
+                <div class="uie-input-group"><input type="text" id="uie-add-dislikes" placeholder=" "><label data-i18n="social.add.dislikes">Dislikes (comma sep)</label></div>
+            </details>
+            <div style="display:flex; gap:12px; margin-top:12px;">
+                <button class="uie-add-btn" id="uie-submit-add" style="flex:2;" data-i18n="social.add.save_contact">Save Contact</button>
+                <button class="uie-add-btn" id="uie-cancel-add" style="flex:1;" data-i18n="social.common.cancel">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="uie-social-overlay">
+        <div class="uie-paper-box" style="position:relative;">
+            <div class="uie-p-close">X</div>
+            <div class="uie-p-top-actions">
+                <div class="uie-p-icon-btn" id="uie-social-message" title="Message" data-i18n-title="social.profile.message"><i class="fa-solid fa-comment"></i></div>
+                <div class="uie-p-icon-btn" id="uie-social-tree" title="Lineage"><i class="fa-solid fa-tree"></i></div>
+                <div class="uie-p-icon-btn" id="uie-social-memories" title="Memories" data-i18n-title="social.profile.memories"><i class="fa-solid fa-brain"></i></div>
+                <div class="uie-p-icon-btn" id="uie-social-edit" title="Edit" data-i18n-title="social.common.edit"><i class="fa-solid fa-pencil"></i></div>
+                <div class="uie-p-icon-btn danger" id="uie-social-del-one" title="Delete" data-i18n-title="social.common.delete"><i class="fa-solid fa-trash"></i></div>
+            </div>
+            <div class="uie-p-header">
+                <div class="uie-p-portrait"><img id="p-img-disp" style="width:100%; height:100%; display:none; object-fit:cover;"><i class="fa-solid fa-user"></i></div>
+                <div class="uie-p-info">
+                    <div class="uie-p-name-lg">NAME</div>
+                    <div class="uie-p-hearts-lg">ooooo</div>
+                </div>
+            </div>
+            <div class="uie-paper-inner">
+                <div class="uie-p-status-line" id="p-val-status">"No thoughts currently..."</div>
+                <div class="uie-affinity-meter"><div id="p-val-affinity-fill"></div></div>
+                <div class="uie-p-toggle-row">
+                    <div class="uie-p-toggle-meta">
+                        <div class="uie-p-toggle-title">Live Life Updates</div>
+                        <div class="uie-p-toggle-sub">Keep this contact updated from continued chat events.</div>
+                    </div>
+                    <label class="uie-p-toggle-label"><input type="checkbox" id="uie-social-live-sync" checked><span>Auto-update</span></label>
+                </div>
+                <div class="uie-p-toggle-row">
+                    <div class="uie-p-toggle-meta">
+                        <div class="uie-p-toggle-title">Location Lock</div>
+                        <div class="uie-p-toggle-sub" id="uie-social-lock-label">Not locked</div>
+                    </div>
+                    <label class="uie-p-toggle-label"><input type="checkbox" id="uie-social-lock-location"><span>Lock</span></label>
+                </div>
+                <div class="uie-p-toggle-row">
+                    <div class="uie-p-toggle-meta">
+                        <div class="uie-p-toggle-title">Map Tracking</div>
+                        <div class="uie-p-toggle-sub">Show this contact in the tracker tab and map handoff.</div>
+                    </div>
+                    <label class="uie-p-toggle-label"><input type="checkbox" id="uie-social-map-track"><span>Track</span></label>
+                </div>
+                <div class="uie-profile-summary">
+                    <div class="uie-profile-chip"><b data-i18n="social.field.status">Status</b><span id="p-val-rel-status">-</span></div>
+                    <div class="uie-profile-chip"><b data-i18n="social.field.presence">Presence</b><span id="p-val-presence">-</span></div>
+                    <div class="uie-profile-chip"><b data-i18n="social.field.location">Location</b><span id="p-val-loc">(TM)</span></div>
+                    <div class="uie-profile-chip"><b data-i18n="social.field.age">Age</b><span id="p-val-age">(TM)</span></div>
+                    <div class="uie-profile-chip"><b>Gender</b><span id="p-val-gender">-</span></div>
+                    <div class="uie-profile-chip"><b data-i18n="social.field.birthday">Birthday</b><span id="p-val-bday">(TM)</span></div>
+                    <div class="uie-profile-chip"><b data-i18n="social.field.family_role">Family</b><span id="p-val-family">(TM)</span> <span id="p-val-family-role">-</span></div>
+                    <div class="uie-profile-chip"><b>Phone</b><span id="p-val-phone">(TM)</span></div>
+                    <div class="uie-profile-chip"><b>Standings</b><span id="p-val-standings">-</span></div>
+                    <div class="uie-profile-chip"><b>Organizations</b><span id="p-val-factions">-</span></div>
+                </div>
+                <div style="margin-top:12px;">
+                    <div class="uie-input-group">
+                        <select id="uie-profile-move-category">
+                            <option value="friends">Friends</option>
+                            <option value="associates">Associates</option>
+                            <option value="romance">Relationships</option>
+                            <option value="family">Family</option>
+                            <option value="rivals">Rivals</option>
+                        </select>
+                        <label>Move Category</label>
+                    </div>
+                </div>
+                <div class="uie-p-lists-container">
+                    <div class="uie-p-list-col list-likes"><div class="uie-p-list-header" data-i18n="social.field.likes">Likes</div><div class="uie-p-list-content" id="p-val-likes">-</div></div>
+                    <div class="uie-p-list-col list-dislikes"><div class="uie-p-list-header" data-i18n="social.field.dislikes">Dislikes</div><div class="uie-p-list-content" id="p-val-dislikes">-</div></div>
+                    <div class="uie-p-list-col"><div class="uie-p-list-header">Schedule</div><div class="uie-p-list-content" id="p-val-schedule">-</div></div>
+                    <div class="uie-p-list-col"><div class="uie-p-list-header">Wants / Needs / Desires</div><div class="uie-p-list-content" id="p-val-drives">-</div></div>
+                </div>
+                <div class="uie-profile-actions">
+                    <button type="button" class="uie-p-btn" id="uie-social-edit-schedule">Edit Schedule</button>
+                    <button type="button" class="uie-p-btn" id="uie-social-edit-drives">Edit Wants / Needs / Desires</button>
+                    <button type="button" class="uie-p-btn" id="uie-social-edit-stats">Edit Dynamic Stats</button>
+                </div>
+                <div class="uie-profile-notes"><h4>Recent Relationship Memory</h4><div id="p-val-memory-preview">No memories saved yet.</div></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="uie-social-mem-overlay">
+        <div class="uie-paper-box" style="position:relative;">
+            <div class="uie-p-close" id="uie-social-mem-close">X</div>
+            <div class="uie-paper-inner">
+                <div style="font-weight:900; font-size:20px; color:#4a2e16; font-family:'Cinzel', Georgia, serif;" data-i18n="social.memories.title">Memories</div>
+                <div id="uie-social-mem-sub" style="margin-top:4px; font-size:12px; color:#7b5437;"></div>
+                <div style="display:flex; gap:8px; margin-top:10px; flex-wrap:wrap;">
+                    <button class="uie-p-btn" id="uie-social-mem-scan" data-i18n="social.memories.scan">Scan From Chat</button>
+                    <button class="uie-p-btn" id="uie-social-mem-add" data-i18n="social.common.add">Add</button>
+                    <button class="uie-p-btn" id="uie-social-mem-inject" data-i18n="social.memories.inject">Inject to Chat</button>
+                    <button class="uie-p-btn danger" id="uie-social-mem-clear" data-i18n="social.common.clear">Clear</button>
+                </div>
+                <div id="uie-social-mem-list"></div>
+                <div id="uie-social-mem-empty" style="margin-top:12px; display:none; text-align:center; color:#7b5437; font-weight:900;" data-i18n="social.memories.empty">- No memories saved -</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="uie-family-tree-overlay">
+        <div class="uie-paper-box" style="position:relative; width:min(980px, 100%);">
+            <button type="button" id="uie-family-tree-close" title="Close" style="position:absolute; right:12px; top:12px; z-index:5;"><i class="fa-solid fa-xmark"></i></button>
+            <div style="padding:20px 62px 10px 20px; background:transparent; border-bottom:none;">
+                <h3 style="margin:0; font-family:'Cinzel', Georgia, serif; font-size:22px; color:#5d351b;">Lineage Tree</h3>
+                <div id="uie-family-tree-sub" style="margin-top:4px; color:#6f4e37; font-size:12px; font-weight:800;">Family records</div>
+            </div>
+            <!-- Direct Relationship Linker Panel -->
+            <div id="uie-lineage-linker-panel" style="padding:12px; border-bottom:2px solid #8d6e63; background:#faebcf; display:flex; flex-wrap:wrap; gap:8px; align-items:center;">
+                <span style="font-weight:bold; color:#4a2e16; font-size:12px;">Link Relations:</span>
+                <select id="uie-lineage-link-a" style="padding:6px; border:1px solid #8d6e63; border-radius:6px; background:#fff; font-size:12px; font-weight:bold; max-width:180px;"></select>
+                <select id="uie-lineage-link-rel" style="padding:6px; border:1px solid #8d6e63; border-radius:6px; background:#fff; font-size:12px; font-weight:bold;">
+                    <option value="parent">is Parent of</option>
+                    <option value="child">is Child of</option>
+                    <option value="spouse">is Spouse / Partner of</option>
+                </select>
+                <select id="uie-lineage-link-b" style="padding:6px; border:1px solid #8d6e63; border-radius:6px; background:#fff; font-size:12px; font-weight:bold; max-width:180px;"></select>
+                <button type="button" id="uie-lineage-link-add-btn" style="padding:6px 14px; background:#8d6e63; color:#fff; border:none; border-radius:6px; cursor:pointer; font-size:12px; font-weight:bold; transition:all 0.2s;">Add Link</button>
+            </div>
+            <div id="uie-family-tree-canvas"></div>
+        </div>
+    </div>
+</div>
+
+<template id="uie-social-card-template">
+    <div class="uie-social-card">
+        <div class="uie-s-avatar"></div>
+        <div class="uie-s-main">
+            <div class="uie-s-name"></div>
+            <div class="uie-s-meta">
+                <span class="uie-s-chip uie-s-role"></span>
+                <span class="uie-s-chip uie-s-presence"></span>
+                <span class="uie-s-tag-container"></span>
+            </div>
+            <div class="uie-s-notes"></div>
+        </div>
+        <div class="uie-s-side">
+            <div class="uie-s-hearts"></div>
+            <div class="uie-s-location"></div>
+        </div>
+    </div>
+</template>
+
+<template id="uie-social-empty-msg">
+    <div class="no-data-msg" style="text-align:center; margin-top:50px; color:#4a2e16; font-family:Georgia, serif; font-size:1.2em; font-weight:900;" data-i18n="social.empty">- Empty Page -</div>
+</template>
+
+<template id="uie-social-memory-row">
+    <div style="padding:10px;">
+        <div style="display:flex; gap:10px; align-items:flex-start;">
+            <div style="flex:1; min-width:0;">
+                <div class="mem-text" style="font-weight:900; font-family:Georgia, serif; line-height:1.35;"></div>
+                <div class="mem-impact" style="margin-top:6px; font-size:12px; color:#7b5437;"></div>
+                <div class="mem-tags" style="margin-top:6px; display:flex; gap:6px; flex-wrap:wrap;"></div>
+            </div>
+            <div class="uie-p-icon-btn uie-social-mem-edit" title="Edit" data-i18n-title="social.common.edit"><i class="fa-solid fa-pen-to-square"></i></div>
+            <div class="uie-p-icon-btn danger uie-social-mem-del" title="Delete" data-i18n-title="social.common.delete"><i class="fa-solid fa-trash"></i></div>
+        </div>
+    </div>
+</template>

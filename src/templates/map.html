@@ -1,0 +1,268 @@
+<div id="uie-map-window" class="uie-window uie-simple-map map-interface-root mobile-map-viewport" style="display:none;" aria-hidden="true">
+  <div class="uie-simple-map__shell">
+    <header class="uie-simple-map__header map-header mobile-map-header">
+      <div class="uie-simple-map__brand">
+        <h2 id="uie-map-title" class="uie-simple-map__title">Map</h2>
+        <div id="uie-map-path" class="uie-simple-map__path" hidden></div>
+      </div>
+      <div class="uie-simple-map__actions">
+        <nav class="uie-map-depth-stack map-nav-group" aria-label="Spatial depth">
+          <button type="button" class="uie-simple-map__tab map-nav-btn is-active" data-map-view="world">World</button>
+          <button type="button" class="uie-simple-map__tab map-nav-btn" data-map-view="region">Region</button>
+          <button type="button" class="uie-simple-map__tab map-nav-btn" data-map-view="area">Local</button>
+          <button type="button" class="uie-simple-map__tab map-nav-btn" data-map-view="vicinity">Nearby</button>
+          <button type="button" class="uie-simple-map__tab map-nav-btn" data-map-view="blueprint">Area</button>
+        </nav>
+        <label class="uie-simple-map__theme-picker map-dropdown-container" title="Map visual theme">
+          <span>Style</span>
+          <select id="uie-map-style">
+            <option value="high-fantasy">Fantasy Realm</option>
+            <option value="modern">Modern City</option>
+            <option value="futuristic">Futuristic Holo</option>
+          </select>
+        </label>
+        <button type="button" class="uie-simple-map__tool" data-map-action="generate">Expand</button>
+        <button type="button" class="uie-simple-map__tool" data-map-action="add">Add Place</button>
+        <button type="button" class="uie-simple-map__tool" data-map-action="freeplace" style="background:linear-gradient(135deg,#a855f7,#7e22ce); color:#fff; border:none;">Free Place</button>
+        <button type="button" class="uie-simple-map__icon" data-map-zoom="reset" title="Reset view">1:1</button>
+        <button type="button" class="uie-simple-map__icon" data-map-action="import" title="Import map" aria-label="Import map"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M12 17V9"/><path d="m8 13 4 4 4-4"/></svg></button>
+        <button type="button" class="uie-simple-map__icon" data-map-action="export" title="Export map" aria-label="Export map"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M12 9v8"/><path d="m8 13 4-4 4 4"/></svg></button>
+        <button type="button" class="uie-simple-map__icon" data-map-action="share" title="Share map" aria-label="Share map"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.59 13.51 6.83 3.98"/><path d="m15.41 6.51-6.82 3.98"/></svg></button>
+        <button type="button" id="uie-map-close" class="uie-simple-map__close" aria-label="Close map">x</button>
+      </div>
+    </header>
+
+    <main class="uie-simple-map__body">
+      <section class="uie-simple-map__canvas map-viewport" aria-label="Drag to move the map. Use mouse wheel or pinch to zoom.">
+        <div class="uie-simple-map__backdrop map-canvas-wrapper" aria-hidden="true">
+          <div class="uie-simple-map__land is-main"></div>
+          <div class="uie-simple-map__land is-isle"></div>
+          <div class="uie-simple-map__river"></div>
+          <div class="uie-simple-map__mountains"><i></i><i></i><i></i><i></i></div>
+          <div class="uie-simple-map__forest is-west"><i></i><i></i><i></i><i></i><i></i></div>
+          <div class="uie-simple-map__forest is-east"><i></i><i></i><i></i><i></i></div>
+          <div class="uie-simple-map__districts"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+          <div class="uie-simple-map__routes"><i></i><i></i><i></i></div>
+          <div class="uie-simple-map__constellation"><i></i><i></i><i></i><i></i><i></i></div>
+          <div class="uie-simple-map__waves is-one">~~~ ~~~ ~~~</div>
+          <div class="uie-simple-map__waves is-two">~~~ ~~~</div>
+        </div>
+        <div class="uie-simple-map__legend" aria-label="Map color legend">
+          <strong>Color Legend</strong>
+          <span><b class="is-you"></b> You</span>
+          <span><b class="is-target"></b> Target</span>
+          <span><b class="is-transit"></b> Station / Dock</span>
+          <span><b class="is-vehicle"></b> Vehicle / Ship</span>
+          <span><b class="is-danger"></b> Danger</span>
+          <span><b class="is-service"></b> Service</span>
+          <span><b class="is-interior"></b> Interior</span>
+        </div>
+        <svg id="uie-map-links" class="uie-simple-map__links" viewBox="0 0 1000 620" preserveAspectRatio="none"></svg>
+        <div id="uie-map-nodes" class="uie-simple-map__nodes"></div>
+        <div id="uie-map-blueprint" class="uie-simple-map__blueprint" hidden></div>
+        <div id="uie-map-navigation-popup" class="uie-simple-map__navigation-popup" hidden aria-live="polite"></div>
+        <div id="map-hover-tooltip" class="uie-simple-map__tooltip" hidden></div>
+      </section>
+      <aside class="uie-simple-map__panel mobile-destination-drawer">
+        <div class="uie-simple-map__card is-intel">
+          <div class="uie-simple-map__eyebrow">Destination</div>
+          <h3 id="uie-map-selected-name">Current Location</h3>
+          <p id="uie-map-selected-desc">Choose somewhere that calls to you.</p>
+          <div id="uie-map-laws" class="uie-simple-map__chips"></div>
+          <div class="uie-simple-map__eyebrow" style="margin-top:10px;">Reputation</div>
+          <div id="uie-map-reputation" class="uie-simple-map__chips"></div>
+          <div class="uie-simple-map__eyebrow" style="margin-top:10px;">Travel Access</div>
+          <div id="uie-map-transport" class="uie-simple-map__chips"></div>
+          <div id="uie-map-travel-cost" class="uie-simple-map__travel-cost">Select a destination to plan your journey.</div>
+          <div class="uie-simple-map__journey-actions">
+            <button type="button" id="uie-map-confirm-travel" class="uie-simple-map__primary">Move To Area</button>
+            <button type="button" class="uie-simple-map__secondary" data-map-action="blueprint">Open Area</button>
+          </div>
+        </div>
+        <details class="uie-simple-map__route-card">
+          <summary>Paths from here</summary>
+          <div id="uie-map-exits" class="uie-simple-map__exits"></div>
+        </details>
+        <div class="uie-simple-map__engine-data" aria-hidden="true" hidden>
+          <span id="uie-map-faction">Inherited</span><span id="uie-map-theme">Local</span>
+          <span id="uie-map-coords">0,0,0</span><span id="uie-map-layer">World</span>
+          <div id="uie-map-entities"></div>
+        </div>
+      </aside>
+    </main>
+  </div>
+</div>
+
+<div id="uie-map-scan-modal" class="uie-map-modal" hidden aria-hidden="true">
+  <div class="uie-map-modal__panel">
+    <div class="uie-map-modal__top">
+      <div><div class="uie-simple-map__eyebrow">Chat Scan</div><h3>Add Place From Chat</h3></div>
+      <button type="button" data-map-modal-close class="uie-simple-map__close" aria-label="Close scan">x</button>
+    </div>
+    <div class="uie-map-gen-grid">
+      <label style="grid-column:span 2;">Detected Place
+        <select id="uie-map-scan-place"></select>
+      </label>
+      <label>Layer
+        <select id="uie-map-scan-layer"><option value="area">Local</option><option value="vicinity">Nearby</option><option value="region">Region</option><option value="world">World</option></select>
+      </label>
+      <label>Connect Near
+        <select id="uie-map-scan-anchor"></select>
+      </label>
+    </div>
+    <div id="uie-map-scan-empty" class="uie-map-modal__hint">Scanning recent chat for concrete places.</div>
+    <div class="uie-map-modal__actions"><button type="button" id="uie-map-scan-add" class="uie-simple-map__primary">Add Selected Place</button></div>
+  </div>
+</div>
+
+<div id="worldgen-modal" class="uie-map-modal" hidden aria-hidden="true">
+  <div class="uie-map-modal__panel is-wide">
+    <div class="uie-map-modal__top">
+      <div><div class="uie-simple-map__eyebrow">Cartographer</div><h3>Generate World Map</h3></div>
+      <button type="button" id="wg-cancel" class="uie-simple-map__close" aria-label="Close generator">x</button>
+    </div>
+    <div class="uie-map-gen-tabs" role="tablist" aria-label="Generator options">
+      <button type="button" class="uie-map-gen-tab is-active" data-wg-pane-target="atlas">Atlas</button>
+      <button type="button" class="uie-map-gen-tab" data-wg-pane-target="focused">Focused DOMs</button>
+    </div>
+    <div class="uie-map-gen-pane is-active" data-wg-pane="atlas">
+      <div class="uie-map-gen-grid">
+        <label>Layer
+          <select id="wg-scope">
+            <option value="world">Complete Atlas Package</option>
+            <option value="region">Complete Atlas, Focus Region</option>
+            <option value="area" selected>Complete Atlas, Focus Local</option>
+            <option value="blueprint">Regenerate Current Blueprint</option>
+          </select>
+        </label>
+        <label>Mode
+          <select id="wg-mode">
+            <option value="hybrid" selected>AI + Engine Math</option>
+            <option value="ai">AI Names / Lore</option>
+            <option value="procedural">Engine Procedural</option>
+          </select>
+        </label>
+        <label>Seed Name
+          <input id="wg-location" type="text" value="Current Setting" placeholder="Neon megacity, frontier village, orbital habitat">
+        </label>
+        <label id="wg-count-worlds-wrapper">Worlds
+          <input id="wg-count-worlds" type="number" min="1" max="8" value="2">
+        </label>
+        <label id="wg-count-regions-wrapper">Regions
+          <input id="wg-count-regions" type="number" min="1" max="24" value="6">
+        </label>
+        <label id="wg-count-settlements-wrapper">Cities / Towns
+          <input id="wg-count-settlements" type="number" min="0" max="48" value="4">
+        </label>
+        <label id="wg-count-places-wrapper">Locations
+          <input id="wg-count-places" type="number" min="1" max="120" value="14">
+        </label>
+        <label>Detailed Layouts
+          <select id="wg-blueprint-mode">
+            <option value="sites" selected>Exploration sites only</option>
+            <option value="none">Do not generate layouts</option>
+            <option value="all">All enclosed locations</option>
+          </select>
+        </label>
+        <label id="wg-count-rooms-wrapper">Locations Per Detailed Site
+          <input id="wg-count-rooms" type="number" min="1" max="40" value="9">
+        </label>
+      </div>
+      <div id="wg-scope-hint" class="uie-map-modal__hint">New atlases always generate the full World &gt; Region &gt; Local &gt; Nearby &gt; Blueprint package.</div>
+      <textarea id="wg-prompt" class="uie-map-modal__textarea" placeholder="Describe the genre, era, culture, geography, traversal, location types, transit rules, and anything that should never appear."></textarea>
+    </div>
+    <div class="uie-map-gen-pane" data-wg-pane="focused" hidden>
+      <div class="uie-map-gen-grid">
+        <label>Focused DOMs
+          <select id="wg-focused-enabled">
+            <option value="off" selected>Off</option>
+            <option value="on">On</option>
+          </select>
+        </label>
+        <label>Main Job Preset
+          <select id="wg-focused-job">
+            <option value="none" selected>None</option>
+            <option value="school">Student / School</option>
+            <option value="service">Service / Cafe</option>
+            <option value="retail">Retail / Shop</option>
+            <option value="office">Office / Agency</option>
+            <option value="clinic">Clinic / Care</option>
+            <option value="craft">Guild / Craft</option>
+            <option value="performance">Performance / Studio</option>
+          </select>
+        </label>
+        <label>Task Windows
+          <select id="wg-focused-tasks">
+            <option value="on" selected>On when time applies</option>
+            <option value="off">Off</option>
+          </select>
+        </label>
+        <label style="grid-column:1/-1;">Focus Subjects
+          <textarea id="wg-focused-subjects" placeholder="school, cafe job, guild hall, family estate, faction HQ"></textarea>
+        </label>
+      </div>
+      <div class="uie-map-modal__hint">Focused DOMs create dedicated systems, modals, and task windows for the spaces or roles the run should prioritize.</div>
+    </div>
+    <div class="uie-map-modal__actions">
+      <button type="button" id="wg-generate" class="uie-simple-map__primary">Generate Map</button>
+    </div>
+  </div>
+</div>
+
+<div id="uie-map-location-modal" class="uie-map-modal" hidden aria-hidden="true">
+  <div class="uie-map-modal__panel">
+    <div class="uie-map-modal__top">
+      <div><div class="uie-simple-map__eyebrow">Manual Cartography</div><h3>Add Location</h3></div>
+      <button type="button" data-map-modal-close class="uie-simple-map__close" aria-label="Close add location">x</button>
+    </div>
+    <div class="uie-map-gen-grid">
+      <label>Name<input id="uie-map-add-name" type="text" placeholder="Glass Harbor"></label>
+      <label>Layer<select id="uie-map-add-layer"><option value="world">World</option><option value="region">Region</option><option value="area" selected>Local</option><option value="vicinity">Nearby</option></select></label>
+      <label>Type<input id="uie-map-add-type" type="text" placeholder="district, building, trail, station"></label>
+      <label>Controlling Group<input id="uie-map-add-faction" type="text" placeholder="Class 2-B, Harbor Authority, none"></label>
+      <label>Theme<input id="uie-map-add-theme" type="text" placeholder="Industrial Slum"></label>
+      <label>Laws<input id="uie-map-add-laws" type="text" placeholder="Curfew, Drone patrols, No open magic"></label>
+      <label>Reputation<input id="uie-map-add-reputation" type="text" placeholder="Neutral, wanted, trusted, watched"></label>
+      <label>Travel Access<input id="uie-map-add-access" type="text" placeholder="foot, road, rail, water, air, space, portal"></label>
+    </div>
+    <textarea id="uie-map-add-desc" class="uie-map-modal__textarea" placeholder="What makes this place interesting? What can the player do here?"></textarea>
+    <div class="uie-map-modal__actions"><button type="button" id="uie-map-add-save" class="uie-simple-map__primary">Add To Map</button></div>
+  </div>
+</div>
+
+<div id="uie-map-import-modal" class="uie-map-modal" hidden aria-hidden="true">
+  <div class="uie-map-modal__panel">
+    <div class="uie-map-modal__top">
+      <div><div class="uie-simple-map__eyebrow">Map Exchange</div><h3>Import Map JSON</h3></div>
+      <button type="button" data-map-modal-close class="uie-simple-map__close" aria-label="Close import">x</button>
+    </div>
+    <textarea id="uie-map-import-json" class="uie-map-modal__textarea" placeholder="Paste exported or shared map JSON here."></textarea>
+    <div class="uie-map-modal__actions"><button type="button" id="uie-map-import-apply" class="uie-simple-map__primary">Import Map</button></div>
+  </div>
+</div>
+
+<div id="uie-rune-lock" class="uie-rune-lock" hidden aria-hidden="true">
+  <div class="uie-rune-lock__panel">
+    <div class="uie-rune-lock__top">
+      <div>
+        <div class="uie-simple-map__eyebrow">Rune Lock</div>
+        <h3 id="uie-rune-lock-title">Trace Access Key</h3>
+      </div>
+      <button type="button" id="uie-rune-lock-close" class="uie-simple-map__close" aria-label="Close rune lock">x</button>
+    </div>
+    <div id="uie-rune-lock-board" class="uie-rune-lock__board"></div>
+    <div id="uie-rune-lock-status" class="uie-rune-lock__status">Start on the first lit node and trace the pattern.</div>
+  </div>
+</div>
+<script>
+  (() => {
+    const isDirectTemplate = /\/src\/templates\/map\.html$/i.test(location.pathname.replace(/\\/g, "/"));
+    if (!isDirectTemplate) return;
+    const map = document.getElementById("uie-map-window");
+    if (map) {
+      map.style.display = "flex";
+      map.style.inset = "18px";
+      map.setAttribute("aria-hidden", "false");
+    }
+  })();
+</script>

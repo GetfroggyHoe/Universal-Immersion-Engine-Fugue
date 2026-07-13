@@ -1,0 +1,16 @@
+{
+  "sprites": [],
+  "backgrounds": [],
+  "audio": [],
+  "processedAssets": {
+    "manifest": "assets/processed/asset-tags.json",
+    "inventoryPlates": 0,
+    "itemsEquipment": 0,
+    "food": 493,
+    "misc": 277
+  },
+  "paks": {
+    "food": "assets/paks/food.apak",
+    "misc": "assets/paks/misc.apak"
+  }
+}

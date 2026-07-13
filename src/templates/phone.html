@@ -1,0 +1,2260 @@
+<div id="uie-phone-window" class="uie-phone uie-window" style="display:none;">
+    <style id="uie-phone-custom-css"></style>
+    <style>
+        /* CORE PHONE STYLES (Desktop Fallback) */
+        #uie-phone-window {
+            position: fixed;
+            top: 15%;
+            left: calc(50% - 190px);
+            width: 340px;
+            height: 690px;
+            max-width: min(340px, calc(100vw - 24px));
+            max-height: 85vh;
+            z-index: 2147483640 !important;
+            background: #000 !important;
+            border: 2px solid #333;
+            border-radius: 24px;
+            box-shadow: 0 15px 50px rgba(0,0,0,0.8);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            color: white;
+        }
+        #uie-phone-window::before {
+            content: "";
+            position: absolute;
+            inset: 7px;
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: inherit;
+            pointer-events: none;
+            z-index: 290;
+        }
+        #uie-phone-window[data-device="y2k"] {
+            width: 330px;
+            height: 650px;
+            border: 10px solid #b9c2c8;
+            border-radius: 34px 34px 46px 46px;
+            background: linear-gradient(145deg, #73828b, #c9d1d5 28%, #59656c) !important;
+            box-shadow: inset 0 0 0 3px #47535a, 0 18px 45px rgba(0,0,0,.72);
+            font-family: Tahoma, Verdana, sans-serif;
+        }
+        #uie-phone-window[data-device="y2k"] .phone-status-bar {
+            margin: 7px 12px 0;
+            border-radius: 9px 9px 0 0;
+            color: #18231d;
+            background: #b9d0ae !important;
+            border: 2px inset #dbe8d4;
+        }
+        #uie-phone-window[data-device="y2k"] .phone-screen,
+        #uie-phone-window[data-device="y2k"] .phone-app-window {
+            margin: 0 12px 14px;
+            border: 3px inset #dbe8d4;
+            border-radius: 0 0 10px 10px;
+            overflow: hidden;
+        }
+        #uie-phone-window[data-device="y2k"] .phone-app-icon {
+            border-radius: 7px;
+            box-shadow: inset 0 2px rgba(255,255,255,.35), 0 2px 2px rgba(0,0,0,.35);
+        }
+        #uie-phone-window[data-device="future"] {
+            width: 340px;
+            height: 690px;
+            border: 2px solid #5ef5ff;
+            border-radius: 42px 12px 42px 12px;
+            background: rgba(2,8,18,.88) !important;
+            box-shadow: 0 0 0 5px rgba(94,245,255,.08), 0 0 38px rgba(94,245,255,.35), 0 20px 60px rgba(0,0,0,.8);
+        }
+        #uie-phone-window[data-device="future"]::before {
+            inset: 5px;
+            border-color: rgba(94,245,255,.55);
+            clip-path: polygon(0 0, 92% 0, 100% 7%, 100% 100%, 8% 100%, 0 93%);
+        }
+        #uie-phone-window[data-device="future"] .phone-app-icon {
+            border: 1px solid rgba(94,245,255,.48);
+            border-radius: 15px 4px 15px 4px;
+            background: rgba(8,30,48,.82) !important;
+            color: #8ffaff;
+            box-shadow: 0 0 14px rgba(94,245,255,.18);
+        }
+        #uie-phone-window[data-device="future"] .phone-app-header {
+            border-bottom-color: rgba(94,245,255,.45) !important;
+            text-transform: uppercase;
+            letter-spacing: .12em;
+        }
+        #uie-phone-window[data-device="scroll"] {
+            width: min(800px, 94vw) !important;
+            height: min(600px, 80vh) !important;
+            max-height: 80vh !important;
+            border: 0 !important;
+            border-radius: 4px !important;
+            overflow: visible !important;
+            padding: 20px 42px !important;
+            box-sizing: border-box !important;
+            background:
+                radial-gradient(ellipse at 18% 12%, rgba(255,255,255,.48), transparent 42%),
+                repeating-linear-gradient(0deg, rgba(99,55,22,.035) 0 1px, transparent 1px 5px),
+                #f1e4c3 !important;
+            color: #2b170b !important;
+            font-family: Palatino, "Palatino Linotype", "Book Antiqua", Georgia, serif !important;
+            box-shadow: 0 22px 56px rgba(24, 13, 5, .62), inset 0 0 42px rgba(92, 50, 19, .32) !important;
+            transform-origin: center center !important;
+            animation: uie-codice-unroll .28s ease-out both !important;
+        }
+        #uie-phone-window[data-codice="true"] #uie-phone-lockscreen,
+        #uie-phone-window[data-codice="true"] #uie-phone-lock-btn {
+            display: none !important;
+        }
+        #uie-phone-window[data-device="scroll"].is-rolling,
+        #uie-phone-window[data-codice="true"].is-rolling {
+            animation: uie-codice-rollup .24s ease-in both !important;
+        }
+        @keyframes uie-codice-unroll {
+            from { opacity: 0; transform: scaleX(.08); clip-path: inset(0 46% 0 46%); }
+            to { opacity: 1; transform: scaleX(1); clip-path: inset(0 0 0 0); }
+        }
+        @keyframes uie-codice-rollup {
+            from { opacity: 1; transform: scaleX(1); clip-path: inset(0 0 0 0); }
+            to { opacity: 0; transform: scaleX(.08); clip-path: inset(0 46% 0 46%); }
+        }
+        /* Left & Right scroll rollers */
+        #uie-phone-window[data-device="scroll"]::before,
+        #uie-phone-window[data-device="scroll"]::after {
+            content: "" !important;
+            position: absolute !important;
+            top: -15px !important;
+            bottom: -15px !important;
+            width: 22px !important;
+            border-radius: 999px !important;
+            background: linear-gradient(90deg, #8c5d31, #3f2412 58%, #1e1008) !important;
+            box-shadow: inset 2px 0 rgba(255,255,255,.16), 7px 0 16px rgba(30, 12, 3, .38) !important;
+            pointer-events: none !important;
+            z-index: 310 !important;
+        }
+        #uie-phone-window[data-device="scroll"]::before { left: -11px !important; right: auto !important; }
+        #uie-phone-window[data-device="scroll"]::after { right: -11px !important; left: auto !important; }
+
+        #uie-phone-window[data-device="scroll"] .phone-status-bar { display: none !important; }
+        #uie-phone-window[data-device="scroll"] .phone-status-bar i,
+        #uie-phone-window[data-device="scroll"] #uie-phone-lock-btn,
+        #uie-phone-window[data-device="scroll"] #dock-btn-phone,
+        #uie-phone-window[data-device="scroll"] #dock-btn-browser,
+        #uie-phone-window[data-device="scroll"] #app-browser,
+        #uie-phone-window[data-device="scroll"] #app-store,
+        #uie-phone-window[data-device="scroll"] #app-cookies,
+        #uie-phone-window[data-device="scroll"] #app-travel,
+        #uie-phone-window[data-device="scroll"] #app-bank,
+        #uie-phone-window[data-device="scroll"] #app-cardforge,
+        #uie-phone-window[data-device="scroll"] #app-memories,
+        #uie-phone-window[data-device="scroll"] #app-social,
+        #uie-phone-window[data-device="scroll"] #uie-app-social-view,
+        #uie-phone-window[data-device="scroll"] #uie-phone-dock {
+            display: none !important;
+        }
+        /* A Codice is correspondence, not a themed phone.  Keep this explicit
+           as well as the scroll-skin selector so a forced Codice cannot expose
+           a modern launcher while its skin is being refreshed. */
+        #uie-phone-window[data-codice="true"] #app-browser,
+        #uie-phone-window[data-codice="true"] #app-store,
+        #uie-phone-window[data-codice="true"] #app-cookies,
+        #uie-phone-window[data-codice="true"] #app-travel,
+        #uie-phone-window[data-codice="true"] #app-bank,
+        #uie-phone-window[data-codice="true"] #app-cardforge,
+        #uie-phone-window[data-codice="true"] #app-memories,
+        #uie-phone-window[data-codice="true"] #app-social,
+        #uie-phone-window[data-codice="true"] #uie-app-social-view,
+        #uie-phone-window[data-codice="true"] #uie-phone-dock,
+        #uie-phone-window[data-codice="true"] #uie-app-dial-view,
+        #uie-phone-window[data-codice="true"] #uie-call-screen {
+            display: none !important;
+        }
+
+        #uie-phone-window[data-device="scroll"] .phone-screen,
+        #uie-phone-window[data-device="scroll"] .phone-app-window {
+            margin: 0 !important;
+            border: none !important;
+            border-radius: 0 !important;
+            background: transparent !important;
+            box-shadow: none !important;
+            overflow: hidden !important;
+            height: 100% !important;
+            min-height: 0 !important;
+            display: flex !important;
+            flex-direction: column !important;
+        }
+        #uie-phone-window[data-device="scroll"] #uie-phone-homescreen {
+            display: flex !important;
+            flex-direction: column !important;
+        }
+        #uie-phone-window[data-device="scroll"] .phone-grid-scroll {
+            padding-top: 0 !important;
+            flex: 1 !important;
+            overflow-y: auto !important;
+        }
+        
+        /* 2-column large immersive click boxes */
+        #uie-phone-window[data-device="scroll"] #uie-phone-grid {
+            display: grid !important;
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 20px !important;
+            padding: 30px !important;
+        }
+        #uie-phone-window[data-device="scroll"] .phone-app-icon {
+            position: relative !important;
+            width: 100% !important;
+            height: 110px !important;
+            border-radius: 8px !important;
+            background: rgba(125, 75, 40, 0.08) !important;
+            color: #3a210f !important;
+            border: 2px solid #5c3213 !important;
+            box-shadow: 0 8px 16px rgba(50, 25, 10, 0.12), inset 0 0 16px rgba(101, 52, 18, .12) !important;
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: center !important;
+            justify-content: center !important;
+            gap: 8px !important;
+            padding: 10px !important;
+            text-align: center !important;
+            cursor: pointer !important;
+            transition: all 0.2s ease !important;
+            box-sizing: border-box !important;
+        }
+        #uie-phone-window[data-device="scroll"] .phone-app-icon:hover {
+            background: rgba(125, 75, 40, 0.16) !important;
+            transform: scale(1.02) !important;
+            box-shadow: 0 12px 24px rgba(50, 25, 10, 0.2), inset 0 0 20px rgba(92, 50, 19, 0.22) !important;
+        }
+        #uie-phone-window[data-device="scroll"] .phone-app-icon i {
+            position: static !important;
+            font-size: 28px !important;
+            color: #7a2618 !important;
+        }
+        #uie-phone-window[data-device="scroll"] #app-msg,
+        #uie-phone-window[data-device="scroll"] #app-contacts,
+        #uie-phone-window[data-device="scroll"] #app-calc,
+        #uie-phone-window[data-device="scroll"] #app-settings {
+            display: flex !important;
+        }
+        #uie-phone-window[data-device="scroll"] #app-msg::after { content: "Mailbox" !important; }
+        #uie-phone-window[data-device="scroll"] #app-contacts::after { content: "Contacts" !important; }
+        #uie-phone-window[data-device="scroll"] #app-calc::after { content: "Ledger" !important; }
+        #uie-phone-window[data-device="scroll"] #app-settings::after { content: "Seals" !important; }
+        
+        #uie-phone-window[data-device="scroll"] #uie-phone-grid .phone-app-icon::after {
+            position: static !important;
+            transform: none !important;
+            width: auto !important;
+            color: #4a2306 !important;
+            font-family: 'Tangerine', cursive, Georgia, serif !important;
+            font-size: 32px !important;
+            font-weight: 700 !important;
+            line-height: 1.1 !important;
+        }
+
+        #uie-phone-window[data-device="scroll"] .phone-app-header {
+            min-height: 48px !important;
+            border-bottom: 2px solid #5c3213 !important;
+            background: transparent !important;
+            color: #4a2306 !important;
+            font-family: 'MedievalSharp', serif !important;
+            font-size: 16px !important;
+            font-weight: bold !important;
+            text-transform: uppercase !important;
+            letter-spacing: 1px !important;
+            display: flex !important;
+            align-items: center !important;
+            box-sizing: border-box !important;
+        }
+        #uie-phone-window[data-device="scroll"] .phone-app-header > span {
+            color: #4a2306 !important;
+            font-family: 'MedievalSharp', serif !important;
+            font-size: 16px !important;
+            letter-spacing: .05em !important;
+            text-transform: uppercase !important;
+        }
+        #uie-phone-window[data-device="scroll"] .phone-back-btn,
+        #uie-phone-window[data-device="scroll"] #msg-block,
+        #uie-phone-window[data-device="scroll"] #msg-del-thread,
+        #uie-phone-window[data-device="scroll"] #msg-new-number,
+        #uie-phone-window[data-device="scroll"] #contact-add-manual,
+        #uie-phone-window[data-device="scroll"] #contact-add-fab {
+            background: #7a2618 !important;
+            color: #ffe8b6 !important;
+            border: 1px solid rgba(60, 18, 10, 0.45) !important;
+            border-radius: 4px !important;
+            padding: 4px 8px !important;
+            font-size: 13px !important;
+        }
+        #uie-phone-window[data-device="scroll"] .phone-app-content,
+        #uie-phone-window[data-device="scroll"] .p-msg-list {
+            background: transparent !important;
+            color: #2b170b !important;
+            flex: 1 !important;
+            overflow-y: auto !important;
+        }
+        #uie-phone-window[data-device="scroll"] .p-input-area {
+            background: rgba(105, 60, 24, .08) !important;
+            border-top: 1px solid rgba(92, 50, 19, .34) !important;
+        }
+        #uie-phone-window[data-device="scroll"] #msg-input,
+        #uie-phone-window[data-device="scroll"] .p-setting-input {
+            border-radius: 4px !important;
+            border: 1px solid rgba(92, 50, 19, .42) !important;
+            background: rgba(255, 248, 220, 0.6) !important;
+            color: #2b170b !important;
+            font-family: Georgia, serif !important;
+            font-size: 15px !important;
+        }
+        #uie-phone-window[data-device="scroll"] #msg-input::placeholder { color: rgba(55, 31, 13, .5) !important; }
+        #uie-phone-window[data-device="scroll"] #msg-send-btn {
+            border-radius: 6px !important;
+            background: #7a2618 !important;
+            color: #ffe8b6 !important;
+            border: 1px solid rgba(60,18,10,.45) !important;
+        }
+        #uie-phone-window[data-device="scroll"] .p-bubble {
+            border-radius: 4px !important;
+            font-family: Georgia, serif !important;
+            font-size: 15px !important;
+            box-shadow: 0 4px 10px rgba(62, 30, 10, .08), inset 0 0 14px rgba(92, 50, 19, .08) !important;
+        }
+        #uie-phone-window[data-device="scroll"] .p-bubble.sent {
+            background: rgba(255, 248, 220, 0.8) !important;
+            color: #2b170b !important;
+            border: 1px solid rgba(94, 42, 15, .3) !important;
+        }
+        #uie-phone-window[data-device="scroll"] .p-bubble.received {
+            background: rgba(255, 245, 211, 0.9) !important;
+            color: #2b170b !important;
+            border: 1px solid rgba(92, 50, 19, .25) !important;
+        }
+        #uie-phone-window[data-device="scroll"] .uie-letter-list-row {
+            display: flex !important;
+            gap: 12px !important;
+            align-items: center !important;
+            margin: 12px 16px !important;
+            padding: 16px 20px !important;
+            border: 1px solid rgba(92, 50, 19, .34) !important;
+            border-radius: 6px !important;
+            background: rgba(255, 248, 220, 0.6) !important;
+            color: #2b170b !important;
+            box-shadow: 0 4px 10px rgba(50, 25, 10, 0.1), inset 0 0 12px rgba(92, 50, 19, 0.15) !important;
+            cursor: pointer !important;
+            font-family: Georgia, serif !important;
+        }
+        #uie-phone-window[data-device="scroll"] .uie-letter-list-row:hover {
+            background: rgba(255, 248, 220, 0.9) !important;
+            border-color: #7a2618 !important;
+        }
+        #uie-phone-window[data-device="scroll"] .uie-letter-seal {
+            border: 1px solid #7a2618 !important;
+            background: #900 !important;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3) !important;
+        }
+        #uie-phone-window[data-device="scroll"] .uie-letter-thread {
+            flex: 1 !important;
+            display: flex !important;
+            flex-direction: column !important;
+            gap: 12px !important;
+            padding: 16px !important;
+            overflow-y: auto !important;
+        }
+        #uie-phone-window[data-device="scroll"] .uie-letter-doc,
+        #uie-phone-window[data-device="scroll"] .uie-letter-compose {
+            background: rgba(255, 248, 220, 0.5) !important;
+            border: 1px solid rgba(92, 50, 19, 0.3) !important;
+            border-radius: 4px !important;
+            padding: 20px !important;
+        }
+        #uie-phone-window[data-device="scroll"] .uie-letter-body,
+        #uie-phone-window[data-device="scroll"] #uie-app-msg-view .uie-letter-body,
+        #uie-phone-window[data-device="scroll"] .uie-letter-compose #msg-input {
+            font-family: 'Tangerine', cursive, Georgia, serif !important;
+            font-size: 32px !important;
+            font-weight: 700 !important;
+            line-height: 1.25 !important;
+            color: #261204 !important;
+        }
+        #uie-phone-window[data-device="scroll"] .uie-letter-doc header,
+        #uie-phone-window[data-device="scroll"] .uie-letter-compose header {
+            font-family: 'MedievalSharp', serif !important;
+            font-size: 14px !important;
+            border-bottom: 1px solid rgba(92, 50, 19, 0.28) !important;
+        }
+        #uie-phone-window[data-device="scroll"] .uie-letter-doc address {
+            font-style: normal !important;
+        }
+        #uie-phone-window[data-device="scroll"] .uie-letter-doc time {
+            font-style: italic !important;
+        }
+        #uie-phone-window[data-device="scroll"] .uie-letter-doc footer {
+            font-family: 'Tangerine', cursive, Georgia, serif !important;
+            font-size: 28px !important;
+            border-top: 1px solid rgba(92, 50, 19, 0.28) !important;
+        }
+        #uie-phone-window[data-device="scroll"] .uie-letter-doc[data-direction="outbound"] {
+            border-left: 4px solid #7a2618 !important;
+        }
+        #uie-phone-window[data-device="scroll"] .uie-letter-doc[data-direction="inbound"] {
+            border-left: 4px solid #4a2306 !important;
+        }
+        #uie-phone-window[data-device="scroll"] .uie-letter-transit {
+            font-style: italic !important;
+            color: #7f4f24 !important;
+        }
+        #uie-phone-window[data-device="scroll"] .uie-letter-compose {
+            position: relative !important;
+        }
+        #uie-phone-window[data-device="scroll"] .uie-letter-compose::before {
+            display: none !important;
+        }
+        #uie-phone-window[data-device="scroll"] .uie-letter-compose #msg-input {
+            background: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
+        }
+        #uie-phone-window[data-device="scroll"] .contact-row {
+            margin: 10px 16px !important;
+            padding: 12px 16px !important;
+            border: 1px solid rgba(92, 50, 19, 0.3) !important;
+            border-radius: 6px !important;
+            background: rgba(255, 248, 220, 0.6) !important;
+            box-shadow: inset 0 0 10px rgba(92, 50, 19, 0.08) !important;
+        }
+        #uie-phone-window[data-device="scroll"] .contact-avatar {
+            border: 1px solid rgba(92, 50, 19, 0.4) !important;
+            border-radius: 4px !important;
+        }
+        #uie-phone-window[data-device="scroll"] #uie-phone-close {
+            position: absolute !important;
+            top: 8px !important;
+            right: 28px !important;
+            width: 28px !important;
+            height: 28px !important;
+            background: #7a2618 !important;
+            color: #ffe8b6 !important;
+            border: 1.5px solid rgba(60, 18, 10, 0.45) !important;
+            border-radius: 50% !important;
+            z-index: 350 !important;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3) !important;
+            display: grid !important;
+            place-items: center !important;
+            cursor: pointer !important;
+        }
+        #uie-phone-window .phone-screen,
+        #uie-phone-window .phone-app-window {
+            flex: 1 !important;
+            min-height: 0 !important;
+            height: auto !important;
+        }
+        #uie-phone-window[data-device="scroll"] #uie-app-calc-view .phone-app-content {
+            background: transparent !important;
+            padding: 16px !important;
+        }
+        #uie-phone-window[data-device="scroll"] #calc-display {
+            border-radius: 4px !important;
+            border: 2px solid #5c3213 !important;
+            background: rgba(255, 248, 220, 0.6) !important;
+            color: #2b170b !important;
+            font-family: Georgia, serif !important;
+            font-size: 20px !important;
+        }
+        #uie-phone-window[data-device="scroll"] .calc-btn {
+            border-radius: 4px !important;
+            border: 1px solid #5c3213 !important;
+            background: rgba(255, 248, 220, 0.8) !important;
+            color: #2b170b !important;
+            font-family: Georgia, serif !important;
+            font-size: 16px !important;
+        }
+        #uie-phone-window[data-device="scroll"] .calc-btn[data-val="/"],
+        #uie-phone-window[data-device="scroll"] .calc-btn[data-val="*"],
+        #uie-phone-window[data-device="scroll"] .calc-btn[data-val="-"],
+        #uie-phone-window[data-device="scroll"] .calc-btn[data-val="+"],
+        #uie-phone-window[data-device="scroll"] .calc-btn[data-act="eq"] {
+            background: #7a2618 !important;
+            color: #ffe8b6 !important;
+        }
+        #uie-phone-window[data-device="scroll"] #uie-app-settings-view .phone-app-content {
+            background: transparent !important;
+            padding: 16px !important;
+        }
+        #uie-phone-window[data-device="scroll"] #uie-app-settings-view .p-setting-row {
+            background: rgba(255, 248, 220, 0.6) !important;
+            border: 1px solid rgba(92, 50, 19, 0.3) !important;
+            border-radius: 6px !important;
+            color: #2b170b !important;
+        }
+        #uie-phone-window[data-device="scroll"] #uie-app-settings-view .p-setting-label {
+            color: #4a2306 !important;
+            font-weight: bold !important;
+        }
+        #uie-phone-window[data-device="scroll"] #uie-app-settings-view .p-save-btn,
+        #uie-phone-window[data-device="scroll"] #p-browser-save,
+        #uie-phone-window[data-device="scroll"] #dial-save {
+            background: #7a2618 !important;
+            border: 1px solid rgba(60, 18, 10, 0.45) !important;
+            color: #ffe8b6 !important;
+            border-radius: 4px !important;
+        }
+
+        @media not all {
+            #uie-phone-window[data-device="scroll"] {
+                width: calc(100vw - 16px) !important;
+                height: 80vh !important;
+                padding: 16px 20px !important;
+            }
+            #uie-phone-window[data-device="scroll"] #uie-phone-grid {
+                grid-template-columns: 1fr !important;
+                gap: 16px !important;
+                padding: 16px !important;
+            }
+            #uie-phone-window[data-device="scroll"] .phone-app-icon {
+                height: 80px !important;
+            }
+        }
+
+        #uie-phone-window .phone-app-header {
+            height: auto !important;
+            border-bottom: 1px solid rgba(255,255,255,0.15) !important;
+            background: rgba(20, 25, 40, 0.86) !important;
+            backdrop-filter: blur(4px);
+            color: #fff;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        #uie-phone-window .phone-app-header > span {
+            font-weight: 700;
+            font-size: 0.80em !important;
+            flex: 1;
+            text-align: center;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        #uie-phone-window .phone-app-content {
+            padding-top: 6px;
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+            min-width: 0;
+            position: relative;
+            -webkit-overflow-scrolling: touch;
+        }
+        #uie-phone-window .phone-back-btn { padding: 0 4px !important; border-radius: 8px !important; }
+        #uie-phone-window .phone-app-header i { font-size: 12px !important; }
+        #uie-phone-window .phone-app-window { backdrop-filter: blur(8px); display:none; flex-direction:column; height:100%; }
+        #uie-phone-window,
+        #uie-phone-window * {
+            max-width: 100%;
+            box-sizing: border-box;
+        }
+        #uie-phone-window button,
+        #uie-phone-window .phone-app-icon,
+        #uie-phone-window input,
+        #uie-phone-window textarea,
+        #uie-phone-window select {
+            pointer-events: auto !important;
+            touch-action: manipulation;
+        }
+        #uie-phone-window #p-browser-content { background: transparent !important; }
+        #uie-phone-window #p-browser-home,
+        #uie-phone-window #p-browser-refresh { display: none !important; }
+        #uie-phone-window .phone-back-btn{
+            display: grid !important;
+            place-items: center !important;
+            width: 22px !important;
+            height: 22px !important;
+            padding: 0 !important;
+            margin-top: 4px !important;
+            border-radius: 8px !important;
+            background: rgba(0,0,0,0.45) !important;
+            color: rgba(255,255,255,0.95) !important;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.65) !important;
+            border: 1px solid rgba(255,255,255,0.12) !important;
+            cursor: pointer !important;
+            pointer-events: auto !important;
+            flex: 0 0 auto !important;
+        }
+        #uie-phone-window .phone-back-btn,
+        #uie-phone-window .phone-back-btn i{ color: rgba(255,255,255,0.95) !important; }
+        #uie-phone-window .phone-back-btn i{ color: rgba(255,255,255,0.95) !important; }
+        #uie-phone-window .phone-back-btn:active{ transform: translateY(1px); }
+        #uie-phone-window .phone-app-header{ color: rgba(255,255,255,0.95) !important; }
+        #uie-phone-window #contact-add-manual{
+            margin-right: 34px !important;
+            margin-top: 4px !important;
+            padding: 10px !important;
+        }
+        #uie-phone-window #msg-new-number{
+            position: relative;
+            top: 2px;
+            left: 2px;
+        }
+        #uie-phone-window .p-browser-bar {
+            display: flex;
+            align-items: center;
+            padding: 8px 12px;
+            background: #2b2b2b;
+            gap: 8px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        #uie-phone-window .p-browser-input-wrapper {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            height: 36px;
+            background: #3a3a3c;
+            border-radius: 10px;
+            padding: 0 8px;
+            gap: 6px;
+        }
+        #uie-phone-window #p-browser-url {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: #fff;
+            font-size: 14px;
+            height: 100%;
+            outline: none;
+            padding: 0;
+        }
+        #uie-phone-window #p-browser-url::placeholder { color: #8e8e93; }
+        #uie-phone-window .p-browser-btn {
+            width: 32px;
+            height: 32px;
+            display: grid;
+            place-items: center;
+            color: #007aff;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            font-size: 18px;
+        }
+        #uie-phone-window #p-browser-save { color: #cba35c; }
+        #uie-phone-window #p-browser-go { color: #8e8e93; font-size: 14px; width: 24px; height: 24px; }
+
+        #uie-phone-homescreen{
+            overflow: hidden !important;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+        #uie-phone-window .phone-grid-scroll{
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+            position: relative;
+            touch-action: pan-y;
+        }
+        #uie-phone-window .phone-grid-scroll::-webkit-scrollbar{ width: 0; height: 0; }
+
+        #uie-phone-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 32px 10px;
+            padding: 20px;
+            min-width: 0;
+            width: 100%;
+        }
+
+        .phone-app-icon {
+            width: 52px;
+            height: 52px;
+            border-radius: 12px;
+            display: grid;
+            place-items: center;
+            font-size: 24px;
+            color: white;
+            margin: 0 auto;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            position: relative;
+        }
+        #uie-phone-grid .phone-app-icon::after {
+            position: absolute;
+            top: 58px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 76px;
+            color: #fff;
+            font-size: 10px;
+            font-weight: 700;
+            text-align: center;
+            text-shadow: 0 1px 3px #000;
+        }
+        #app-msg::after { content:"Messages"; } #app-browser::after { content:"Browser"; }
+        #app-contacts::after { content:"Contacts"; } #app-store::after { content:"App Studio"; }
+        #app-settings::after { content:"Settings"; } #app-calc::after { content:"Calculator"; }
+        #app-cookies::after { content:"Storage"; } #app-memories::after { content:"Memories"; }
+        #app-travel::after { content:"Transit"; } #app-bank::after { content:"Bank"; }
+        #app-cardforge::after { content:"Card Forge"; }
+        #app-social::after { content:"Instavibe"; }
+        #uie-app-cardforge-view #forge-render-btn,
+        #uie-app-cardforge-view #forge-save-btn,
+        #uie-app-cardforge-view #forge-photo-select-btn,
+        #uie-app-cardforge-view #forge-tab-create,
+        #uie-app-cardforge-view #forge-tab-wallet {
+            width: 100% !important;
+            min-width: 0 !important;
+            box-sizing: border-box !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            gap: 6px !important;
+            white-space: normal !important;
+            overflow-wrap: anywhere !important;
+            line-height: 1.15 !important;
+            text-align: center !important;
+            pointer-events: auto !important;
+            touch-action: manipulation !important;
+            position: relative !important;
+            z-index: 2 !important;
+        }
+        #uie-app-cardforge-view input,
+        #uie-app-cardforge-view select,
+        #uie-app-cardforge-view canvas,
+        #uie-app-cardforge-view button {
+            pointer-events: auto !important;
+            touch-action: manipulation !important;
+        }
+        @media not all {
+            #uie-app-cardforge-view #forge-create-panel > div[style*="grid-template-columns:1fr 1fr"] {
+                grid-template-columns: 1fr !important;
+            }
+            #uie-app-cardforge-view #forge-render-btn,
+            #uie-app-cardforge-view #forge-save-btn {
+                min-height: 42px !important;
+                height: auto !important;
+                padding: 7px 8px !important;
+                font-size: 12px !important;
+            }
+        }
+        #uie-phone-window #uie-app-settings-view .phone-app-content { background:linear-gradient(180deg,rgba(18,24,38,.98),rgba(7,11,20,.98)); }
+        #uie-phone-window #uie-app-settings-view .p-setting-row { padding:12px; border:1px solid rgba(255,255,255,.1); border-radius:14px; background:rgba(255,255,255,.055); }
+        #uie-phone-window #uie-app-settings-view .p-setting-label { display:block; margin-bottom:7px; font-size:11px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; opacity:.72; }
+        #uie-phone-window #uie-app-settings-view .p-setting-input { min-height:40px; padding:0 10px; color:#fff; background:rgba(0,0,0,.25); border:1px solid rgba(255,255,255,.15); border-radius:10px; }
+        #uie-phone-window #uie-app-settings-view .p-save-btn { min-height:44px; border:1px solid rgba(203,163,92,.28); border-radius:14px; background:#8a6a38; color:#fff0c8; font-weight:900; cursor:pointer; }
+
+        @media not all {
+            #uie-phone-window.uie-phone {
+                left: 50% !important;
+                top: max(12px, env(safe-area-inset-top)) !important;
+                right: auto !important;
+                bottom: auto !important;
+                transform: translateX(-50%) !important;
+                width: min(340px, calc(100vw - 24px));
+                height: min(700px, calc(100dvh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom)));
+                max-width: calc(100vw - 24px);
+                max-height: calc(100dvh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+                border-width: 4px;
+                box-sizing: border-box;
+            }
+            #uie-phone-window[data-device="scroll"],
+            #uie-phone-window[data-codice="true"] {
+                left: max(12px, env(safe-area-inset-left)) !important;
+                top: max(12px, env(safe-area-inset-top)) !important;
+                right: auto !important;
+                bottom: auto !important;
+                transform: none !important;
+                width: calc(100vw - 24px - env(safe-area-inset-left) - env(safe-area-inset-right)) !important;
+                height: calc(100dvh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom)) !important;
+                max-width: calc(100vw - 24px - env(safe-area-inset-left) - env(safe-area-inset-right)) !important;
+                max-height: calc(100dvh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom)) !important;
+            }
+            #uie-phone-window .phone-back-btn,
+            #uie-phone-window #uie-phone-close,
+            #uie-phone-window button {
+                min-width: 42px;
+                min-height: 42px;
+            }
+        }
+
+        @media not all {
+            #uie-phone-window.uie-phone {
+                left: 50% !important;
+                top: 50% !important;
+                right: auto !important;
+                bottom: auto !important;
+                transform: translate(-50%, -50%) !important;
+                width: min(340px, calc(100vw - 64px));
+                height: calc(100dvh - 24px);
+                max-width: calc(100vw - 64px);
+                max-height: calc(100dvh - 24px);
+                border-width: 4px;
+                box-sizing: border-box;
+            }
+            #uie-phone-window[data-device="scroll"],
+            #uie-phone-window[data-codice="true"] {
+                width: min(720px, calc(100vw - 48px)) !important;
+                height: calc(100dvh - 24px) !important;
+                max-height: calc(100dvh - 24px) !important;
+            }
+            #uie-phone-grid {
+                gap: 18px 10px;
+                padding: 14px 18px;
+            }
+            #uie-phone-window .phone-app-content {
+                padding-top: 4px;
+            }
+        }
+
+        #uie-call-screen{
+            width: 100%;
+            height: 100%;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            padding: 18px 16px 16px 16px;
+            box-sizing: border-box;
+            background:
+                radial-gradient(1200px 700px at 20% 15%, rgba(52,152,219,0.18), rgba(0,0,0,0) 55%),
+                radial-gradient(900px 600px at 80% 25%, rgba(175,82,222,0.16), rgba(0,0,0,0) 60%),
+                linear-gradient(180deg, rgba(10,10,12,1) 0%, rgba(0,0,0,1) 70%);
+        }
+        #uie-call-screen .call-top{
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 14px;
+            opacity: 0.95;
+            font-size: 12px;
+            color: rgba(255,255,255,0.9);
+        }
+        #uie-call-screen .call-top .call-top-left,
+        #uie-call-screen .call-top .call-top-right{
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        #uie-call-screen .call-identity{
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+        #uie-call-screen .call-avatar{
+            width: 104px;
+            height: 104px;
+            border-radius: 52px;
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.14);
+            box-shadow: 0 18px 50px rgba(0,0,0,0.55);
+            overflow: hidden;
+            display: grid;
+            place-items: center;
+            margin: 6px 0 14px 0;
+        }
+        #uie-call-screen .call-avatar img{
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        #uie-call-screen #call-name-disp{
+            font-size: 28px;
+            line-height: 1.15;
+            margin: 0;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+        }
+        #uie-call-screen .call-status{
+            margin-top: 6px;
+            font-size: 14px;
+            color: rgba(255,255,255,0.78);
+        }
+        #uie-call-screen .call-timer{
+            margin-top: 6px;
+            font-size: 14px;
+            letter-spacing: 0.12em;
+            color: rgba(255,255,255,0.75);
+        }
+        #uie-call-screen .call-actions-wrap{
+            width: 100%;
+            margin-top: 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        #uie-call-screen .call-incoming-actions{
+            display: none;
+            width: 100%;
+            align-items: center;
+            justify-content: space-between;
+            gap: 14px;
+        }
+        #uie-call-screen .call-incoming-actions .call-pill{
+            flex: 1;
+            height: 58px;
+            border-radius: 22px;
+            border: 1px solid rgba(255,255,255,0.14);
+            background: rgba(255,255,255,0.08);
+            color: rgba(255,255,255,0.95);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+        #uie-call-screen .call-incoming-actions .call-pill.call-accept{
+            background: rgba(46, 204, 113, 0.92);
+            border-color: rgba(46, 204, 113, 0.85);
+            color: #000;
+        }
+        #uie-call-screen .call-incoming-actions .call-pill.call-decline{
+            background: rgba(231, 76, 60, 0.92);
+            border-color: rgba(231, 76, 60, 0.85);
+            color: #000;
+        }
+        #uie-call-screen .call-incall-controls{
+            width: 100%;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+        }
+        #uie-call-screen .call-ctrl{
+            height: 64px;
+            border-radius: 18px;
+            border: 1px solid rgba(255,255,255,0.14);
+            background: rgba(255,255,255,0.07);
+            color: rgba(255,255,255,0.92);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            cursor: pointer;
+            user-select: none;
+        }
+        #uie-call-screen .call-ctrl i{ font-size: 16px; opacity: 0.95; }
+        #uie-call-screen .call-ctrl span{ font-size: 11px; opacity: 0.85; }
+        #uie-call-screen .call-bottom{
+            width: 100%;
+            margin-top: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        #uie-call-screen #call-transcript{
+            display: none;
+            width: 100%;
+            max-height: 28vh;
+            overflow-y: auto;
+            margin: 0;
+            font-size: 13px;
+            text-align: left;
+            color: rgba(255,255,255,0.84);
+            padding: 10px 10px;
+            border-radius: 16px;
+            border: 1px solid rgba(255,255,255,0.12);
+            background: rgba(0,0,0,0.22);
+            box-sizing: border-box;
+        }
+        #uie-call-screen .call-input-row{
+            width: 100%;
+            display: flex;
+            gap: 10px;
+            padding: 0;
+            margin: 0;
+            align-items: center;
+            box-sizing: border-box;
+        }
+        #uie-call-screen #call-input{
+            flex: 1;
+            min-width: 0;
+            height: 46px;
+            background: rgba(255,255,255,0.10);
+            border: 1px solid rgba(255,255,255,0.14);
+            color: rgba(255,255,255,0.95);
+            padding: 10px 14px;
+            border-radius: 18px;
+            outline: none;
+        }
+        #uie-call-screen #call-speak-btn{
+            flex: 0 0 auto;
+            width: 46px;
+            height: 46px;
+            border-radius: 16px;
+            border: 1px solid rgba(255,255,255,0.14);
+            background: rgba(255,255,255,0.92);
+            color: #000;
+            cursor: pointer;
+            display: grid;
+            place-items: center;
+        }
+        #uie-call-screen .call-actions{
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-top: 4px;
+        }
+        #uie-call-screen .call-btn-round{
+            width: 64px;
+            height: 64px;
+            border-radius: 32px;
+            display: grid;
+            place-items: center;
+            cursor: pointer;
+            user-select: none;
+        }
+        #uie-call-screen .call-btn-round.btn-end{
+            background: rgba(231, 76, 60, 0.95);
+            color: #000;
+        }
+
+        /* Line Clamp Fix (Modular) */
+        .browser-bm-title {
+            display: -webkit-box; -webkit-line-clamp: 1; line-clamp: 1;
+            -webkit-box-orient: vertical; overflow: hidden;
+            white-space: normal;
+        }
+
+        /* Final skin pass: compact fantasy scroll and futuristic datapad. */
+        #uie-phone-window .uie-phone-drag-handle {
+            display: none;
+            position: absolute;
+            top: 8px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 380;
+            width: 82px;
+            height: 20px;
+            border-radius: 999px;
+            align-items: center;
+            justify-content: center;
+            cursor: move;
+            user-select: none;
+            touch-action: none;
+        }
+        #uie-phone-window[data-device="scroll"] {
+            width: min(560px, 90vw) !important;
+            height: min(470px, 76vh) !important;
+            max-height: 76vh !important;
+            padding: 26px 46px 22px !important;
+            border-radius: 8px !important;
+            background:
+                linear-gradient(90deg, rgba(86,43,13,.18), transparent 12%, transparent 88%, rgba(86,43,13,.18)),
+                radial-gradient(circle at 20% 10%, rgba(255,255,255,.34), transparent 24%),
+                #efd9a4 !important;
+            border: 1px solid rgba(92,50,19,.35) !important;
+            box-shadow: 0 18px 44px rgba(24,13,5,.55), inset 0 0 34px rgba(92,50,19,.18) !important;
+        }
+        #uie-phone-window[data-device="scroll"] .uie-phone-drag-handle {
+            display: flex;
+            background: rgba(98,52,21,.18);
+            border: 1px solid rgba(92,50,19,.36);
+            color: #6f3517;
+        }
+        #uie-phone-window[data-device="scroll"]::before,
+        #uie-phone-window[data-device="scroll"]::after {
+            top: -10px !important;
+            bottom: -10px !important;
+            width: 26px !important;
+            border-radius: 16px !important;
+        }
+        #uie-phone-window[data-device="scroll"]::before { left: -13px !important; }
+        #uie-phone-window[data-device="scroll"]::after { right: -13px !important; }
+        #uie-phone-window[data-device="scroll"] #uie-phone-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+            gap: 12px !important;
+            padding: 18px 8px 8px !important;
+        }
+        #uie-phone-window[data-device="scroll"] .phone-app-icon {
+            min-height: 86px !important;
+            height: auto !important;
+            border-radius: 4px !important;
+            background: rgba(255,248,220,.42) !important;
+            border: 1px solid rgba(92,50,19,.38) !important;
+            box-shadow: inset 0 0 18px rgba(92,50,19,.08), 0 4px 12px rgba(50,25,10,.08) !important;
+        }
+        #uie-phone-window[data-device="scroll"] #app-msg::after { content: "Send Letters" !important; }
+        #uie-phone-window[data-device="scroll"] #app-contacts::after { content: "Received Letters" !important; }
+        #uie-phone-window[data-device="scroll"] #app-calc::after { content: "Ledger" !important; }
+        #uie-phone-window[data-device="scroll"] #app-settings::after { content: "Settings" !important; }
+        #uie-phone-window[data-device="scroll"] .phone-app-window,
+        #uie-phone-window[data-device="scroll"] .phone-screen {
+            overflow: hidden !important;
+        }
+        #uie-phone-window[data-device="scroll"] .phone-app-content,
+        #uie-phone-window[data-device="scroll"] .p-msg-list,
+        #uie-phone-window[data-device="scroll"] .phone-grid-scroll {
+            scrollbar-color: rgba(111,53,23,.65) rgba(255,248,220,.35);
+        }
+        /* Replacement parchment-scroll skin. Keeps content inside the page and only shows the active view. */
+        #uie-phone-window[data-device="scroll"] {
+            width: min(800px, 94vw) !important;
+            height: min(600px, 80vh) !important;
+            max-height: 80vh !important;
+            padding: 20px 42px !important;
+            border-radius: 18px !important;
+            /* The rods sit outside the page; application content owns its own scroll area. */
+            overflow: visible !important;
+            border: 1px solid rgba(104, 64, 30, 0.42) !important;
+            background:
+                radial-gradient(circle at 18% 11%, rgba(255,255,255,.48), transparent 22%),
+                radial-gradient(circle at 80% 86%, rgba(116,69,31,.16), transparent 28%),
+                linear-gradient(90deg, rgba(92,50,19,.18), transparent 11%, transparent 89%, rgba(92,50,19,.18)),
+                repeating-linear-gradient(0deg, rgba(82,45,18,.035) 0 1px, transparent 1px 10px),
+                #ead19a !important;
+            color: #30200f !important;
+            box-shadow: 0 18px 42px rgba(24, 13, 5, .50), inset 0 0 38px rgba(92, 50, 19, .16) !important;
+        }
+        #uie-phone-window[data-device="scroll"]::before,
+        #uie-phone-window[data-device="scroll"]::after {
+            content: "" !important;
+            position: absolute !important;
+            left: 18px !important;
+            right: 18px !important;
+            width: auto !important;
+            height: 14px !important;
+            border-radius: 999px !important;
+            background: linear-gradient(180deg, #8f6032, #553015) !important;
+            box-shadow: inset 0 2px rgba(255,255,255,.18), 0 3px 10px rgba(43,22,8,.22) !important;
+            pointer-events: none !important;
+            z-index: 5 !important;
+        }
+        #uie-phone-window[data-device="scroll"]::before {
+            top: 9px !important;
+            bottom: auto !important;
+        }
+        #uie-phone-window[data-device="scroll"]::after {
+            top: auto !important;
+            bottom: 9px !important;
+        }
+        #uie-phone-window[data-device="scroll"] .uie-phone-drag-handle {
+            top: 12px !important;
+            height: 14px !important;
+            width: 62px !important;
+            background: transparent !important;
+            border: 0 !important;
+            color: #523016 !important;
+            z-index: 20 !important;
+        }
+        #uie-phone-window[data-device="scroll"] .phone-status-bar,
+        #uie-phone-window[data-device="scroll"] #uie-phone-dock,
+        #uie-phone-window[data-device="scroll"] #uie-phone-lock-btn {
+            display: none !important;
+        }
+        #uie-phone-window[data-device="scroll"] .phone-screen,
+        #uie-phone-window[data-device="scroll"] .phone-app-window {
+            margin: 0 !important;
+            border: 0 !important;
+            border-radius: 12px !important;
+            background:
+                linear-gradient(180deg, rgba(255,249,225,.36), rgba(255,242,198,.14)) !important;
+            box-shadow: inset 0 0 0 1px rgba(92,50,19,.20), inset 0 0 22px rgba(92,50,19,.08) !important;
+            overflow: visible !important;
+            height: auto !important;
+            flex: 1 1 auto !important;
+            min-height: 0 !important;
+            flex-direction: column !important;
+            color: #30200f !important;
+        }
+        #uie-phone-window[data-device="scroll"] .phone-app-window:not([style*="display: flex"]):not([style*="display:flex"]) {
+            display: none !important;
+        }
+        #uie-phone-window[data-device="scroll"] #uie-phone-homescreen:not([style*="display: flex"]):not([style*="display:flex"]),
+        #uie-phone-window[data-device="scroll"] #uie-phone-lockscreen[style*="display: none"],
+        #uie-phone-window[data-device="scroll"] #uie-phone-lockscreen[style*="display:none"] {
+            display: none !important;
+        }
+        #uie-phone-window[data-device="scroll"] .phone-app-window[style*="display: flex"],
+        #uie-phone-window[data-device="scroll"] .phone-app-window[style*="display:flex"],
+        #uie-phone-window[data-device="scroll"] #uie-phone-homescreen[style*="display: flex"],
+        #uie-phone-window[data-device="scroll"] #uie-phone-homescreen[style*="display:flex"] {
+            display: flex !important;
+        }
+        #uie-phone-window[data-device="scroll"] #uie-phone-lockscreen {
+            background: transparent !important;
+            color: #30200f !important;
+            padding: 46px 18px 18px !important;
+        }
+        #uie-phone-window[data-device="scroll"] #uie-phone-lockscreen h1,
+        #uie-phone-window[data-device="scroll"] #uie-phone-lockscreen div,
+        #uie-phone-window[data-device="scroll"] #uie-phone-lockscreen .uie-phone-date {
+            color: #30200f !important;
+            text-shadow: none !important;
+        }
+        #uie-phone-window[data-device="scroll"] #uie-phone-unlock-btn {
+            background: #8d3f2a !important;
+            color: #fff4cf !important;
+            border: 1px solid rgba(67, 28, 12, .44) !important;
+            border-radius: 999px !important;
+        }
+        #uie-phone-window[data-device="scroll"] #uie-phone-homescreen {
+            padding: 16px 12px 14px !important;
+            background: transparent !important;
+            min-height: 0 !important;
+        }
+        #uie-phone-window[data-device="scroll"] #uie-phone-homescreen::before {
+            display: none !important;
+        }
+        #uie-phone-window[data-device="scroll"] .phone-grid-scroll {
+            flex: 1 1 auto !important;
+            min-height: 0 !important;
+            overflow-y: auto !important;
+            padding: 0 !important;
+        }
+        #uie-phone-window[data-device="scroll"] #uie-phone-grid {
+            display: grid !important;
+            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+            gap: 10px !important;
+            padding: 6px 2px 12px !important;
+        }
+        #uie-phone-window[data-device="scroll"] .phone-app-icon {
+            width: 100% !important;
+            min-width: 0 !important;
+            min-height: 82px !important;
+            height: auto !important;
+            margin: 0 !important;
+            padding: 10px 8px !important;
+            border-radius: 8px !important;
+            background: rgba(255, 248, 220, .56) !important;
+            border: 1px solid rgba(92, 50, 19, .30) !important;
+            color: #3a230f !important;
+            box-shadow: inset 0 0 14px rgba(92,50,19,.07), 0 3px 9px rgba(50,25,10,.08) !important;
+        }
+        #uie-phone-window[data-device="scroll"] .phone-app-icon i {
+            color: #8d3f2a !important;
+            font-size: 23px !important;
+        }
+        #uie-phone-window[data-device="scroll"] #uie-phone-grid .phone-app-icon::after {
+            position: static !important;
+            transform: none !important;
+            width: 100% !important;
+            margin-top: 6px !important;
+            color: #3a230f !important;
+            font-family: Georgia, "Times New Roman", serif !important;
+            font-size: 13px !important;
+            font-weight: 800 !important;
+            line-height: 1.2 !important;
+            text-shadow: none !important;
+        }
+        #uie-phone-window[data-device="scroll"] #app-msg::after { content: "Letters" !important; }
+        #uie-phone-window[data-device="scroll"] #app-contacts::after { content: "Address Book" !important; }
+        #uie-phone-window[data-device="scroll"] #app-calc::after { content: "Ledger" !important; }
+        #uie-phone-window[data-device="scroll"] #app-settings::after { content: "Settings" !important; }
+        #uie-phone-window[data-device="scroll"] .phone-app-header {
+            min-height: 44px !important;
+            padding: 0 10px !important;
+            background: rgba(99, 55, 22, .14) !important;
+            border-bottom: 1px solid rgba(92,50,19,.24) !important;
+            color: #30200f !important;
+            font-family: Georgia, "Times New Roman", serif !important;
+            font-size: 14px !important;
+            letter-spacing: 0 !important;
+            text-transform: none !important;
+        }
+        #uie-phone-window[data-device="scroll"] .phone-app-content,
+        #uie-phone-window[data-device="scroll"] .p-msg-list {
+            flex: 1 1 auto !important;
+            min-height: 0 !important;
+            overflow-y: auto !important;
+            overflow-x: hidden !important;
+            -webkit-overflow-scrolling: touch;
+            touch-action: pan-y !important;
+            background: rgba(255, 248, 220, .32) !important;
+            color: #30200f !important;
+        }
+        /* Parchment is medieval correspondence, so it has no phone-call controls. */
+        #uie-phone-window[data-device="scroll"] #uie-call-screen {
+            display: none !important;
+        }
+        #uie-phone-window[data-device="future"] {
+                width: min(340px, 88vw) !important;
+                height: min(640px, 82vh) !important;
+            max-height: 82vh !important;
+            border-radius: 18px 6px 18px 6px !important;
+            border: 1px solid rgba(94,245,255,.56) !important;
+            background:
+                linear-gradient(135deg, rgba(6,18,28,.96), rgba(5,9,18,.94)),
+                radial-gradient(circle at 18% 0%, rgba(94,245,255,.18), transparent 34%) !important;
+            box-shadow: 0 14px 36px rgba(0,0,0,.68), 0 0 24px rgba(94,245,255,.22) !important;
+        }
+        #uie-phone-window[data-device="future"] .uie-phone-drag-handle {
+            display: flex;
+            background: rgba(94,245,255,.10);
+            border: 1px solid rgba(94,245,255,.32);
+            color: #8ffaff;
+        }
+        #uie-phone-window[data-device="future"] .phone-status-bar {
+            margin: 9px 12px 0;
+            padding: 5px 12px !important;
+            border: 1px solid rgba(94,245,255,.22);
+            border-radius: 10px 3px 10px 3px;
+            background: rgba(3,18,28,.62);
+        }
+        #uie-phone-window[data-device="future"] .phone-screen,
+        #uie-phone-window[data-device="future"] .phone-app-window {
+            margin: 8px 12px 12px;
+            border-radius: 14px 4px 14px 4px;
+            border: 1px solid rgba(94,245,255,.22);
+            background: linear-gradient(180deg, rgba(5,22,35,.76), rgba(5,11,21,.86)) !important;
+        }
+        #uie-phone-window[data-device="future"] #uie-phone-grid {
+            grid-template-columns: repeat(3, 1fr) !important;
+            gap: 10px !important;
+            padding: 16px !important;
+        }
+        #uie-phone-window[data-device="future"] .phone-app-icon {
+            width: 74px !important;
+            height: 74px !important;
+            border-radius: 14px 4px 14px 4px !important;
+            background: rgba(8,30,48,.78) !important;
+        }
+        /* Communication identity pass: manuscript post versus contemporary social app. */
+        #uie-phone-window[data-device="scroll"],
+        #uie-phone-window[data-codice="true"] {
+            --letter-paper: #f4e7bd;
+            --letter-paper-deep: #e1c98f;
+            --letter-ink: #2a1b12;
+            --letter-muted: #745339;
+            --letter-wax: #7b1e29;
+            font-family: Georgia, "Times New Roman", serif !important;
+        }
+        #uie-phone-window[data-device="scroll"] .uie-letter-list-row,
+        #uie-phone-window[data-codice="true"] .uie-letter-list-row {
+            position: relative !important;
+            align-items: flex-start !important;
+            margin: 10px 16px !important;
+            padding: 15px 17px 15px 22px !important;
+            border: 1px solid rgba(82, 47, 21, .42) !important;
+            border-radius: 2px !important;
+            background:
+                linear-gradient(90deg, rgba(107,62,26,.14), transparent 12%),
+                repeating-linear-gradient(0deg, rgba(102,61,23,.025) 0 1px, transparent 1px 4px),
+                var(--letter-paper) !important;
+            color: var(--letter-ink) !important;
+            box-shadow: 0 5px 12px rgba(57, 31, 12, .14), inset 0 0 28px rgba(114,72,30,.1) !important;
+            font-family: Georgia, "Times New Roman", serif !important;
+        }
+        #uie-phone-window[data-device="scroll"] .uie-letter-list-row::before,
+        #uie-phone-window[data-codice="true"] .uie-letter-list-row::before {
+            content: "";
+            position: absolute;
+            left: 7px;
+            top: 10px;
+            bottom: 10px;
+            width: 2px;
+            background: rgba(123, 30, 41, .7);
+        }
+        #uie-phone-window[data-device="scroll"] .uie-letter-list-row:hover,
+        #uie-phone-window[data-codice="true"] .uie-letter-list-row:hover {
+            transform: translateX(3px) !important;
+            background-color: #fff2ca !important;
+            border-color: var(--letter-wax) !important;
+        }
+        #uie-phone-window[data-device="scroll"] .uie-letter-seal,
+        #uie-phone-window[data-codice="true"] .uie-letter-seal {
+            width: 28px !important;
+            height: 28px !important;
+            border: 2px solid #58151d !important;
+            border-radius: 50% !important;
+            background: radial-gradient(circle at 35% 30%, #bd5654 0 8%, #8d2930 34%, #59151d 100%) !important;
+            box-shadow: inset 0 1px 2px rgba(255,255,255,.3), 0 2px 4px rgba(52,20,14,.34) !important;
+        }
+        #uie-phone-window[data-device="scroll"] .uie-letter-thread,
+        #uie-phone-window[data-codice="true"] .uie-letter-thread {
+            gap: 18px !important;
+            padding: 18px 22px 28px !important;
+        }
+        #uie-phone-window[data-device="scroll"] .uie-letter-doc,
+        #uie-phone-window[data-device="scroll"] .uie-letter-compose,
+        #uie-phone-window[data-codice="true"] .uie-letter-doc,
+        #uie-phone-window[data-codice="true"] .uie-letter-compose {
+            position: relative !important;
+            width: min(100%, 580px) !important;
+            margin-inline: auto !important;
+            padding: 24px 30px !important;
+            border: 1px solid rgba(86,50,22,.45) !important;
+            border-radius: 1px !important;
+            background:
+                radial-gradient(ellipse at 50% 0, rgba(255,255,255,.58), transparent 44%),
+                repeating-linear-gradient(0deg, rgba(86,50,22,.035) 0 1px, transparent 1px 5px),
+                var(--letter-paper) !important;
+            color: var(--letter-ink) !important;
+            box-shadow: 0 8px 18px rgba(50,29,13,.16), inset 0 0 34px rgba(109,69,28,.11) !important;
+        }
+        #uie-phone-window[data-device="scroll"] .uie-letter-doc::after,
+        #uie-phone-window[data-codice="true"] .uie-letter-doc::after {
+            content: "✦";
+            position: absolute;
+            right: 18px;
+            bottom: 14px;
+            color: var(--letter-wax);
+            font-size: 19px;
+        }
+        #uie-phone-window[data-device="scroll"] .uie-letter-doc header,
+        #uie-phone-window[data-device="scroll"] .uie-letter-compose header,
+        #uie-phone-window[data-codice="true"] .uie-letter-doc header,
+        #uie-phone-window[data-codice="true"] .uie-letter-compose header {
+            padding-bottom: 9px !important;
+            color: #4a2b1a !important;
+            border-bottom: 1px solid rgba(104,61,25,.42) !important;
+            font-family: Georgia, "Times New Roman", serif !important;
+            font-size: 14px !important;
+            font-weight: 700 !important;
+            font-variant: small-caps !important;
+            letter-spacing: .06em !important;
+        }
+        #uie-phone-window[data-device="scroll"] .uie-letter-doc address,
+        #uie-phone-window[data-device="scroll"] .uie-letter-doc time,
+        #uie-phone-window[data-codice="true"] .uie-letter-doc address,
+        #uie-phone-window[data-codice="true"] .uie-letter-doc time {
+            color: var(--letter-muted) !important;
+            font-style: normal !important;
+            font-size: 12px !important;
+        }
+        #uie-phone-window[data-device="scroll"] .uie-letter-body,
+        #uie-phone-window[data-device="scroll"] #uie-app-msg-view .uie-letter-body,
+        #uie-phone-window[data-device="scroll"] .uie-letter-compose #msg-input,
+        #uie-phone-window[data-codice="true"] .uie-letter-body,
+        #uie-phone-window[data-codice="true"] #uie-app-msg-view .uie-letter-body,
+        #uie-phone-window[data-codice="true"] .uie-letter-compose #msg-input {
+            font-family: Georgia, "Times New Roman", serif !important;
+            font-size: 16px !important;
+            font-weight: 400 !important;
+            line-height: 1.72 !important;
+            color: var(--letter-ink) !important;
+        }
+        #uie-phone-window[data-device="scroll"] .uie-letter-doc footer,
+        #uie-phone-window[data-codice="true"] .uie-letter-doc footer {
+            color: #4c2a1b !important;
+            font-family: Georgia, "Times New Roman", serif !important;
+            font-size: 17px !important;
+            font-style: italic !important;
+            border-top: 1px solid rgba(104,61,25,.36) !important;
+        }
+        #uie-phone-window[data-device="scroll"] .uie-letter-compose #msg-input,
+        #uie-phone-window[data-codice="true"] .uie-letter-compose #msg-input {
+            background: transparent !important;
+            border: 0 !important;
+            box-shadow: none !important;
+            min-height: 150px !important;
+        }
+        #uie-phone-window[data-device="scroll"] .uie-letter-compose::before,
+        #uie-phone-window[data-codice="true"] .uie-letter-compose::before {
+            content: "✦ Seal & dispatch correspondence ✦" !important;
+            display: block !important;
+            margin-bottom: 10px !important;
+            color: var(--letter-muted) !important;
+            font-size: 11px !important;
+            font-variant: small-caps !important;
+            letter-spacing: .09em !important;
+        }
+
+        #uie-app-social-view {
+            --iv-bg: #0b0b0d;
+            --iv-surface: #121216;
+            --iv-card: #18181d;
+            --iv-border: #2a2a31;
+            --iv-text: #f6f6f8;
+            --iv-muted: #a4a4ad;
+            --iv-accent: #ff375f;
+            --iv-accent2: #7c5cff;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+        }
+        #uie-app-social-view .phone-app-header {
+            background: var(--iv-surface) !important;
+            border-bottom: 1px solid var(--iv-border) !important;
+            color: var(--iv-text) !important;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+            font-weight: 800 !important;
+            letter-spacing: -.02em !important;
+        }
+        #uie-app-social-view .iv-post-card { border-radius: 16px !important; padding: 13px !important; background: var(--iv-card) !important; box-shadow: 0 5px 15px rgba(0,0,0,.16) !important; }
+        #uie-app-social-view .iv-avatar { border: 2px solid var(--iv-surface) !important; outline: 2px solid var(--iv-accent) !important; }
+        #uie-app-social-view .iv-post-image { border-radius: 12px !important; border: 1px solid rgba(255,255,255,.06) !important; }
+        #uie-app-social-view .iv-actions { justify-content: space-between !important; padding-top: 10px !important; }
+        #uie-app-social-view .iv-action-btn { min-height: 28px !important; font-size: 12px !important; }
+        #uie-app-social-view .iv-composer { padding: 12px !important; background: var(--iv-surface) !important; }
+        #uie-app-social-view .iv-composer textarea, #uie-app-social-view .iv-search-input { border-radius: 12px !important; background: #0e0e12 !important; }
+        #uie-app-social-view .iv-tab-bar { padding-bottom: env(safe-area-inset-bottom, 0px) !important; background: rgba(18,18,22,.98) !important; }
+        #uie-app-social-view .iv-tab { min-height: 48px !important; }
+        #uie-app-social-view .iv-tab.is-active i { transform: translateY(-1px) !important; }
+        #uie-app-social-view .iv-profile-banner { background: linear-gradient(115deg, #ff375f, #8b5cf6 58%, #27c4ef) !important; }
+        @media not all {
+            #uie-phone-window[data-device="scroll"] .uie-letter-doc, #uie-phone-window[data-device="scroll"] .uie-letter-compose,
+            #uie-phone-window[data-codice="true"] .uie-letter-doc, #uie-phone-window[data-codice="true"] .uie-letter-compose { padding: 19px 20px !important; }
+            #uie-phone-window[data-device="scroll"] .uie-letter-body, #uie-phone-window[data-codice="true"] .uie-letter-body { font-size: 15px !important; }
+        }
+    </style>
+
+    <div class="uie-phone-drag-handle" title="Move"><i class="fa-solid fa-grip-lines"></i></div>
+
+    <div class="phone-status-bar" style="display:flex; justify-content:space-between; padding:5px 15px; font-size:12px; font-weight:bold;">
+        <span class="uie-phone-clock">12:00</span>
+        <span><i class="fa-solid fa-wifi"></i> 5G</span>
+    </div>
+
+    <div id="uie-phone-lockscreen" class="phone-screen" style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding: 20px; background-color: #000 !important; z-index: 50;">
+        <h1 class="uie-phone-clock-lg" style="font-size:3.5em; margin:0; font-weight:100; color:white; display:flex; align-items:baseline; justify-content:center; gap:10px;">
+            <span class="uie-phone-clock-time-lg">12:00</span>
+            <span class="uie-phone-clock-ampm-lg" style="font-size:0.28em; font-weight:800; opacity:0.9; letter-spacing:0.12em;">PM</span>
+        </h1>
+        <div class="uie-phone-date" style="font-size:0.95em; color:#ddd; margin-top:6px; margin-bottom:18px;">&mdash;</div>
+        <div style="font-size:0.9em; color:#ccc; margin-bottom:20px;">Swipe to Unlock</div>
+        <input type="password" id="uie-phone-pin" class="p-pin-input" placeholder="PIN" maxlength="4" style="display:none; padding:10px; border-radius:8px; border:none; margin-bottom:10px;">
+        <button id="uie-phone-unlock-btn" style="margin-top:20px; padding:12px 30px; background:rgba(255,255,255,0.2); border:none; color:white; border-radius:25px; font-weight:bold; cursor:pointer; pointer-events:auto;">Unlock</button>
+        <div id="uie-lock-msg" style="color:#e74c3c; font-size:0.8em; margin-top:10px; height:1em;"></div>
+    </div>
+
+    <div id="uie-phone-homescreen" class="phone-screen" style="display:none;">
+        <i class="fa-solid fa-lock" id="uie-phone-lock-btn" style="position:absolute; top:10px; left:10px; opacity:0.5; cursor:pointer;"></i>
+        <div class="phone-grid-scroll">
+            <div class="phone-grid" id="uie-phone-grid">
+                <div class="phone-app-icon" id="app-msg" style="background:#2ecc71;"><i class="fa-solid fa-comment"></i></div>
+                <div class="phone-app-icon" id="app-browser" style="background:#3498db;"><i class="fa-solid fa-earth-americas"></i></div>
+                <div class="phone-app-icon" id="app-contacts" style="background:#8e44ad;"><i class="fa-solid fa-address-book"></i></div>
+                <div class="phone-app-icon" id="app-store" style="background:#007aff;"><i class="fa-solid fa-bag-shopping"></i></div>
+                <div class="phone-app-icon" id="app-settings" style="background:#95a5a6;"><i class="fa-solid fa-gear"></i></div>
+                <div class="phone-app-icon" id="app-calc" style="background:#1abc9c;"><i class="fa-solid fa-calculator"></i></div>
+                <div class="phone-app-icon" id="app-cookies" style="background:#e67e22;"><i class="fa-solid fa-cookie-bite"></i></div>
+                <div class="phone-app-icon" id="app-memories" style="background:#117a65;"><i class="fa-solid fa-database"></i></div>
+                <div class="phone-app-icon" id="app-travel" style="background:#16a085;"><i class="fa-solid fa-train-subway"></i></div>
+                <div class="phone-app-icon" id="app-bank" style="background:#0f766e;"><i class="fa-solid fa-building-columns"></i></div>
+                <div class="phone-app-icon" id="app-cardforge" style="background:#d35400;" title="Card Forge"><i class="fa-solid fa-id-card"></i></div>
+                <div class="phone-app-icon" id="app-social" style="background:#e91e63;" title="Instavibe"><i class="fa-solid fa-hashtag"></i></div>
+            </div>
+        </div>
+        <div id="uie-phone-dock" style="margin:15px; display:flex; justify-content:center; gap:15px; padding:15px; background:rgba(255,255,255,0.2); border-radius:20px;">
+            <div class="phone-app-icon" id="dock-btn-phone" style="background:#2c3e50; width:40px; height:40px;"><i class="fa-solid fa-phone"></i></div>
+            <div class="phone-app-icon" id="dock-btn-msg" style="background:#2c3e50; width:40px; height:40px;"><i class="fa-solid fa-comment-dots"></i></div>
+            <div class="phone-app-icon" id="dock-btn-browser" style="background:#2c3e50; width:40px; height:40px;"><i class="fa-solid fa-compass"></i></div>
+        </div>
+    </div>
+
+    <div id="uie-app-memories-view" class="phone-app-window">
+        <div class="phone-app-header"><i class="fa-solid fa-chevron-left phone-back-btn"></i><span>Memories &amp; log</span></div>
+        <div class="phone-app-content" id="phone-memories-body" style="padding:12px; font-size:13px; line-height:1.45;">
+            <div style="opacity:0.75; font-size:12px; margin-bottom:10px;">Phone calls, texts, and social memories (for RP context).</div>
+            <div id="phone-memories-scroll" style="max-height:52vh; overflow:auto;"></div>
+            <button type="button" id="phone-open-databank" class="reply-tool-btn" style="width:100%; margin-top:12px; padding:10px;">Open Databank</button>
+        </div>
+    </div>
+
+    <div id="uie-app-social-view" class="phone-app-window">
+        <style>
+            #uie-app-social-view { --iv-bg: #0a0a0f; --iv-surface: #14141f; --iv-card: #1a1a28; --iv-border: #2a2a3d; --iv-text: #e8e8f0; --iv-muted: #8888a0; --iv-accent: #e21d5a; --iv-accent2: #a855f7; --iv-green: #22c55e; }
+            #uie-app-social-view .iv-tab-bar { display:flex; background:var(--iv-surface); border-top:1px solid var(--iv-border); position:sticky; bottom:0; z-index:10; }
+            #uie-app-social-view .iv-tab { flex:1; display:flex; flex-direction:column; align-items:center; gap:2px; padding:8px 4px; background:none; border:none; color:var(--iv-muted); font-size:10px; font-weight:600; cursor:pointer; position:relative; transition:color .15s; }
+            #uie-app-social-view .iv-tab.is-active { color:var(--iv-accent); }
+            #uie-app-social-view .iv-tab i { font-size:18px; }
+            #uie-app-social-view .iv-tab .iv-badge { position:absolute; top:4px; right:calc(50% - 16px); background:var(--iv-accent); color:#fff; font-size:9px; font-weight:800; min-width:16px; height:16px; border-radius:999px; display:flex; align-items:center; justify-content:center; padding:0 4px; }
+            #uie-app-social-view .iv-sub-view { display:none; flex:1; flex-direction:column; overflow:hidden; }
+            #uie-app-social-view .iv-sub-view.is-active { display:flex; }
+            #uie-app-social-view .iv-post-card { background:var(--iv-card); border-radius:14px; padding:12px; border:1px solid var(--iv-border); display:flex; flex-direction:column; gap:8px; margin-bottom:10px; }
+            #uie-app-social-view .iv-post-header { display:flex; align-items:center; gap:10px; }
+            #uie-app-social-view .iv-avatar { width:38px; height:38px; border-radius:50%; background:var(--iv-border); overflow:hidden; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:14px; color:var(--iv-muted); }
+            #uie-app-social-view .iv-avatar img { width:100%; height:100%; object-fit:cover; }
+            #uie-app-social-view .iv-post-meta { flex:1; min-width:0; }
+            #uie-app-social-view .iv-author-name { font-weight:700; color:var(--iv-text); font-size:13px; cursor:pointer; }
+            #uie-app-social-view .iv-author-name:hover { color:var(--iv-accent); }
+            #uie-app-social-view .iv-post-time { font-size:11px; color:var(--iv-muted); }
+            #uie-app-social-view .iv-post-content { font-size:13px; line-height:1.5; color:var(--iv-text); word-break:break-word; }
+            #uie-app-social-view .iv-post-image { border-radius:10px; overflow:hidden; margin-top:4px; background:var(--iv-surface); }
+            #uie-app-social-view .iv-post-image img { width:100%; display:block; }
+            #uie-app-social-view .iv-post-image-skeleton { height:120px; background:linear-gradient(110deg, var(--iv-surface) 30%, var(--iv-border) 50%, var(--iv-surface) 70%); background-size:200% 100%; animation:iv-shimmer 1.5s infinite; border-radius:10px; }
+            @keyframes iv-shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+            #uie-app-social-view .iv-post-tags { display:flex; gap:6px; flex-wrap:wrap; }
+            #uie-app-social-view .iv-tag-pill { padding:2px 8px; border-radius:999px; background:var(--iv-surface); border:1px solid var(--iv-border); font-size:10px; color:var(--iv-muted); font-weight:600; }
+            #uie-app-social-view .iv-actions { display:flex; gap:14px; border-top:1px solid var(--iv-border); padding-top:8px; }
+            #uie-app-social-view .iv-action-btn { background:none; border:none; color:var(--iv-muted); font-size:12px; display:flex; align-items:center; gap:5px; cursor:pointer; padding:0; transition:color .15s; }
+            #uie-app-social-view .iv-action-btn:hover { color:var(--iv-accent); }
+            #uie-app-social-view .iv-action-btn.liked { color:var(--iv-accent); }
+            #uie-app-social-view .iv-comments-section { background:var(--iv-bg); border-radius:10px; padding:8px 10px; margin-top:4px; border:1px solid var(--iv-border); }
+            #uie-app-social-view .iv-comment { display:flex; gap:8px; padding:6px 0; border-bottom:1px solid var(--iv-border); }
+            #uie-app-social-view .iv-comment:last-of-type { border-bottom:none; }
+            #uie-app-social-view .iv-comment-author { font-weight:700; font-size:11px; color:var(--iv-text); cursor:pointer; }
+            #uie-app-social-view .iv-comment-author:hover { color:var(--iv-accent); }
+            #uie-app-social-view .iv-comment-text { font-size:11px; color:var(--iv-text); }
+            #uie-app-social-view .iv-comment-form { display:flex; gap:6px; margin-top:6px; }
+            #uie-app-social-view .iv-comment-input { flex:1; background:var(--iv-card); border:1px solid var(--iv-border); border-radius:8px; color:var(--iv-text); padding:6px 10px; font-size:11px; outline:none; }
+            #uie-app-social-view .iv-comment-submit { background:var(--iv-accent); color:#fff; border:none; border-radius:8px; padding:0 10px; font-size:11px; font-weight:700; cursor:pointer; }
+            #uie-app-social-view .iv-composer { padding:12px; background:var(--iv-surface); border-bottom:1px solid var(--iv-border); }
+            #uie-app-social-view .iv-composer textarea { width:100%; min-height:50px; background:var(--iv-bg); color:var(--iv-text); border:1px solid var(--iv-border); border-radius:10px; padding:10px; resize:none; font-size:13px; font-family:inherit; outline:none; box-sizing:border-box; }
+            #uie-app-social-view .iv-composer-row { display:flex; align-items:center; gap:6px; margin-top:8px; flex-wrap:wrap; }
+            #uie-app-social-view .iv-pill-btn { padding:4px 10px; border-radius:999px; border:1px solid var(--iv-border); background:var(--iv-bg); color:var(--iv-muted); font-size:11px; font-weight:600; cursor:pointer; transition:all .15s; }
+            #uie-app-social-view .iv-pill-btn.is-active { background:var(--iv-accent); color:#fff; border-color:var(--iv-accent); }
+            #uie-app-social-view .iv-post-submit { margin-left:auto; background:var(--iv-accent); color:#fff; border:none; padding:6px 16px; border-radius:999px; font-weight:700; font-size:12px; cursor:pointer; }
+            #uie-app-social-view .iv-search-bar { padding:10px 12px; background:var(--iv-surface); border-bottom:1px solid var(--iv-border); }
+            #uie-app-social-view .iv-search-input { width:100%; background:var(--iv-bg); border:1px solid var(--iv-border); border-radius:10px; color:var(--iv-text); padding:8px 12px; font-size:13px; outline:none; box-sizing:border-box; }
+            #uie-app-social-view .iv-trending { padding:10px 12px; display:flex; gap:6px; flex-wrap:wrap; }
+            #uie-app-social-view .iv-trend-pill { padding:5px 12px; border-radius:999px; background:var(--iv-card); border:1px solid var(--iv-border); color:var(--iv-text); font-size:11px; font-weight:600; cursor:pointer; transition:all .15s; }
+            #uie-app-social-view .iv-trend-pill:hover, #uie-app-social-view .iv-trend-pill.is-active { background:var(--iv-accent); color:#fff; border-color:var(--iv-accent); }
+            #uie-app-social-view .iv-suggest-list { padding:0 12px; display:flex; flex-direction:column; gap:8px; }
+            #uie-app-social-view .iv-suggest-row { display:flex; align-items:center; gap:10px; padding:8px; background:var(--iv-card); border-radius:12px; border:1px solid var(--iv-border); }
+            #uie-app-social-view .iv-suggest-info { flex:1; min-width:0; }
+            #uie-app-social-view .iv-suggest-name { font-weight:700; font-size:13px; color:var(--iv-text); cursor:pointer; }
+            #uie-app-social-view .iv-suggest-name:hover { color:var(--iv-accent); }
+            #uie-app-social-view .iv-suggest-bio { font-size:11px; color:var(--iv-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+            #uie-app-social-view .iv-follow-btn { padding:5px 14px; border-radius:999px; border:1px solid var(--iv-accent); background:transparent; color:var(--iv-accent); font-size:11px; font-weight:700; cursor:pointer; transition:all .15s; flex-shrink:0; }
+            #uie-app-social-view .iv-follow-btn.is-following { background:var(--iv-accent); color:#fff; }
+            #uie-app-social-view .iv-notif-item { display:flex; gap:10px; padding:10px 12px; border-bottom:1px solid var(--iv-border); align-items:flex-start; }
+            #uie-app-social-view .iv-notif-icon { width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0; font-size:14px; }
+            #uie-app-social-view .iv-notif-icon.like { background:rgba(226,29,90,.15); color:var(--iv-accent); }
+            #uie-app-social-view .iv-notif-icon.comment { background:rgba(168,85,247,.15); color:var(--iv-accent2); }
+            #uie-app-social-view .iv-notif-icon.follow { background:rgba(34,197,94,.15); color:var(--iv-green); }
+            #uie-app-social-view .iv-notif-body { flex:1; }
+            #uie-app-social-view .iv-notif-text { font-size:12px; color:var(--iv-text); line-height:1.4; }
+            #uie-app-social-view .iv-notif-time { font-size:10px; color:var(--iv-muted); margin-top:2px; }
+            #uie-app-social-view .iv-profile-banner { height:80px; background:linear-gradient(135deg, var(--iv-accent), var(--iv-accent2)); position:relative; }
+            #uie-app-social-view .iv-profile-header { padding:0 12px; display:flex; align-items:flex-end; gap:12px; margin-top:-28px; position:relative; z-index:2; }
+            #uie-app-social-view .iv-profile-avatar { width:56px; height:56px; border-radius:50%; border:3px solid var(--iv-bg); background:var(--iv-border); overflow:hidden; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:20px; color:var(--iv-muted); }
+            #uie-app-social-view .iv-profile-avatar img { width:100%; height:100%; object-fit:cover; }
+            #uie-app-social-view .iv-profile-info { flex:1; }
+            #uie-app-social-view .iv-profile-name { font-weight:800; font-size:16px; color:var(--iv-text); }
+            #uie-app-social-view .iv-profile-handle { font-size:12px; color:var(--iv-muted); }
+            #uie-app-social-view .iv-profile-stats { display:flex; gap:16px; padding:10px 12px; }
+            #uie-app-social-view .iv-profile-stat { font-size:12px; color:var(--iv-muted); }
+            #uie-app-social-view .iv-profile-stat b { color:var(--iv-text); font-weight:700; }
+            #uie-app-social-view .iv-profile-bio { padding:0 12px 10px; font-size:12px; color:var(--iv-text); line-height:1.4; }
+            #uie-app-social-view .iv-profile-posts { padding:0 12px; flex:1; overflow-y:auto; }
+            #uie-app-social-view .iv-npc-overlay { position:absolute; inset:0; z-index:20; background:var(--iv-bg); display:none; flex-direction:column; overflow:hidden; }
+            #uie-app-social-view .iv-npc-overlay.is-open { display:flex; }
+            #uie-app-social-view .iv-back-btn { background:none; border:none; color:var(--iv-text); font-size:18px; cursor:pointer; padding:8px; }
+            #uie-app-social-view .iv-section-label { font-size:11px; font-weight:700; color:var(--iv-muted); text-transform:uppercase; letter-spacing:.05em; padding:10px 12px 6px; }
+            #uie-app-social-view .iv-empty { text-align:center; padding:30px 20px; color:var(--iv-muted); font-size:13px; }
+            #uie-app-social-view .iv-scroll-area { flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; touch-action:pan-y; }
+        </style>
+        <div class="phone-app-header">
+            <i class="fa-solid fa-chevron-left phone-back-btn"></i>
+            <span>Instavibe</span>
+        </div>
+        <div class="phone-app-content" style="display:flex; flex-direction:column; background:var(--iv-bg); color:var(--iv-text); padding:0; overflow:hidden; position:relative;">
+            <div id="instavibe-onboarding" style="display:none; position:absolute; inset:0; z-index:30; background:rgba(10,10,15,0.96); padding:18px; align-items:center; justify-content:center;">
+                <div style="width:100%; border:1px solid var(--iv-border); border-radius:14px; background:var(--iv-card); padding:16px; box-shadow:0 18px 44px rgba(0,0,0,0.38);">
+                    <div id="instavibe-onboarding-title" style="font-size:16px; font-weight:900; margin-bottom:8px; color:var(--iv-text);">Turn on Instavibe?</div>
+                    <div id="instavibe-onboarding-copy" style="font-size:13px; line-height:1.45; color:var(--iv-muted); margin-bottom:14px;">Instavibe adds a live social feed that updates over time.</div>
+                    <div id="instavibe-onboarding-actions" style="display:flex; gap:8px;">
+                        <button type="button" id="instavibe-enable-btn" style="flex:1; min-height:40px; border:none; border-radius:12px; background:var(--iv-accent); color:#fff; font-weight:900; cursor:pointer;">Enable</button>
+                        <button type="button" id="instavibe-later-btn" style="flex:1; min-height:40px; border:1px solid var(--iv-border); border-radius:12px; background:var(--iv-surface); color:var(--iv-text); font-weight:800; cursor:pointer;">Not now</button>
+                    </div>
+                </div>
+            </div>
+            <div id="iv-npc-overlay" class="iv-npc-overlay">
+                <div style="display:flex; align-items:center; padding:8px 12px; background:var(--iv-surface); border-bottom:1px solid var(--iv-border);">
+                    <button type="button" class="iv-back-btn" id="iv-npc-back"><i class="fa-solid fa-chevron-left"></i></button>
+                    <span style="font-weight:700; font-size:14px;" id="iv-npc-overlay-name"></span>
+                </div>
+                <div id="iv-npc-overlay-content" class="iv-scroll-area"></div>
+            </div>
+            <div id="iv-tab-home" class="iv-sub-view is-active">
+                <div id="iv-home-composer" class="iv-composer">
+                    <form id="social-post-form" style="display:flex; flex-direction:column; gap:6px;">
+                        <textarea id="social-post-input" placeholder="Share an in-world update..." maxlength="700"></textarea>
+                        <div class="iv-composer-row">
+                            <div id="iv-tag-pills" style="display:flex; gap:4px; flex-wrap:wrap;"></div>
+                            <div id="iv-tone-pills" style="display:flex; gap:4px; flex-wrap:wrap;"></div>
+                            <button type="submit" class="iv-post-submit">Post</button>
+                        </div>
+                    </form>
+                </div>
+                <div id="social-feed-container" class="iv-scroll-area" style="padding:10px 12px;"></div>
+            </div>
+            <div id="iv-tab-explore" class="iv-sub-view">
+                <div class="iv-search-bar">
+                    <input type="text" id="iv-search-input" class="iv-search-input" placeholder="Search posts, tags, or people...">
+                </div>
+                <div class="iv-scroll-area">
+                    <div class="iv-section-label">Trending Tags</div>
+                    <div id="iv-trending-tags" class="iv-trending"></div>
+                    <div class="iv-section-label">Suggested People</div>
+                    <div id="iv-suggested-people" class="iv-suggest-list" style="padding-bottom:12px;"></div>
+                </div>
+            </div>
+            <div id="iv-tab-alerts" class="iv-sub-view">
+                <div id="iv-notifications-list" class="iv-scroll-area"></div>
+            </div>
+            <div id="iv-tab-profile" class="iv-sub-view">
+                <div id="iv-profile-view" class="iv-scroll-area"></div>
+            </div>
+            <div class="iv-tab-bar">
+                <button type="button" class="iv-tab is-active" data-iv-tab="home"><i class="fa-solid fa-house"></i><span>Home</span></button>
+                <button type="button" class="iv-tab" data-iv-tab="explore"><i class="fa-solid fa-magnifying-glass"></i><span>Explore</span></button>
+                <button type="button" class="iv-tab" data-iv-tab="alerts"><i class="fa-solid fa-bell"></i><span>Alerts</span><span id="iv-alerts-badge" class="iv-badge" style="display:none;">0</span></button>
+                <button type="button" class="iv-tab" data-iv-tab="profile"><i class="fa-solid fa-user"></i><span>Profile</span></button>
+            </div>
+        </div>
+    </div>
+
+    <div id="uie-app-cardforge-view" class="phone-app-window">
+        <div class="phone-app-header"><i class="fa-solid fa-chevron-left phone-back-btn"></i><span>Card Forge</span></div>
+        <div class="phone-app-content" style="padding:14px; background:#12141c; color:#fff; display:flex; flex-direction:column; gap:12px; overflow-y:auto;">
+            
+            <div style="display:flex; gap:8px; background:rgba(0,0,0,0.25); padding:4px; border-radius:12px;">
+                <button id="forge-tab-create" class="reply-tool-btn" style="flex:1; background:#cba35c; color:#000; border:none; padding:8px; border-radius:8px; font-weight:700;">Forge New</button>
+                <button id="forge-tab-wallet" class="reply-tool-btn" style="flex:1; background:transparent; color:#fff; border:none; padding:8px; border-radius:8px; font-weight:700;">My Cards</button>
+            </div>
+
+            <div id="forge-create-panel" style="display:flex; flex-direction:column; gap:10px;">
+                <div style="display:flex; flex-direction:column; gap:4px;">
+                    <label style="font-size:11px; opacity:0.8;">Card Type</label>
+                    <select id="forge-card-type" style="height:38px; border-radius:10px; border:1px solid rgba(255,255,255,0.12); background:rgba(0,0,0,0.3); color:#fff; padding:0 8px;">
+                        <option value="id_license">Driver's License (ID)</option>
+                        <option value="id_work">Work ID / Security Badge (ID)</option>
+                        <option value="id_business">Business Card (ID)</option>
+                        <option value="bank_card">Universal Debit/Credit Card</option>
+                        <option value="transit_pass">Transit / Subway Pass</option>
+                        <option value="hotel_key">Hotel Room Keycard</option>
+                    </select>
+                </div>
+
+                <div style="display:flex; flex-direction:column; gap:4px;">
+                    <label style="font-size:11px; opacity:0.8;">Name on Card</label>
+                    <input type="text" id="forge-card-name" placeholder="John Doe" style="height:38px; border-radius:10px; border:1px solid rgba(255,255,255,0.12); background:rgba(0,0,0,0.3); color:#fff; padding:0 10px;">
+                </div>
+
+                <div style="display:flex; flex-direction:column; gap:4px;">
+                    <label style="font-size:11px; opacity:0.8;">ID Number / Card #</label>
+                    <input type="text" id="forge-card-number" placeholder="DL-89732-X" style="height:38px; border-radius:10px; border:1px solid rgba(255,255,255,0.12); background:rgba(0,0,0,0.3); color:#fff; padding:0 10px;">
+                </div>
+
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                    <div style="display:flex; flex-direction:column; gap:4px;">
+                        <label style="font-size:11px; opacity:0.8;">Expiry Date</label>
+                        <input type="text" id="forge-card-expiry" placeholder="MM/YY or Never" style="height:38px; border-radius:10px; border:1px solid rgba(255,255,255,0.12); background:rgba(0,0,0,0.3); color:#fff; padding:0 10px;">
+                    </div>
+                    <div style="display:flex; flex-direction:column; gap:4px;">
+                        <label style="font-size:11px; opacity:0.8;">Title / Role / Room #</label>
+                        <input type="text" id="forge-card-title" placeholder="Special Agent" style="height:38px; border-radius:10px; border:1px solid rgba(255,255,255,0.12); background:rgba(0,0,0,0.3); color:#fff; padding:0 10px;">
+                    </div>
+                </div>
+
+                <div id="forge-photo-group" style="display:flex; flex-direction:column; gap:4px;">
+                    <label style="font-size:11px; opacity:0.8;">User Photo (ID cards only)</label>
+                    <input type="file" id="forge-card-photo" accept="image/*" style="display:none;">
+                    <button type="button" id="forge-photo-select-btn" class="reply-tool-btn" style="height:38px; border-radius:10px; border:1px solid rgba(255,255,255,0.12); background:rgba(255,255,255,0.06); color:#fff; font-weight:700;"><i class="fa-solid fa-camera"></i> Upload Photo</button>
+                    <div id="forge-photo-preview-name" style="font-size:11px; opacity:0.7; text-align:center;">No photo uploaded</div>
+                </div>
+
+                <input type="hidden" id="forge-edit-id" value="">
+
+                <div style="display:flex; flex-direction:column; gap:4px; margin-top:8px;">
+                    <label style="font-size:11px; opacity:0.8; font-weight:bold;">Visual Canvas Preview</label>
+                    <div style="display:flex; justify-content:center; background:rgba(0,0,0,0.4); padding:10px; border-radius:14px; border:1px solid rgba(255,255,255,0.08);">
+                        <canvas id="forge-canvas" width="340" height="210" style="max-width:100%; border-radius:12px; box-shadow:0 6px 16px rgba(0,0,0,0.5); background:#1a1c23;"></canvas>
+                    </div>
+                </div>
+
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:10px;">
+                    <button type="button" id="forge-render-btn" class="reply-tool-btn" style="background:rgba(255,255,255,0.06); color:#fff; font-weight:700; height:40px; border-radius:12px;">Render Card</button>
+                    <button type="button" id="forge-save-btn" class="reply-tool-btn" style="background:#2ecc71; color:#000; font-weight:900; height:40px; border-radius:12px; border:none;">Save Card</button>
+                </div>
+            </div>
+
+            <div id="forge-wallet-panel" style="display:none; flex-direction:column; gap:12px;">
+                <div style="font-size:12px; opacity:0.85; line-height:1.45; text-align:center; padding-bottom:6px; border-bottom:1px solid rgba(255,255,255,0.08);">
+                    Tap a card to produce/show it in chat, edit details, or delete.
+                </div>
+                <div id="forge-wallet-list" style="display:flex; flex-direction:column; gap:10px;"></div>
+            </div>
+
+        </div>
+    </div>
+
+    <div id="uie-app-settings-view" class="phone-app-window">
+        <div class="phone-app-header"><i class="fa-solid fa-chevron-left phone-back-btn"></i><span>Settings</span></div>
+        <div class="phone-app-content" style="padding:14px; display:flex; flex-direction:column; gap:12px;">
+            <div style="font-size:22px; font-weight:900;">Device Settings</div>
+            <div style="font-size:12px; opacity:.72;">Choose the communication form for this world. In Codice mode this becomes parchment correspondence.</div>
+            <div class="p-setting-row">
+                <label class="p-setting-label">Device Style</label>
+                <select id="p-device-style" class="p-setting-input" style="width:100%;">
+                    <option value="modern">Modern Glass</option>
+                    <option value="y2k">Early 2000s</option>
+                    <option value="future">Futuristic</option>
+                    <option value="scroll">Codice Parchment Scroll</option>
+                </select>
+            </div>
+            <div class="p-setting-row">
+                <label class="p-setting-label">Home &amp; Lock Screen Wallpaper</label>
+                <div style="display:flex; gap:8px; align-items:center;">
+                    <input type="file" id="p-wallpaper-file" accept="image/*" style="display:none;">
+                    <button type="button" id="p-wallpaper-pick" class="p-setting-input" style="flex:1; cursor:pointer;">Choose Image</button>
+                    <button type="button" id="p-wallpaper-clear" class="p-setting-input" style="cursor:pointer;">Clear</button>
+                </div>
+                <div id="p-wallpaper-name" style="font-size:11px; opacity:.65; margin-top:7px;">No custom wallpaper</div>
+            </div>
+            <div class="p-setting-row"><label class="p-setting-label">PIN</label><input type="text" id="p-set-pin" class="p-setting-input"></div>
+            <div class="p-setting-row" style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+                <label class="p-setting-label" style="margin:0;">Incoming Calls</label>
+                <input type="checkbox" id="p-allow-calls">
+            </div>
+            <div class="p-setting-row" style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+                <label class="p-setting-label" style="margin:0;">Incoming Texts</label>
+                <input type="checkbox" id="p-allow-texts">
+            </div>
+            <div class="p-setting-row" style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+                <label class="p-setting-label" style="margin:0;">Bubble Color (You)</label>
+                <input type="color" id="p-bubble-sent" value="#cba35c">
+            </div>
+            <div class="p-setting-row" style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+                <label class="p-setting-label" style="margin:0;">Bubble Color (Them)</label>
+                <input type="color" id="p-bubble-recv" value="#111111">
+            </div>
+            <button id="p-save-btn" class="p-save-btn">Save Changes</button>
+        </div>
+    </div>
+
+    <div id="uie-app-travel-view" class="phone-app-window">
+        <div class="phone-app-header"><i class="fa-solid fa-chevron-left phone-back-btn"></i><span>Transit</span></div>
+        <div class="phone-app-content" style="padding:14px; background:#07111f; color:#fff; display:flex; flex-direction:column; gap:12px;">
+            <div style="border-radius:18px; padding:14px; background:linear-gradient(135deg, rgba(22,160,133,0.95), rgba(14,116,144,0.82)); box-shadow:0 12px 30px rgba(0,0,0,0.28);">
+                <div style="font-size:12px; opacity:0.82; text-transform:uppercase; letter-spacing:0.12em;">Public Transportation</div>
+                <div style="font-size:24px; font-weight:900; margin-top:4px;">Travel Pass</div>
+                <div id="travel-wallet-line" style="margin-top:8px; font-weight:800;">Wallet: 0 G</div>
+            </div>
+            <div style="display:grid; gap:10px;">
+                <label style="font-size:12px; opacity:0.8;">Transit type</label>
+                <select id="travel-mode" style="height:42px; border-radius:14px; border:1px solid rgba(255,255,255,0.12); background:rgba(0,0,0,0.25); color:#fff; padding:0 12px;">
+                    <option value="train">Train station</option>
+                    <option value="airport">Airport</option>
+                    <option value="bus">Bus stop</option>
+                    <option value="subway">Subway</option>
+                    <option value="ferry">Ferry</option>
+                </select>
+                <label style="font-size:12px; opacity:0.8;">Destination</label>
+                <input id="travel-destination" placeholder="Where are you going?" style="height:42px; border-radius:14px; border:1px solid rgba(255,255,255,0.12); background:rgba(0,0,0,0.25); color:#fff; padding:0 12px;">
+                <label style="font-size:12px; opacity:0.8;">Fare</label>
+                <input id="travel-fare" type="number" min="0" step="1" value="5" style="height:42px; border-radius:14px; border:1px solid rgba(255,255,255,0.12); background:rgba(0,0,0,0.25); color:#fff; padding:0 12px;">
+                <button id="travel-pay-go" style="height:44px; border-radius:16px; border:none; background:#2ecc71; color:#00110a; font-weight:900; cursor:pointer;">Pay fare & travel</button>
+            </div>
+            <div id="travel-recent" style="display:flex; flex-direction:column; gap:8px;"></div>
+        </div>
+    </div>
+
+    <div id="uie-app-bank-view" class="phone-app-window">
+        <div class="phone-app-header"><i class="fa-solid fa-chevron-left phone-back-btn"></i><span>Universal Bank</span></div>
+        <div class="phone-app-content" style="padding:0; background:#06111f; color:#fff; display:flex; flex-direction:column;">
+            <div id="bank-login-screen" style="padding:18px; display:flex; flex-direction:column; gap:12px; min-height:100%; box-sizing:border-box; justify-content:center;">
+                <div style="text-align:center;">
+                    <div style="width:72px; height:72px; border-radius:24px; margin:0 auto 14px; background:linear-gradient(135deg,#2dd4bf,#0f766e); display:grid; place-items:center; color:#00110a; font-size:30px;"><i class="fa-solid fa-building-columns"></i></div>
+                    <div style="font-size:26px; font-weight:900;">Universal Bank</div>
+                    <div style="opacity:0.72; font-size:13px; margin-top:4px;">Secure immersive banking</div>
+                </div>
+                <input id="bank-username" placeholder="Username" style="height:44px; border-radius:16px; border:1px solid rgba(255,255,255,0.12); background:rgba(255,255,255,0.06); color:#fff; padding:0 14px;">
+                <input id="bank-password" type="password" placeholder="Password" style="height:44px; border-radius:16px; border:1px solid rgba(255,255,255,0.12); background:rgba(255,255,255,0.06); color:#fff; padding:0 14px;">
+                <button id="bank-login" style="height:44px; border-radius:16px; border:none; background:#2dd4bf; color:#00110a; font-weight:900; cursor:pointer;">Create / Login</button>
+            </div>
+            <div id="bank-dashboard" style="display:none; flex-direction:column; gap:12px; padding:14px;">
+                <div id="bank-card-visual-container"></div>
+                <div style="border-radius:22px; padding:16px; background:linear-gradient(135deg,#0f766e,#164e63); box-shadow:0 14px 34px rgba(0,0,0,0.3);">
+                    <div style="font-size:12px; opacity:0.82; text-transform:uppercase; letter-spacing:0.12em;">Welcome</div>
+                    <div id="bank-welcome" style="font-size:22px; font-weight:900; margin-top:4px;">Account holder</div>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:14px;">
+                        <div style="border-radius:16px; padding:12px; background:rgba(255,255,255,0.08);">
+                            <div style="font-size:11px; opacity:0.74;">Checking</div>
+                            <div id="bank-checking" style="font-size:18px; font-weight:900;">0 G</div>
+                        </div>
+                        <div style="border-radius:16px; padding:12px; background:rgba(255,255,255,0.08);">
+                            <div style="font-size:11px; opacity:0.74;">Savings</div>
+                            <div id="bank-savings" style="font-size:18px; font-weight:900;">0 G</div>
+                        </div>
+                    </div>
+                </div>
+                <div style="display:grid; gap:8px; border-radius:18px; padding:12px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.10);">
+                    <label style="font-size:12px; opacity:0.78;">Amount</label>
+                    <input id="bank-amount" type="number" min="0" step="1" value="10" style="height:40px; border-radius:14px; border:1px solid rgba(255,255,255,0.12); background:rgba(0,0,0,0.22); color:#fff; padding:0 12px;">
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+                        <button id="bank-to-savings" style="height:40px; border-radius:14px; border:none; background:#2dd4bf; color:#00110a; font-weight:900;">Move to savings</button>
+                        <button id="bank-to-checking" style="height:40px; border-radius:14px; border:1px solid rgba(255,255,255,0.12); background:rgba(255,255,255,0.06); color:#fff; font-weight:900;">Move to checking</button>
+                    </div>
+                </div>
+                <div style="display:grid; gap:8px; border-radius:18px; padding:12px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.10);">
+                    <div style="font-weight:900;">Send currency</div>
+                    <select id="bank-contact" style="height:40px; border-radius:14px; border:1px solid rgba(255,255,255,0.12); background:rgba(0,0,0,0.22); color:#fff; padding:0 12px;"></select>
+                    <input id="bank-send-amount" type="number" min="0" step="1" value="5" style="height:40px; border-radius:14px; border:1px solid rgba(255,255,255,0.12); background:rgba(0,0,0,0.22); color:#fff; padding:0 12px;">
+                    <button id="bank-send" style="height:40px; border-radius:14px; border:none; background:#60a5fa; color:#001329; font-weight:900;">Send</button>
+                </div>
+                <!-- Bills & Taxes Section -->
+                <div style="display:grid; gap:8px; border-radius:18px; padding:12px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.10);" id="bank-bills-section">
+                    <div style="font-weight:900; color:#38bdf8;"><i class="fa-solid fa-file-invoice-dollar"></i> Bills & Taxes</div>
+                    <div style="font-size:12px; opacity:0.85;" id="bank-job-details">Active Job: Loading...</div>
+                    <div style="font-size:12px; opacity:0.85;" id="bank-taxes-paid">Taxes Paid This Year: 0 G</div>
+                    <div style="font-size:12px; opacity:0.85; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:8px;" id="bank-home-details">Primary Home: None</div>
+                    <div style="font-weight:700; font-size:13px; margin-top:4px;">Outstanding Bills</div>
+                    <div id="bank-bills-list" style="display:flex; flex-direction:column; gap:6px; max-height:160px; overflow-y:auto; padding-right:4px;"></div>
+                </div>
+                <div id="bank-history" style="display:flex; flex-direction:column; gap:8px;"></div>
+            </div>
+        </div>
+    </div>
+    <div id="uie-app-store-view" class="phone-app-window">
+        <div class="phone-app-header"><i class="fa-solid fa-chevron-left phone-back-btn"></i><span>App Store</span></div>
+        <div class="phone-app-content" style="padding:0;">
+            <div style="padding:12px; background:linear-gradient(180deg,#0b101c,#0b101c); border-bottom:1px solid rgba(255,255,255,0.10); color:#fff;">
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <div style="width:40px; height:40px; border-radius:14px; background:rgba(255,255,255,0.06); display:grid; place-items:center; border:1px solid rgba(255,255,255,0.10);"><i class="fa-solid fa-cube" style="color:#fff;"></i></div>
+                    <div style="flex:1; min-width:0;">
+                        <div style="font-weight:900; letter-spacing:0.4px;">App Builder</div>
+                        <div style="opacity:0.7; font-size:12px;">Generate &rarr; Preview &rarr; Install</div>
+                    </div>
+                </div>
+                <div style="display:flex; flex-direction:column; gap:8px; margin-top:10px;">
+                    <input type="text" id="store-app-name" placeholder="Name" style="height:38px; padding:0 12px; border:1px solid rgba(255,255,255,0.12); border-radius:14px; background:rgba(0,0,0,0.25); color:#fff;">
+                    <textarea id="store-app-desc" rows="2" placeholder="Description..." style="padding:10px 12px; border:1px solid rgba(255,255,255,0.12); border-radius:14px; background:rgba(0,0,0,0.25); color:#fff; resize:none;"></textarea>
+                    <select id="store-app-template" style="height:38px; padding:0 12px; border:1px solid rgba(255,255,255,0.12); border-radius:14px; background:rgba(0,0,0,0.25); color:#fff;">
+                        <option value="tool">Tool / Dashboard</option>
+                        <option value="catalog">Catalog / listings</option>
+                        <option value="notes">Notes / Journal</option>
+                        <option value="quest">Quest Tracker</option>
+                    </select>
+                    <div style="display:flex; gap:8px;">
+                        <button id="store-gen-btn" style="flex:1; height:38px; background:#fff; color:#000; border:none; border-radius:14px; font-weight:900; cursor:pointer;">Generate</button>
+                        <button id="store-preview-btn" style="flex:1; height:38px; background:rgba(255,255,255,0.06); color:#fff; border:1px solid rgba(255,255,255,0.12); border-radius:14px; font-weight:900; cursor:pointer;">Preview</button>
+                    </div>
+                    <button id="store-create-btn" style="height:38px; background:#2ecc71; color:#000; border:none; border-radius:14px; font-weight:900; cursor:pointer;">Install Draft</button>
+                </div>
+                <div id="store-draft-status" style="margin-top:8px; font-size:12px; color:rgba(255,255,255,0.7);">No draft yet.</div>
+            </div>
+            <div style="padding:12px; background:#0b101c; color:#fff;"><div style="font-weight:900; margin-bottom:10px;">My Apps</div><div id="store-installed-list"></div></div>
+        </div>
+    </div>
+
+    <div id="uie-app-msg-view" class="phone-app-window">
+        <div class="phone-app-header">
+            <i class="fa-solid fa-chevron-left phone-back-btn"></i>
+            <i class="fa-solid fa-user-slash" id="msg-block" title="Block / Unblock contact" data-i18n-title="phone.msg.block_unblock" style="padding:10px; opacity:0.85; cursor:pointer;"></i>
+            <i class="fa-solid fa-trash" id="msg-del-thread" title="Delete" data-i18n-title="phone.common.delete" style="padding:10px; opacity:0.85; cursor:pointer;"></i>
+            <i class="fa-solid fa-plus" id="msg-new-number" title="Text a number" data-i18n-title="phone.msg.text_number" style="padding:10px; opacity:0.85; cursor:pointer;"></i>
+            <span id="msg-contact-name" data-i18n="phone.msg.messages">Messages</span>
+        </div>
+        <div class="phone-app-content p-msg-list" id="msg-container"></div>
+        <div class="p-input-area">
+            <button id="msg-attach-btn" title="Send image" data-i18n-title="phone.msg.send_image" style="width:42px; height:40px; border-radius:999px; border:1px solid rgba(255,255,255,0.12); background:rgba(0,0,0,0.18); color:#fff; display:grid; place-items:center; cursor:pointer;"><i class="fa-solid fa-paperclip"></i></button>
+            <button id="msg-sticker-btn" title="Stickers" data-i18n-title="phone.msg.stickers" style="width:42px; height:40px; border-radius:999px; border:1px solid rgba(255,255,255,0.12); background:rgba(0,0,0,0.18); color:#fff; display:grid; place-items:center; cursor:pointer;"><i class="fa-regular fa-face-smile"></i></button>
+            <textarea id="msg-input" rows="1" placeholder="Message..." data-i18n-placeholder="phone.msg.placeholder" style="flex:1; min-width:0; padding:10px 14px; border-radius:18px; border:1px solid rgba(255,255,255,0.12); background:rgba(0,0,0,0.18); color:#fff; resize:none; overflow:auto; max-height:120px;"></textarea>
+            <button id="msg-send-btn" style="background:#007aff; color:white; border:none; border-radius:999px; width:44px; height:40px; cursor:pointer; display:grid; place-items:center;"><i class="fa-solid fa-arrow-up"></i></button>
+            <input type="file" id="msg-attach-file" accept="image/*" style="display:none;">
+        </div>
+    </div>
+
+    <div id="uie-app-dial-view" class="phone-app-window">
+        <div class="phone-app-header"><i class="fa-solid fa-chevron-left phone-back-btn"></i><span data-i18n="phone.dial.title">Phone</span></div>
+        <div class="phone-app-content dial-phone-layout" style="padding:0 14px 14px; display:flex; flex-direction:column; gap:0; flex:1; min-height:0;">
+            <div style="display:flex; align-items:center; gap:10px; padding-top:14px; flex-shrink:0; flex-wrap:wrap;">
+                <div style="font-weight:900; color:#fff; opacity:0.85;" data-i18n="phone.dial.recents">Recents</div>
+                <button type="button" id="dial-toggle-keypad" style="margin-left:auto; height:34px; padding:0 12px; border-radius:12px; border:1px solid rgba(255,255,255,0.12); background:rgba(0,0,0,0.18); color:#fff; font-weight:900; cursor:pointer;">Number pad</button>
+                <button id="dial-recents-clear" title="Clear call log" data-i18n-title="phone.dial.clear_log" data-i18n="phone.dial.clear" style="height:34px; padding:0 10px; border-radius:12px; border:1px solid rgba(255,255,255,0.12); background:rgba(0,0,0,0.18); color:#fff; font-weight:900; cursor:pointer;">Clear</button>
+            </div>
+            <div id="dial-recents" style="flex:1; min-height:min(120px,22vh); max-height:min(240px,38vh); overflow:auto; border-radius:16px; border:1px solid rgba(255,255,255,0.12); background:rgba(0,0,0,0.18); padding:8px; margin-top:10px;"></div>
+            <div id="dial-keypad-section" style="margin-top:auto; flex-shrink:0; padding-top:14px; display:none; flex-direction:column; gap:10px;">
+            <div id="dial-display" style="height:44px; border-radius:14px; border:1px solid rgba(255,255,255,0.12); background:rgba(0,0,0,0.22); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:900; letter-spacing:1px; font-size:1.05em;">&mdash;</div>
+            <div id="dial-pad" style="display:grid; grid-template-columns: repeat(3, 1fr); gap:10px;">
+                <button class="dial-btn" data-digit="1" style="height:56px; border-radius:16px; border:1px solid rgba(255,255,255,0.12); background:rgba(0,0,0,0.18); color:#fff; font-weight:900;">1</button>
+                <button class="dial-btn" data-digit="2" style="height:56px; border-radius:16px; border:1px solid rgba(255,255,255,0.12); background:rgba(0,0,0,0.18); color:#fff; font-weight:900;">2</button>
+                <button class="dial-btn" data-digit="3" style="height:56px; border-radius:16px; border:1px solid rgba(255,255,255,0.12); background:rgba(0,0,0,0.18); color:#fff; font-weight:900;">3</button>
+                <button class="dial-btn" data-digit="4" style="height:56px; border-radius:16px; border:1px solid rgba(255,255,255,0.12); background:rgba(0,0,0,0.18); color:#fff; font-weight:900;">4</button>
+                <button class="dial-btn" data-digit="5" style="height:56px; border-radius:16px; border:1px solid rgba(255,255,255,0.12); background:rgba(0,0,0,0.18); color:#fff; font-weight:900;">5</button>
+                <button class="dial-btn" data-digit="6" style="height:56px; border-radius:16px; border:1px solid rgba(255,255,255,0.12); background:rgba(0,0,0,0.18); color:#fff; font-weight:900;">6</button>
+                <button class="dial-btn" data-digit="7" style="height:56px; border-radius:16px; border:1px solid rgba(255,255,255,0.12); background:rgba(0,0,0,0.18); color:#fff; font-weight:900;">7</button>
+                <button class="dial-btn" data-digit="8" style="height:56px; border-radius:16px; border:1px solid rgba(255,255,255,0.12); background:rgba(0,0,0,0.18); color:#fff; font-weight:900;">8</button>
+                <button class="dial-btn" data-digit="9" style="height:56px; border-radius:16px; border:1px solid rgba(255,255,255,0.12); background:rgba(0,0,0,0.18); color:#fff; font-weight:900;">9</button>
+                <button class="dial-btn" data-digit="*" style="height:56px; border-radius:16px; border:1px solid rgba(255,255,255,0.12); background:rgba(0,0,0,0.18); color:#fff; font-weight:900;">*</button>
+                <button class="dial-btn" data-digit="0" style="height:56px; border-radius:16px; border:1px solid rgba(255,255,255,0.12); background:rgba(0,0,0,0.18); color:#fff; font-weight:900;">0</button>
+                <button class="dial-btn" data-digit="#" style="height:56px; border-radius:16px; border:1px solid rgba(255,255,255,0.12); background:rgba(0,0,0,0.18); color:#fff; font-weight:900;">#</button>
+            </div>
+            <div style="display:flex; gap:10px; margin-top:4px;">
+                <button id="dial-backspace" data-i18n="phone.dial.del" style="flex:1; height:44px; border-radius:14px; border:1px solid rgba(255,255,255,0.12); background:rgba(0,0,0,0.18); color:#fff; font-weight:900; cursor:pointer;">Del</button>
+                <button id="dial-save" data-i18n="phone.common.save" style="flex:1; height:44px; border-radius:14px; border:1px solid rgba(255,255,255,0.12); background:rgba(255,255,255,0.06); color:#fff; font-weight:900; cursor:pointer;">Save</button>
+                <button id="dial-call" data-i18n="phone.dial.call" style="flex:1; height:44px; border-radius:14px; border:none; background:#2ecc71; color:#000; font-weight:900; cursor:pointer;">Call</button>
+            </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="uie-app-browser-view" class="phone-app-window">
+        <div class="p-browser-bar">
+            <button id="p-browser-back" class="p-browser-btn" title="Back" data-i18n-title="phone.browser.back"><i class="fa-solid fa-chevron-left"></i></button>
+            <button id="p-browser-fwd" class="p-browser-btn" title="Forward" data-i18n-title="phone.browser.forward"><i class="fa-solid fa-chevron-right"></i></button>
+
+            <div class="p-browser-input-wrapper">
+                <i class="fa-solid fa-lock" style="font-size:12px; color:#8e8e93;"></i>
+                <input type="text" id="p-browser-url" placeholder="Search or enter location..." data-i18n-placeholder="phone.browser.placeholder">
+                <button id="p-browser-go" class="p-browser-btn" title="Go" data-i18n-title="phone.browser.go"><i class="fa-solid fa-arrow-right"></i></button>
+            </div>
+
+            <button id="p-browser-save" class="p-browser-btn" title="Save Page" data-i18n-title="phone.browser.save_page"><i class="fa-solid fa-bookmark"></i></button>
+        </div>
+        <div class="phone-app-header" id="p-app-header" style="display:none;">
+            <i class="fa-solid fa-chevron-left phone-back-btn"></i><span id="p-app-title">App</span>
+        </div>
+        <div class="phone-app-content" style="padding:0; padding-bottom:50px;"><div id="p-browser-content"></div></div>
+        <div class="phone-nav-bar" style="display:flex; justify-content:space-evenly; padding:10px; background:rgba(0,0,0,0.3); position:absolute; bottom:0; width:100%;">
+            <i class="fa-solid fa-chevron-left p-nav-btn phone-back-btn"></i><i class="fa-solid fa-house p-nav-btn" id="p-browser-home" style="cursor:pointer; color:white;"></i><i class="fa-solid fa-rotate-right p-nav-btn" id="p-browser-refresh" style="cursor:pointer; color:white;"></i>
+        </div>
+    </div>
+
+    <div id="uie-app-books-view" class="phone-app-window">
+        <div class="phone-app-header"><i class="fa-solid fa-chevron-left phone-back-btn"></i><span data-i18n="phone.books">Books</span></div>
+        <div class="phone-app-content" style="padding:0; display:flex; flex-direction:column; background:rgba(0,0,0,0.10);">
+            <style>
+                #uie-phone-window #uie-app-books-view .books-tabs { display:flex; gap:8px; padding:10px; border-bottom:1px solid rgba(255,255,255,0.10); background:rgba(0,0,0,0.20); }
+                #uie-phone-window #uie-app-books-view .books-tab { flex:1; height:34px; border-radius:999px; border:1px solid rgba(255,255,255,0.12); background:rgba(255,255,255,0.06); color:#ddd; font-weight:900; cursor:pointer; }
+                #uie-phone-window #uie-app-books-view .books-tab.active { background:#cba35c; color:#000; border:none; }
+                #uie-phone-window #uie-app-books-view .books-pane { flex:1; overflow:auto; padding:12px; }
+                #uie-phone-window #uie-app-books-view .books-card { border-radius:16px; border:1px solid rgba(255,255,255,0.12); background:rgba(0,0,0,0.22); color:#fff; padding:12px; }
+                #uie-phone-window #uie-app-books-view .books-input { flex:1; height:40px; border-radius:14px; border:1px solid rgba(255,255,255,0.12); background:rgba(0,0,0,0.25); color:#fff; padding:0 12px; outline:none; }
+                #uie-phone-window #uie-app-books-view .books-go { height:40px; padding:0 14px; border-radius:14px; border:none; background:#2ecc71; color:#000; font-weight:900; cursor:pointer; }
+                #uie-phone-window #uie-app-books-view .books-wand { height:40px; width:44px; border-radius:14px; border:1px solid rgba(255,255,255,0.12); background:rgba(255,255,255,0.06); color:#fff; font-weight:900; cursor:pointer; }
+                #uie-phone-window #uie-app-books-view .books-row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+                #uie-phone-window #uie-app-books-view .books-row .books-input { min-width: 0; flex: 1 1 160px; }
+                #uie-phone-window #uie-app-books-view .books-row .books-go { flex: 0 0 auto; }
+                #uie-phone-window #uie-app-books-view .books-row .books-wand { flex: 0 0 auto; }
+                #uie-phone-window #uie-app-books-view .book-row { border-radius:14px; border:1px solid rgba(255,255,255,0.10); background:rgba(0,0,0,0.18); cursor:pointer; padding:12px; color:#fff; }
+                #uie-phone-window #uie-app-books-view .book-row:hover { background:rgba(255,255,255,0.08); }
+                #uie-phone-window #uie-app-books-view #books-reader { border:1px solid rgba(255,255,255,0.12); border-radius:16px; overflow:hidden; }
+                #uie-phone-window #uie-app-books-view #books-reader-head { padding:10px; background:rgba(0,0,0,0.35); border-bottom:1px solid rgba(255,255,255,0.10); display:flex; gap:10px; align-items:center; color:#fff; }
+                #uie-phone-window #uie-app-books-view #books-reader-close { margin-left:auto; height:32px; min-width:34px; padding:0 10px; border-radius:12px; border:1px solid rgba(255,255,255,0.12); background:rgba(0,0,0,0.25); color:#fff; font-weight:900; cursor:pointer; display:flex; align-items:center; justify-content:center; line-height:1; font-size:18px; }
+                #uie-phone-window #uie-app-books-view #books-reader-body { padding:14px; background:#f7f2e8; color:#2c1e10; font-family: Iowan Old Style, Palatino Linotype, Book Antiqua, Palatino, Georgia, serif; line-height:1.6; }
+            </style>
+            <div class="books-tabs">
+                <button id="books-tab-library" class="books-tab active" data-i18n="phone.books.library">Library</button>
+            </div>
+
+            <div id="books-view-library" class="books-pane">
+                <div class="books-card">
+                    <div class="books-row">
+                        <i class="fa-solid fa-book-open" style="opacity:0.8;"></i>
+                        <input id="books-prompt" type="text" class="books-input" placeholder="Describe the book you want...">
+                        <button id="books-go" class="books-go">GO</button>
+                        <button id="books-generate" class="books-wand" title="Generate"><i class="fa-solid fa-wand-magic-sparkles"></i></button>
+                    </div>
+                </div>
+                <div id="books-list" style="display:flex; flex-direction:column; gap:10px; margin-top:12px;"></div>
+                <div id="books-reader" style="display:none; margin-top:12px;">
+                    <div id="books-reader-head">
+                        <button id="books-reader-close" title="Close" style="margin-left:auto; display:flex; align-items:center; justify-content:center; line-height:1;">X</button>
+                    </div>
+                    <div id="books-reader-body"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="uie-app-calc-view" class="phone-app-window">
+        <div class="phone-app-header"><i class="fa-solid fa-chevron-left phone-back-btn"></i><span>Calculator</span></div>
+        <div class="phone-app-content" style="padding:14px; background:#0b101c; color:#fff; display:flex; flex-direction:column; gap:12px;">
+            <div id="calc-display" style="height:60px; border-radius:16px; border:1px solid rgba(255,255,255,0.12); background:rgba(0,0,0,0.25); padding:12px; display:flex; align-items:flex-end; justify-content:flex-end; font-weight:900; font-size:22px; overflow:hidden; white-space:nowrap;">0</div>
+            <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:10px;">
+                <button class="calc-btn" data-act="clear" style="height:52px; border-radius:16px; border:1px solid rgba(255,255,255,0.12); background:rgba(255,255,255,0.06); color:#fff; font-weight:900;">AC</button>
+                <button class="calc-btn" data-act="back" style="height:52px; border-radius:16px; border:1px solid rgba(255,255,255,0.12); background:rgba(255,255,255,0.06); color:#fff; font-weight:900;">&#9003;</button>
+                <button class="calc-btn" data-val="%" style="height:52px; border-radius:16px; border:1px solid rgba(255,255,255,0.12); background:rgba(255,255,255,0.06); color:#fff; font-weight:900;">%</button>
+                <button class="calc-btn" data-val="/" style="height:52px; border-radius:16px; border:none; background:#cba35c; color:#000; font-weight:900;">&divide;</button>
+
+                <button class="calc-btn" data-val="7" style="height:52px; border-radius:16px; border:1px solid rgba(255,255,255,0.12); background:rgba(0,0,0,0.18); color:#fff; font-weight:900;">7</button>
+                <button class="calc-btn" data-val="8" style="height:52px; border-radius:16px; border:1px solid rgba(255,255,255,0.12); background:rgba(0,0,0,0.18); color:#fff; font-weight:900;">8</button>
+                <button class="calc-btn" data-val="9" style="height:52px; border-radius:16px; border:1px solid rgba(255,255,255,0.12); background:rgba(0,0,0,0.18); color:#fff; font-weight:900;">9</button>
+                <button class="calc-btn" data-val="*" style="height:52px; border-radius:16px; border:none; background:#cba35c; color:#000; font-weight:900;">&times;</button>
+
+                <button class="calc-btn" data-val="4" style="height:52px; border-radius:16px; border:1px solid rgba(255,255,255,0.12); background:rgba(0,0,0,0.18); color:#fff; font-weight:900;">4</button>
+                <button class="calc-btn" data-val="5" style="height:52px; border-radius:16px; border:1px solid rgba(255,255,255,0.12); background:rgba(0,0,0,0.18); color:#fff; font-weight:900;">5</button>
+                <button class="calc-btn" data-val="6" style="height:52px; border-radius:16px; border:1px solid rgba(255,255,255,0.12); background:rgba(0,0,0,0.18); color:#fff; font-weight:900;">6</button>
+                <button class="calc-btn" data-val="-" style="height:52px; border-radius:16px; border:none; background:#cba35c; color:#000; font-weight:900;">&minus;</button>
+
+                <button class="calc-btn" data-val="1" style="height:52px; border-radius:16px; border:1px solid rgba(255,255,255,0.12); background:rgba(0,0,0,0.18); color:#fff; font-weight:900;">1</button>
+                <button class="calc-btn" data-val="2" style="height:52px; border-radius:16px; border:1px solid rgba(255,255,255,0.12); background:rgba(0,0,0,0.18); color:#fff; font-weight:900;">2</button>
+                <button class="calc-btn" data-val="3" style="height:52px; border-radius:16px; border:1px solid rgba(255,255,255,0.12); background:rgba(0,0,0,0.18); color:#fff; font-weight:900;">3</button>
+                <button class="calc-btn" data-val="+" style="height:52px; border-radius:16px; border:none; background:#cba35c; color:#000; font-weight:900;">+</button>
+
+                <button class="calc-btn" data-val="0" style="height:52px; border-radius:16px; border:1px solid rgba(255,255,255,0.12); background:rgba(0,0,0,0.18); color:#fff; font-weight:900; grid-column: span 2;">0</button>
+                <button class="calc-btn" data-val="." style="height:52px; border-radius:16px; border:1px solid rgba(255,255,255,0.12); background:rgba(0,0,0,0.18); color:#fff; font-weight:900;">.</button>
+                <button class="calc-btn" data-act="eq" style="height:52px; border-radius:16px; border:none; background:#2ecc71; color:#000; font-weight:900;">=</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="uie-app-cookies-view" class="phone-app-window">
+        <div class="phone-app-header"><i class="fa-solid fa-chevron-left phone-back-btn"></i><span>Data & Storage</span></div>
+        <div class="phone-app-content" style="padding:0; background:#f5f5f7; color:#1d1d1f; display:flex; flex-direction:column; height:100%;">
+            <div style="padding:20px 16px; background:#fff; margin-bottom:10px;">
+                <div style="font-size:28px; font-weight:700; margin-bottom:4px;">Storage</div>
+                <div style="font-size:14px; color:#86868b;" id="cookies-total-size">Calculating...</div>
+            </div>
+            <div style="padding:0 16px; flex:1; overflow-y:auto;">
+                <div style="font-size:12px; color:#86868b; text-transform:uppercase; font-weight:600; margin-bottom:8px; margin-top:10px;">Categories</div>
+                <div style="background:#fff; border-radius:10px; overflow:hidden; margin-bottom:20px;">
+                    <div class="cookie-row" data-cat="logs" style="padding:12px 16px; display:flex; align-items:center; border-bottom:1px solid #e5e5e5; cursor:pointer;">
+                        <div style="width:32px; height:32px; background:#34c759; border-radius:6px; display:grid; place-items:center; color:#fff; margin-right:12px;"><i class="fa-solid fa-scroll"></i></div>
+                        <div style="flex:1; font-weight:500;">RP Logs</div>
+                        <div class="cookie-size" id="size-logs" style="color:#86868b; font-size:14px;">0 KB</div>
+                        <i class="fa-solid fa-chevron-right" style="color:#c7c7cc; margin-left:8px; font-size:12px;"></i>
+                    </div>
+                    <div class="cookie-row" data-cat="browser" style="padding:12px 16px; display:flex; align-items:center; border-bottom:1px solid #e5e5e5; cursor:pointer;">
+                        <div style="width:32px; height:32px; background:#007aff; border-radius:6px; display:grid; place-items:center; color:#fff; margin-right:12px;"><i class="fa-solid fa-compass"></i></div>
+                        <div style="flex:1; font-weight:500;">Browser Cache</div>
+                        <div class="cookie-size" id="size-browser" style="color:#86868b; font-size:14px;">0 KB</div>
+                        <i class="fa-solid fa-chevron-right" style="color:#c7c7cc; margin-left:8px; font-size:12px;"></i>
+                    </div>
+                    <div class="cookie-row" data-cat="maps" style="padding:12px 16px; display:flex; align-items:center; border-bottom:1px solid #e5e5e5; cursor:pointer;">
+                        <div style="width:32px; height:32px; background:#af52de; border-radius:6px; display:grid; place-items:center; color:#fff; margin-right:12px;"><i class="fa-solid fa-map"></i></div>
+                        <div style="flex:1; font-weight:500;">Map Data</div>
+                        <div class="cookie-size" id="size-maps" style="color:#86868b; font-size:14px;">0 KB</div>
+                        <i class="fa-solid fa-chevron-right" style="color:#c7c7cc; margin-left:8px; font-size:12px;"></i>
+                    </div>
+                    <div class="cookie-row" data-cat="books" style="padding:12px 16px; display:flex; align-items:center; border-bottom:1px solid #e5e5e5; cursor:pointer;">
+                        <div style="width:32px; height:32px; background:#ff9500; border-radius:6px; display:grid; place-items:center; color:#fff; margin-right:12px;"><i class="fa-solid fa-book"></i></div>
+                        <div style="flex:1; font-weight:500;">Books</div>
+                        <div class="cookie-size" id="size-books" style="color:#86868b; font-size:14px;">0 KB</div>
+                        <i class="fa-solid fa-chevron-right" style="color:#c7c7cc; margin-left:8px; font-size:12px;"></i>
+                    </div>
+                    <div class="cookie-row" data-cat="numbers" style="padding:12px 16px; display:flex; align-items:center; border-bottom:1px solid #e5e5e5; cursor:pointer;">
+                        <div style="width:32px; height:32px; background:#5856d6; border-radius:6px; display:grid; place-items:center; color:#fff; margin-right:12px;"><i class="fa-solid fa-address-book"></i></div>
+                        <div style="flex:1; font-weight:500;">Saved Numbers</div>
+                        <div class="cookie-size" id="size-numbers" style="color:#86868b; font-size:14px;">0 KB</div>
+                        <i class="fa-solid fa-chevron-right" style="color:#c7c7cc; margin-left:8px; font-size:12px;"></i>
+                    </div>
+                    <div class="cookie-row" data-cat="state" style="padding:12px 16px; display:flex; align-items:center; border-bottom:1px solid #e5e5e5; cursor:pointer;">
+                        <div style="width:32px; height:32px; background:#8e8e93; border-radius:6px; display:grid; place-items:center; color:#fff; margin-right:12px;"><i class="fa-solid fa-database"></i></div>
+                        <div style="flex:1; font-weight:500;">World State</div>
+                        <div class="cookie-size" id="size-state" style="color:#86868b; font-size:14px;">0 KB</div>
+                        <i class="fa-solid fa-chevron-right" style="color:#c7c7cc; margin-left:8px; font-size:12px;"></i>
+                    </div>
+                </div>
+                <div style="text-align:center; margin-bottom:20px;">
+                    <button id="cookies-clear-all" style="background:#fff; color:#ff3b30; border:1px solid #e5e5e5; padding:12px 24px; border-radius:12px; font-size:16px; font-weight:600; cursor:pointer; width:100%;">Clear All Data</button>
+                </div>
+            </div>
+            <!-- Detail View Overlay -->
+            <div id="cookies-detail-view" style="position:absolute; top:0; left:0; width:100%; height:100%; background:#f5f5f7; display:none; flex-direction:column; z-index:10;">
+                <div class="phone-app-header" style="background:#fff; border-bottom:1px solid #e5e5e5;">
+                    <i class="fa-solid fa-chevron-left" id="cookies-detail-back" style="padding:10px; cursor:pointer; color:#007aff;"></i>
+                    <span id="cookies-detail-title" style="color:#1d1d1f;">Category</span>
+                </div>
+                <div style="padding:16px; flex:1; overflow-y:auto;">
+                    <div id="cookies-detail-list" style="background:#fff; border-radius:10px; overflow:hidden;"></div>
+                    <div style="margin-top:20px;">
+                        <button id="cookies-delete-cat" style="background:#fff; color:#ff3b30; border:1px solid #e5e5e5; padding:12px 24px; border-radius:12px; font-size:16px; font-weight:600; cursor:pointer; width:100%;">Delete All in Category</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="uie-app-contacts-view" class="phone-app-window">
+        <div class="phone-app-header">
+            <i class="fa-solid fa-chevron-left phone-back-btn"></i>
+            <span>Contacts</span>
+            <i class="fa-solid fa-plus" id="contact-add-manual" style="margin-left:auto; cursor:pointer; padding:5px; font-size:1.2em;" title="Add Contact"></i>
+        </div>
+        <div class="phone-app-content" style="position:relative;">
+            <div id="contact-list"></div>
+            <button id="contact-add-fab" title="Add Contact" style="position:absolute; right:14px; bottom:14px; width:46px; height:46px; border-radius:14px; border:1px solid rgba(255,255,255,0.12); background:rgba(0,0,0,0.35); color:#cba35c; font-weight:900; display:grid; place-items:center; cursor:pointer; z-index:6;">
+                <i class="fa-solid fa-plus"></i>
+            </button>
+        </div>
+    </div>
+
+    <div id="uie-call-screen" class="phone-app-window" style="display:none; z-index:150;">
+        <div class="call-top">
+            <div class="call-top-left">
+                <i class="fa-solid fa-signal"></i>
+                <span class="call-carrier">UIE</span>
+            </div>
+            <div class="call-top-right">
+                <i class="fa-solid fa-wifi"></i>
+                <i class="fa-solid fa-battery-three-quarters"></i>
+            </div>
+        </div>
+
+        <div class="call-identity">
+            <div class="call-avatar" id="call-avatar-img">
+                <i class="fa-solid fa-user" style="opacity:0.65;"></i>
+            </div>
+            <h2 id="call-name-disp">Unknown</h2>
+            <div class="call-status">Connected</div>
+            <div class="call-timer" id="call-timer-disp">00:00</div>
+        </div>
+
+        <div class="call-actions-wrap">
+            <div class="call-incoming-actions" id="call-incoming-actions">
+                <button class="call-pill call-decline" id="call-decline-btn"><i class="fa-solid fa-phone-slash"></i><span>Decline</span></button>
+                <button class="call-pill call-accept" id="call-accept-btn"><i class="fa-solid fa-phone"></i><span>Accept</span></button>
+            </div>
+
+            <div class="call-incall-controls" id="call-incall-controls">
+                <button class="call-ctrl" id="call-mute-btn"><i class="fa-solid fa-microphone-slash"></i><span>Mute</span></button>
+                <button class="call-ctrl" id="call-keypad-btn"><i class="fa-solid fa-grip"></i><span>Keypad</span></button>
+                <button class="call-ctrl" id="call-speaker-btn"><i class="fa-solid fa-volume-high"></i><span>Speaker</span></button>
+                <button class="call-ctrl" id="call-add-btn"><i class="fa-solid fa-user-plus"></i><span>Add</span></button>
+                <button class="call-ctrl" id="call-notes-btn"><i class="fa-solid fa-note-sticky"></i><span>Notes</span></button>
+                <button class="call-ctrl" id="call-transcript-btn"><i class="fa-solid fa-message"></i><span>Transcript</span></button>
+            </div>
+        </div>
+
+        <div class="call-bottom">
+            <div id="call-transcript"></div>
+            <div class="call-input-row">
+                <input type="text" id="call-input" placeholder="Speak...">
+                <button id="call-speak-btn"><i class="fa-solid fa-comment"></i></button>
+            </div>
+            <div class="call-actions">
+                <div class="call-btn-round btn-end" id="call-end-btn"><i class="fa-solid fa-phone-slash"></i></div>
+            </div>
+        </div>
+    </div>
+
+    <i class="fa-solid fa-xmark uie-close-btn" id="uie-phone-close" style="position:absolute; top:9px; right:5px; z-index:300; color:white; padding:5px; text-shadow:0 0 3px #000; cursor: pointer;"></i>
+
+    <!-- Templates -->
+    <template id="uie-template-dial-recent">
+        <div class="dial-recent-row" style="display:flex; align-items:center; gap:10px; padding:10px; border-bottom:1px solid #333; cursor:pointer;">
+            <i class="fa-solid dial-dir-icon" style="color:#888;"></i>
+            <div style="flex:1;">
+                <div class="dial-label" style="color:white; font-weight:600;"></div>
+                <div class="dial-sub" style="color:#888; font-size:12px;"></div>
+            </div>
+            <div style="color:#888; font-size:12px;">Yesterday</div>
+        </div>
+    </template>
+
+    <template id="uie-template-msg-contact">
+        <div class="contact-row" style="display:flex; align-items:center; gap:15px; padding:10px 0; cursor:pointer;">
+            <div class="contact-avatar" style="width:50px; height:50px; border-radius:50%; background:#555; display:grid; place-items:center; font-weight:600; color:white; font-size:18px;"></div>
+            <div style="flex:1; border-bottom:1px solid #333; padding-bottom:10px;">
+                <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+                    <div class="contact-name" style="font-weight:600; color:white;"></div>
+                    <div style="font-size:14px; color:#666;">10:00 AM</div>
+                </div>
+                <div class="contact-last" style="color:#888; font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:200px;"></div>
+            </div>
+        </div>
+    </template>
+
+    <template id="uie-template-msg-bubble">
+        <div class="p-bubble" style="margin-bottom:10px; max-width:75%; padding:10px 14px; border-radius:18px; font-size:16px; line-height:1.4; position:relative;">
+            <div class="p-bubble-img-container" style="display:none; margin-bottom:5px;"><img class="p-bubble-img" style="width:100%; border-radius:10px;"></div>
+            <div class="p-bubble-text"></div>
+        </div>
+    </template>
+
+    <template id="uie-template-browser-bookmark">
+        <div class="p-bookmark" style="padding:10px; border-bottom:1px solid #eee; cursor:pointer;">
+            <div class="bm-title" style="font-weight:bold; color:#007aff;"></div>
+            <div class="bm-url" style="font-size:0.8em; color:#888; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"></div>
+        </div>
+    </template>
+
+    <template id="uie-template-book-row">
+        <div class="book-row" style="margin-bottom:8px;">
+            <div class="book-title" style="font-weight:bold; font-size:1.1em; color:#cba35c;"></div>
+            <div class="book-date" style="font-size:0.8em; color:#aaa;"></div>
+        </div>
+    </template>
+
+    <template id="uie-template-sticker-tab">
+        <button class="uie-phone-sticker-tab" style="padding:6px 12px; border-radius:15px; background:#333; border:none; color:white; font-weight:600; font-size:12px; cursor:pointer; white-space:nowrap; margin-right:8px;"></button>
+    </template>
+
+    <template id="uie-template-sticker-tile">
+        <div class="uie-phone-sticker-tile" style="aspect-ratio:1; cursor:pointer;"><img style="width:100%; height:100%; object-fit:contain;"></div>
+    </template>
+</div>

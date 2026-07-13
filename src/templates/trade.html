@@ -1,0 +1,177 @@
+<style>
+  #uie-trade-window {
+    position: fixed !important;
+    inset: 6vh auto auto 50% !important;
+    transform: translateX(-50%) !important;
+    width: min(860px, calc(100vw - 24px)) !important;
+    height: min(640px, calc(100vh - 48px)) !important;
+    z-index: 2147483634 !important;
+    display: none;
+    flex-direction: column;
+    overflow: hidden;
+    color: #edf8ff;
+    background: linear-gradient(180deg, rgba(15, 13, 20, .97), rgba(7, 8, 14, .99));
+    border: 1px solid rgba(242, 179, 109, .34);
+    border-radius: 8px;
+    box-shadow: 0 26px 84px rgba(0,0,0,.64), inset 0 1px rgba(255,255,255,.06);
+    font-family: Inter, system-ui, sans-serif;
+  }
+  #uie-trade-window .mmo-head {
+    min-height: 50px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    background: rgba(7, 8, 14, .85);
+    border-bottom: 1px solid rgba(255,255,255,.08);
+  }
+  #uie-trade-window .mmo-head-title { font-size: 12px; font-weight: 900; letter-spacing: .12em; text-transform: uppercase; color: #f2b36d; }
+  #uie-trade-window .mmo-icon-btn,
+  #uie-trade-window button {
+    min-height: 34px;
+    border: 1px solid rgba(255,255,255,.1);
+    border-radius: 8px;
+    color: #edf8ff;
+    background: rgba(255,255,255,.04);
+    cursor: pointer;
+    font-weight: 850;
+  }
+  #uie-trade-window .mmo-icon-btn { width: 34px; display: grid; place-items: center; padding: 0; }
+  #uie-trade-window button:hover { border-color: rgba(242,179,109,.5); background: rgba(242,179,109,.1); }
+  .trade-body {
+    flex: 1;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: minmax(0,1fr) minmax(0,1fr);
+    gap: 12px;
+    padding: 12px;
+    overflow: hidden;
+  }
+  .trade-pane {
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: 8px;
+    background: rgba(255,255,255,.035);
+    padding: 12px;
+    overflow: auto;
+  }
+  .trade-pane-title { font-size: 11px; font-weight: 950; letter-spacing: .12em; text-transform: uppercase; color: #f6d6a9; }
+  .trade-field { display: grid; gap: 5px; }
+  .trade-field label { color: rgba(237,248,255,.6); font-size: 11px; font-weight: 850; text-transform: uppercase; letter-spacing: .08em; }
+  #uie-trade-window input,
+  #uie-trade-window select {
+    min-width: 0;
+    height: 38px;
+    border: 1px solid rgba(255,255,255,.12);
+    border-radius: 8px;
+    background: rgba(0,0,0,.28);
+    color: #fff;
+    padding: 0 10px;
+    outline: none;
+  }
+  .trade-currency-line,
+  .trade-status-line {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: 8px;
+    padding: 10px;
+    background: rgba(0,0,0,.2);
+    color: rgba(237,248,255,.78);
+    font-size: 12px;
+  }
+  .trade-currency-line b,
+  .trade-status-line b { color: #fff; }
+  #uie-trade-their-preview {
+    border: 1px solid rgba(242,179,109,.18);
+    border-radius: 8px;
+    background: rgba(242,179,109,.07);
+    padding: 12px;
+    min-height: 120px;
+  }
+  .trade-item-name { font-size: 16px; font-weight: 950; color: #fff; }
+  .trade-item-meta { margin-top: 4px; color: #f2b36d; font-size: 12px; font-weight: 850; }
+  #uie-trade-their-preview p { color: rgba(237,248,255,.78); font-size: 12px; line-height: 1.4; margin: 8px 0 0; }
+  #uie-trade-flags {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  #uie-trade-flags span {
+    border: 1px solid rgba(255,255,255,.1);
+    border-radius: 999px;
+    padding: 6px 10px;
+    color: rgba(237,248,255,.62);
+    font-size: 11px;
+    font-weight: 900;
+  }
+  #uie-trade-flags span.on { color: #9be084; border-color: rgba(155,224,132,.42); background: rgba(155,224,132,.08); }
+  .trade-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  #uie-trade-accept { background: rgba(242,179,109,.16) !important; border-color: rgba(242,179,109,.36) !important; color: #fff4dd !important; }
+  #uie-trade-log {
+    display: grid;
+    gap: 6px;
+    color: rgba(237,248,255,.62);
+    font-size: 12px;
+  }
+  #uie-trade-status { overflow-wrap: anywhere; }
+  @media not all {
+    #uie-trade-window { inset: 10px auto auto 50% !important; height: calc(100vh - 20px) !important; }
+    .trade-body { grid-template-columns: 1fr; overflow: auto; }
+  }
+</style>
+
+<div id="uie-trade-window" class="uie-window" data-open-display="flex">
+  <div class="mmo-head">
+    <div class="mmo-head-title"><i class="fa-solid fa-right-left"></i> P2P Trade</div>
+    <button type="button" id="uie-trade-close" class="mmo-icon-btn" title="Close"><i class="fa-solid fa-xmark"></i></button>
+  </div>
+  <div class="trade-body">
+    <section class="trade-pane">
+      <div class="trade-pane-title">Your Offer</div>
+      <div class="trade-field">
+        <label>Trading With</label>
+        <select id="uie-trade-npc"></select>
+      </div>
+      <div class="trade-currency-line"><span>Wallet</span><b id="uie-trade-balance">0 G</b></div>
+      <div class="trade-field">
+        <label>Gold</label>
+        <input id="uie-trade-gold" type="number" min="0" step="1" value="0">
+      </div>
+      <div class="trade-field">
+        <label>Item</label>
+        <select id="uie-trade-item"></select>
+      </div>
+      <div class="trade-field">
+        <label>Quantity</label>
+        <input id="uie-trade-qty" type="number" min="1" step="1" value="1">
+      </div>
+      <div class="trade-currency-line"><span>Offer Value</span><b id="uie-trade-value">0 G</b></div>
+    </section>
+    <section class="trade-pane">
+      <div class="trade-pane-title">Their Offer</div>
+      <div class="trade-field">
+        <label>Requested Item</label>
+        <select id="uie-trade-their-item"></select>
+      </div>
+      <div id="uie-trade-their-preview"></div>
+      <div id="uie-trade-flags"></div>
+      <div class="trade-status-line"><b>Status</b><span id="uie-trade-status">Choose offers and confirm.</span></div>
+      <div class="trade-actions">
+        <button type="button" id="uie-trade-reset"><i class="fa-solid fa-rotate-left"></i> Clear</button>
+        <button type="button" id="uie-trade-accept"><i class="fa-solid fa-circle-check"></i> Accept</button>
+      </div>
+      <div class="trade-pane-title">Recent Trades</div>
+      <div id="uie-trade-log"></div>
+    </section>
+  </div>
+</div>

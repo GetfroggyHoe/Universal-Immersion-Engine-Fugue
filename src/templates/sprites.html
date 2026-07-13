@@ -1,0 +1,993 @@
+<style>
+    /* Premium UVE Styling - Dark Glassmorphism */
+    :root {
+        --uve-bg-glow: radial-gradient(circle at 50% 0%, rgba(111, 211, 255, 0.12) 0%, rgba(0,0,0,0) 70%);
+        --uve-glass: rgba(10, 16, 24, 0.82);
+        --uve-border: rgba(111, 211, 255, 0.22);
+        --uve-border-active: rgba(111, 211, 255, 0.55);
+        --uve-primary: #6fd3ff;
+        --uve-primary-glow: 0 0 15px rgba(111, 211, 255, 0.35);
+        --uve-text: #e6f4ff;
+        --uve-text-muted: rgba(230, 244, 255, 0.6);
+        --uve-bg-dark: #070b11;
+        --uve-shadow: 0 20px 50px rgba(0, 0, 0, 0.65);
+        --uve-transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    #uie-sprites-window.uie-sprites-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        z-index: 2147483640;
+        background: rgba(4, 6, 10, 0.85);
+        backdrop-filter: blur(4px);
+        -webkit-backdrop-filter: blur(4px);
+        align-items: center;
+        justify-content: center;
+        padding: 12px;
+        box-sizing: border-box;
+        font-family: 'Outfit', 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+
+    #uie-sprites-window.uie-sprites-overlay[style*="flex"] {
+        display: flex !important;
+    }
+
+    .uve-window-card {
+        position: relative;
+        width: min(840px, 96vw);
+        max-height: min(92vh, 900px);
+        display: flex;
+        flex-direction: column;
+        border-radius: 16px;
+        border: 1px solid var(--uve-border);
+        background: linear-gradient(165deg, #0d131f 0%, #060a10 100%);
+        background-image: var(--uve-bg-glow);
+        box-shadow: var(--uve-shadow);
+        overflow: hidden;
+        color: var(--uve-text);
+        animation: uveFadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @keyframes uveFadeIn {
+        from { opacity: 0; transform: scale(0.97) translateY(10px); }
+        to { opacity: 1; transform: scale(1) translateY(0); }
+    }
+
+    .uve-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 16px 20px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        background: rgba(10, 16, 24, 0.4);
+    }
+
+    .uve-header-title h3 {
+        margin: 0;
+        font-size: 1.3rem;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        background: linear-gradient(120deg, #6fd3ff, #bce7ff);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        text-shadow: 0 2px 10px rgba(111, 211, 255, 0.15);
+    }
+
+    .uve-header-title p {
+        margin: 4px 0 0 0;
+        font-size: 12px;
+        color: var(--uve-text-muted);
+    }
+
+    .uve-close-btn {
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        color: var(--uve-text);
+        padding: 8px 12px;
+        border-radius: 10px;
+        cursor: pointer;
+        transition: var(--uve-transition);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .uve-close-btn:hover {
+        background: rgba(255, 100, 100, 0.15);
+        border-color: rgba(255, 100, 100, 0.3);
+        color: #ff9e9e;
+        transform: rotate(90deg);
+    }
+
+    /* Category tiles dashboard */
+    .uve-dashboard-categories {
+        display: flex;
+        gap: 8px;
+        padding: 12px 20px;
+        background: rgba(0,0,0,0.15);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .uve-cat-tile {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 10px;
+        border-radius: 12px;
+        background: rgba(255,255,255,0.02);
+        border: 1px solid rgba(255,255,255,0.05);
+        cursor: pointer;
+        transition: var(--uve-transition);
+        text-align: center;
+    }
+
+    .uve-cat-tile i {
+        font-size: 1.2rem;
+        margin-bottom: 6px;
+        color: var(--uve-text-muted);
+        transition: var(--uve-transition);
+    }
+
+    .uve-cat-tile span {
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--uve-text-muted);
+    }
+
+    .uve-cat-tile:hover {
+        background: rgba(111, 211, 255, 0.06);
+        border-color: rgba(111, 211, 255, 0.2);
+    }
+
+    .uve-cat-tile:hover i, .uve-cat-tile:hover span {
+        color: var(--uve-primary);
+    }
+
+    .uve-cat-tile.active {
+        background: rgba(111, 211, 255, 0.12);
+        border-color: var(--uve-border-active);
+        box-shadow: var(--uve-primary-glow);
+    }
+
+    .uve-cat-tile.active i, .uve-cat-tile.active span {
+        color: var(--uve-primary);
+        text-shadow: var(--uve-primary-glow);
+    }
+
+    /* Sub-toolbar and Library selector */
+    .uve-library-bar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        padding: 12px 20px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        background: rgba(0, 0, 0, 0.1);
+        align-items: center;
+    }
+
+    .uve-select {
+        flex: 1;
+        min-width: 180px;
+        background: rgba(7, 11, 17, 0.75);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        color: var(--uve-text);
+        padding: 9px 12px;
+        border-radius: 10px;
+        font-size: 13px;
+        outline: none;
+        cursor: pointer;
+        transition: var(--uve-transition);
+    }
+
+    .uve-select:hover, .uve-select:focus {
+        border-color: var(--uve-primary);
+    }
+
+    /* Visual Dashboard split pane */
+    .uve-split-pane {
+        flex: 1;
+        display: flex;
+        min-height: 0;
+    }
+
+    .uve-pane-left {
+        flex: 1.3;
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+        border-right: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .uve-pane-right {
+        flex: 0.9;
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+        background: rgba(0, 0, 0, 0.18);
+        padding: 16px 20px;
+        overflow-y: auto;
+    }
+
+    #uie-sprites-list.uie-spr-content {
+        flex: 1;
+        min-height: 0;
+        overflow-y: auto;
+        padding: 16px 20px;
+    }
+
+    /* Visual Preview card */
+    .uve-preview-card {
+        border-radius: 14px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: rgba(0,0,0,0.3);
+        padding: 14px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 16px;
+    }
+
+    .uve-preview-frame {
+        width: 100%;
+        height: 180px;
+        border-radius: 10px;
+        background: radial-gradient(circle, rgba(16, 26, 41, 0.6) 0%, rgba(5, 8, 13, 0.9) 100%);
+        border: 1px dashed rgba(255,255,255,0.08);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        position: relative;
+    }
+
+    .uve-preview-img {
+        max-width: 90%;
+        max-height: 90%;
+        object-fit: contain;
+        filter: drop-shadow(0 8px 16px rgba(0,0,0,0.5));
+    }
+
+    .uve-preview-placeholder {
+        font-size: 12px;
+        color: var(--uve-text-muted);
+        text-align: center;
+    }
+
+    /* General Button styles */
+    .uve-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 9px 16px;
+        border-radius: 10px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        background: rgba(255, 255, 255, 0.05);
+        color: var(--uve-text);
+        cursor: pointer;
+        font-size: 13px;
+        font-weight: 600;
+        transition: var(--uve-transition);
+        outline: none;
+    }
+
+    .uve-btn:hover {
+        background: rgba(255, 255, 255, 0.1);
+        border-color: rgba(255, 255, 255, 0.25);
+        transform: translateY(-1px);
+    }
+
+    .uve-btn:active {
+        transform: translateY(0);
+    }
+
+    .uve-btn.primary {
+        background: linear-gradient(180deg, #4da3ff, #2482e6);
+        color: #fff;
+        border-color: rgba(111, 211, 255, 0.3);
+        box-shadow: 0 4px 12px rgba(36, 130, 230, 0.25);
+    }
+
+    .uve-btn.primary:hover {
+        background: linear-gradient(180deg, #6ec0ff, #3895ff);
+        border-color: rgba(111, 211, 255, 0.5);
+        box-shadow: 0 4px 15px rgba(36, 130, 230, 0.35), var(--uve-primary-glow);
+    }
+
+    .uve-btn.danger {
+        background: rgba(230, 60, 60, 0.15);
+        color: #ff9e9e;
+        border-color: rgba(230, 60, 60, 0.25);
+    }
+
+    .uve-btn.danger:hover {
+        background: rgba(230, 60, 60, 0.3);
+        border-color: rgba(230, 60, 60, 0.5);
+    }
+
+    .uve-btn.accent {
+        background: rgba(111, 211, 255, 0.1);
+        color: var(--uve-primary);
+        border-color: rgba(111, 211, 255, 0.25);
+    }
+
+    .uve-btn.accent:hover {
+        background: rgba(111, 211, 255, 0.2);
+        border-color: var(--uve-primary);
+        box-shadow: var(--uve-primary-glow);
+    }
+
+    /* List Row styles */
+    .uie-spr-row {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        background: rgba(255, 255, 255, 0.03);
+        padding: 10px 14px;
+        border-radius: 12px;
+        margin-bottom: 8px;
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        transition: var(--uve-transition);
+    }
+
+    .uie-spr-row:hover {
+        background: rgba(255, 255, 255, 0.05);
+        border-color: rgba(111, 211, 255, 0.15);
+        transform: translateX(2px);
+    }
+
+    .uie-spr-thumb {
+        width: 44px;
+        height: 44px;
+        background: rgba(0, 0, 0, 0.3);
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: rgba(255, 255, 255, 0.2);
+        font-size: 16px;
+        flex-shrink: 0;
+        background-size: cover !important;
+        background-position: center !important;
+        border: 1px solid rgba(255,255,255,0.06);
+    }
+
+    .uie-spr-info {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .uie-spr-key {
+        font-weight: 700;
+        color: var(--uve-text);
+        font-size: 13px;
+        letter-spacing: -0.01em;
+    }
+
+    .uie-spr-status {
+        font-size: 11px;
+        color: var(--uve-text-muted);
+        margin-top: 2px;
+    }
+
+    .uve-icon-btn {
+        width: 34px;
+        height: 34px;
+        border-radius: 8px;
+        padding: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    /* Action Tag Builder Panel */
+    .uve-builder-panel h4 {
+        margin: 0 0 10px 0;
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--uve-primary);
+        font-weight: 700;
+    }
+
+    .uve-builder-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+        margin-bottom: 12px;
+    }
+
+    .uve-builder-grid label {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        font-size: 11px;
+        color: var(--uve-text-muted);
+    }
+
+    .uve-builder-grid select, .uve-builder-grid input {
+        background: rgba(0, 0, 0, 0.25);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        color: var(--uve-text);
+        padding: 6px 10px;
+        border-radius: 8px;
+        font-size: 11px;
+        outline: none;
+    }
+
+    .uve-tag-preview {
+        background: rgba(0, 0, 0, 0.35);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 10px;
+        padding: 10px;
+        font-family: monospace;
+        font-size: 11px;
+        color: #b3e6ff;
+        word-break: break-all;
+        margin-bottom: 10px;
+        min-height: 28px;
+        display: flex;
+        align-items: center;
+    }
+
+    /* Link row styles */
+    .uve-link-row {
+        padding: 12px 20px;
+        background: rgba(0,0,0,0.12);
+        border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+    
+    .uve-link-row label {
+        display: block;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        color: var(--uve-text-muted);
+        letter-spacing: 0.04em;
+        margin-bottom: 6px;
+    }
+
+    .uve-input {
+        width: 100%;
+        box-sizing: border-box;
+        background: rgba(0, 0, 0, 0.25);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        color: var(--uve-text);
+        border-radius: 10px;
+        padding: 9px 12px;
+        font-size: 13px;
+        outline: none;
+        transition: var(--uve-transition);
+    }
+
+    .uve-input:hover, .uve-input:focus {
+        border-color: var(--uve-primary);
+    }
+
+    .uve-hint {
+        margin: 6px 0 0 0;
+        font-size: 11px;
+        color: var(--uve-text-muted);
+        line-height: 1.4;
+    }
+
+    /* Setup Wizard Overlay Modal */
+    .uve-wizard-overlay {
+        display: none;
+        position: absolute;
+        inset: 0;
+        background: rgba(5, 8, 13, 0.96);
+        z-index: 100;
+        flex-direction: column;
+        animation: uveFadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .uve-wizard-container {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        padding: 30px 40px;
+        max-width: 620px;
+        margin: 0 auto;
+        width: 100%;
+        box-sizing: border-box;
+        justify-content: center;
+    }
+
+    .uve-wizard-steps-indicator {
+        display: flex;
+        justify-content: space-between;
+        position: relative;
+        margin-bottom: 40px;
+    }
+
+    .uve-wizard-steps-indicator::before {
+        content: '';
+        position: absolute;
+        top: 14px;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: rgba(255,255,255,0.06);
+        z-index: 1;
+    }
+
+    .uve-wizard-step-node {
+        position: relative;
+        z-index: 2;
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        background: #0f1724;
+        border: 2px solid rgba(255,255,255,0.12);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--uve-text-muted);
+        transition: var(--uve-transition);
+    }
+
+    .uve-wizard-step-node.active {
+        border-color: var(--uve-primary);
+        background: #193147;
+        color: var(--uve-primary);
+        box-shadow: var(--uve-primary-glow);
+    }
+
+    .uve-wizard-step-node.completed {
+        border-color: #2482e6;
+        background: #2482e6;
+        color: #fff;
+    }
+
+    .uve-wizard-slide {
+        display: none;
+        flex-direction: column;
+        gap: 20px;
+    }
+
+    .uve-wizard-slide.active {
+        display: flex;
+        animation: uveSlideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @keyframes uveSlideIn {
+        from { opacity: 0; transform: translateX(20px); }
+        to { opacity: 1; transform: translateX(0); }
+    }
+
+    /* Drag and Drop Zone */
+    .uve-drag-zone {
+        height: 180px;
+        border-radius: 16px;
+        border: 2px dashed rgba(111, 211, 255, 0.25);
+        background: rgba(111, 211, 255, 0.02);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        cursor: pointer;
+        transition: var(--uve-transition);
+        text-align: center;
+        padding: 20px;
+        box-sizing: border-box;
+    }
+
+    .uve-drag-zone:hover, .uve-drag-zone.dragover {
+        border-color: var(--uve-primary);
+        background: rgba(111, 211, 255, 0.08);
+        box-shadow: var(--uve-primary-glow);
+    }
+
+    .uve-drag-zone i {
+        font-size: 2.2rem;
+        color: var(--uve-primary);
+        animation: uveFloat 3s ease-in-out infinite;
+    }
+
+    @keyframes uveFloat {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-6px); }
+    }
+
+    .uve-drag-zone h5 {
+        margin: 0;
+        font-size: 14px;
+        font-weight: 600;
+    }
+
+    .uve-drag-zone p {
+        margin: 0;
+        font-size: 11px;
+        color: var(--uve-text-muted);
+    }
+
+    /* State mapping table */
+    .uve-mapping-list {
+        max-height: 220px;
+        overflow-y: auto;
+        border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 12px;
+        background: rgba(0,0,0,0.2);
+    }
+
+    .uve-mapping-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px 16px;
+        border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+
+    .uve-mapping-row:last-child {
+        border-bottom: none;
+    }
+
+    /* Embedded styles */
+    #uie-sprites-window.uie-sprites-embedded.uie-sprites-overlay {
+        position: relative !important;
+        inset: auto !important;
+        flex: 1 1 auto;
+        min-height: 240px;
+        max-height: none;
+        width: 100%;
+        background: transparent !important;
+        padding: 0 !important;
+        backdrop-filter: none;
+    }
+
+    .uie-sprites-embedded .uve-window-card {
+        width: 100%;
+        max-width: none;
+        flex: 1 1 auto;
+        min-height: 0;
+        max-height: min(72vh, 680px);
+    }
+
+    /* Mobile Responsive Optimizations (< 768px) */
+    @media not all {
+        #uie-sprites-window.uie-sprites-overlay {
+            padding: 0 !important;
+        }
+        
+        .uve-window-card {
+            width: 100vw !important;
+            height: 100dvh !important;
+            max-height: 100dvh !important;
+            border-radius: 0 !important;
+            border: none !important;
+        }
+        
+        .uve-header {
+            padding: 10px 14px !important;
+        }
+        
+        .uve-header-title h3 {
+            font-size: 1.1rem !important;
+        }
+        
+        .uve-dashboard-categories {
+            padding: 8px 12px !important;
+            gap: 4px !important;
+        }
+        
+        .uve-cat-tile {
+            padding: 6px 4px !important;
+            border-radius: 8px !important;
+        }
+        
+        .uve-cat-tile i {
+            font-size: 1rem !important;
+            margin-bottom: 3px !important;
+        }
+        
+        .uve-cat-tile span {
+            font-size: 9px !important;
+            letter-spacing: 0.02em !important;
+        }
+        
+        .uve-library-bar {
+            padding: 8px 12px !important;
+            gap: 8px !important;
+        }
+        
+        .uve-select {
+            padding: 7px 10px !important;
+            font-size: 12px !important;
+            min-width: 130px !important;
+        }
+        
+        .uve-link-row {
+            padding: 8px 12px !important;
+        }
+        
+        .uve-input {
+            padding: 7px 10px !important;
+            font-size: 12px !important;
+        }
+        
+        .uve-split-pane {
+            flex-direction: column !important;
+            overflow-y: auto !important;
+        }
+        
+        .uve-pane-left {
+            flex: none !important;
+            border-right: none !important;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+            max-height: 240px !important;
+        }
+        
+        #uie-sprites-list.uie-spr-content {
+            padding: 10px 12px !important;
+        }
+        
+        .uve-pane-right {
+            flex: none !important;
+            padding: 12px 14px !important;
+            background: rgba(0, 0, 0, 0.25) !important;
+        }
+        
+        .uve-preview-card {
+            padding: 10px !important;
+            border-radius: 10px !important;
+            margin-bottom: 12px !important;
+        }
+        
+        .uve-preview-frame {
+            height: 140px !important;
+        }
+        
+        .uve-wizard-container {
+            padding: 16px 20px !important;
+        }
+        
+        .uve-drag-zone {
+            height: 140px !important;
+            border-radius: 12px !important;
+            padding: 12px !important;
+        }
+        
+        .uve-drag-zone i {
+            font-size: 1.6rem !important;
+        }
+        
+        .uve-drag-zone h5 {
+            font-size: 12px !important;
+        }
+        
+        .uve-drag-zone p {
+            font-size: 10px !important;
+        }
+        
+        .uve-mapping-list {
+            max-height: 180px !important;
+        }
+        
+        .uve-mapping-row {
+            padding: 8px 10px !important;
+        }
+    }
+</style>
+
+<div id="uie-sprites-window" class="uie-window uie-sprites-overlay" style="display:none;">
+    <div class="uve-window-card" role="dialog" aria-labelledby="uve-title">
+        
+        <!-- Header -->
+        <div class="uve-header">
+            <div class="uve-header-title">
+                <h3 id="uve-title"><i class="fa-solid fa-wand-magic-sparkles" style="color:var(--uve-primary);"></i> Entity Visual Engine</h3>
+                <p>Decoupled multi-layer sprite canvas. Manage NPCs, Scenery, and spell FX seamlessly.</p>
+            </div>
+            <button type="button" id="uie-sprites-close" class="uve-close-btn" title="Close VN Engine"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+
+        <!-- Categorization Tiles Dashboard -->
+        <div class="uve-dashboard-categories">
+            <div class="uve-cat-tile active" data-type="character">
+                <i class="fa-solid fa-user-ninja"></i>
+                <span>Speakers</span>
+            </div>
+            <div class="uve-cat-tile" data-type="entity">
+                <i class="fa-solid fa-dragon"></i>
+                <span>Entities</span>
+            </div>
+            <div class="uve-cat-tile" data-type="environment">
+                <i class="fa-solid fa-tree"></i>
+                <span>Scenery</span>
+            </div>
+            <div class="uve-cat-tile" data-type="effects">
+                <i class="fa-solid fa-fire-flame-curved"></i>
+                <span>FX / Spells</span>
+            </div>
+        </div>
+
+        <!-- Toolbar & active set -->
+        <div class="uve-library-bar">
+            <select id="uie-sprites-set" class="uve-select" title="Active asset library">
+                <option value="">(Loading Asset Libraries…)</option>
+            </select>
+            
+            <button type="button" id="uve-open-wizard" class="uve-btn accent"><i class="fa-solid fa-square-plus"></i> Import Library</button>
+            <button type="button" id="uve-delete-library" class="uve-btn danger" title="Delete current library"><i class="fa-solid fa-trash-can"></i></button>
+        </div>
+
+        <!-- Dialogue link row -->
+        <div class="uve-link-row">
+            <label for="uie-sprites-link-name">Dialogue / Tag Identity Keys</label>
+            <input type="text" id="uie-sprites-link-name" class="uve-input" placeholder="e.g. tree_01, Goblin, Seraphina" autocomplete="off" />
+            <p class="uve-hint">Comma-separated ID tags or Speaker names that the engine watches for to display this library's assets.</p>
+        </div>
+
+        <!-- Split Pane Splitter -->
+        <div class="uve-split-pane">
+            <!-- Left Pane: Expression list -->
+            <div class="uve-pane-left">
+                <div id="uie-sprites-list" class="uie-spr-content custom-scroll"></div>
+            </div>
+
+            <!-- Right Pane: Previews & Builder -->
+            <div class="uve-pane-right">
+                <!-- Preview box -->
+                <div class="uve-preview-card">
+                    <div class="uve-preview-frame">
+                        <img id="uve-preview-display" class="uve-preview-img" style="display:none;" />
+                        <div id="uve-preview-placeholder" class="uve-preview-placeholder">
+                            <i class="fa-regular fa-image" style="font-size:1.8rem; opacity:0.3; margin-bottom:8px; display:block;"></i>
+                            Select a state row to preview
+                        </div>
+                    </div>
+                    <div style="display:flex; gap:8px; width:100%;">
+                        <button type="button" id="uve-test-stage-btn" class="uve-btn primary" style="flex:1;" disabled>
+                            <i class="fa-solid fa-clapperboard"></i> Test on Stage
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Action Tag Builder Panel -->
+                <div class="uve-builder-panel">
+                    <h4><i class="fa-solid fa-sliders"></i> Scene Action Builder</h4>
+                    <div class="uve-builder-grid">
+                        <label>
+                            Placment
+                            <select id="uve-build-pos">
+                                <option value="center">Center</option>
+                                <option value="left">Left Side</option>
+                                <option value="right">Right Side</option>
+                                <option value="20%">Far Left (20%)</option>
+                                <option value="80%">Far Right (80%)</option>
+                            </select>
+                        </label>
+                        <label>
+                            Zoom / Distance
+                            <select id="uve-build-dist">
+                                <option value="normal">Normal</option>
+                                <option value="close">Close-up</option>
+                                <option value="far">Distant</option>
+                            </select>
+                        </label>
+                        <label>
+                            Depth Layer
+                            <select id="uve-build-layer">
+                                <option value="mid">Mid Layer (Character)</option>
+                                <option value="background">Background (Behind)</option>
+                                <option value="foreground">Foreground (In front)</option>
+                            </select>
+                        </label>
+                        <label>
+                            Action
+                            <select id="uve-build-action">
+                                <option value="spawn">Spawn / Update</option>
+                                <option value="despawn">Despawn / Hide</option>
+                            </select>
+                        </label>
+                    </div>
+                    
+                    <div id="uve-tag-preview" class="uve-tag-preview">[Select a state row]</div>
+                    
+                    <div style="display:flex; gap:6px;">
+                        <button type="button" id="uve-builder-inject" class="uve-btn accent" style="flex:1;" disabled><i class="fa-solid fa-keyboard"></i> Send to Chat</button>
+                        <button type="button" id="uve-builder-copy" class="uve-btn uve-icon-btn" title="Copy tag" disabled><i class="fa-solid fa-copy"></i></button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Setup Wizard Dialog overlay -->
+        <div id="uve-wizard" class="uve-wizard-overlay">
+            <div class="uve-wizard-container">
+                <div class="uve-wizard-steps-indicator">
+                    <div class="uve-wizard-step-node active" data-step="1">1</div>
+                    <div class="uve-wizard-step-node" data-step="2">2</div>
+                    <div class="uve-wizard-step-node" data-step="3">3</div>
+                </div>
+
+                <!-- Wizard Step 1: Identity -->
+                <div class="uve-wizard-slide active" data-step="1">
+                    <h3 style="margin:0;"><i class="fa-solid fa-fingerprint" style="color:var(--uve-primary);"></i> Step 1: Library Identity</h3>
+                    <p style="margin:0; font-size:12px; color:var(--uve-text-muted);">Name your new asset library and choose its type to handle proper depth rendering automatically.</p>
+                    
+                    <div style="display:flex; flex-direction:column; gap:6px;">
+                        <label style="font-size:11px; font-weight:700; color:var(--uve-primary);">Asset Library Name</label>
+                        <input type="text" id="uve-wiz-name" class="uve-input" placeholder="e.g. Goblin Warrior, The Dark Forest, Fireball" />
+                    </div>
+
+                    <div style="display:flex; flex-direction:column; gap:6px;">
+                        <label style="font-size:11px; font-weight:700; color:var(--uve-primary);">Engine Asset Category</label>
+                        <select id="uve-wiz-type" class="uve-select" style="width:100%;">
+                            <option value="character">Speaker / Character (Default Mid-Depth)</option>
+                            <option value="entity">Interactive Entity / Monster / Item (Mid-Depth)</option>
+                            <option value="environment">Environment / Scenery / Prop (Background Depth)</option>
+                            <option value="effects">Spell Effect / Overlay / Impact (Foreground Depth)</option>
+                        </select>
+                    </div>
+
+                    <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:20px;">
+                        <button type="button" class="uve-btn uve-wiz-cancel">Cancel</button>
+                        <button type="button" class="uve-btn primary uve-wiz-next" data-step="1">Next Step <i class="fa-solid fa-arrow-right"></i></button>
+                    </div>
+                </div>
+
+                <!-- Wizard Step 2: Import Drag & Drop -->
+                <div class="uve-wizard-slide" data-step="2">
+                    <h3 style="margin:0;"><i class="fa-solid fa-cloud-arrow-up" style="color:var(--uve-primary);"></i> Step 2: Import Artwork</h3>
+                    <p style="margin:0; font-size:12px; color:var(--uve-text-muted);">Drag images or an entire folder directly into the box. Filenames will auto-register as state keys.</p>
+                    
+                    <!-- Drag Box -->
+                    <div id="uve-drop-zone" class="uve-drag-zone">
+                        <i class="fa-solid fa-folder-open"></i>
+                        <h5>Drag &amp; Drop Folder or Images Here</h5>
+                        <p>Reads folders to detect files like <code>idle.png</code>, <code>attack.png</code>, <code>dead.webp</code>...</p>
+                        <input type="file" id="uve-wiz-file-picker" multiple accept="image/*" style="display:none;" />
+                        <button type="button" class="uve-btn accent" id="uve-wiz-browse-btn" style="padding:6px 12px; font-size:11px;">Browse Files</button>
+                    </div>
+
+                    <div id="uve-wiz-import-summary" style="font-size:12px; color:#6fd3ff; text-align:center; min-height:18px;">No files loaded yet.</div>
+
+                    <div style="display:flex; justify-content:space-between; gap:10px; margin-top:20px;">
+                        <button type="button" class="uve-btn uve-wiz-prev" data-step="2"><i class="fa-solid fa-arrow-left"></i> Back</button>
+                        <button type="button" class="uve-btn primary uve-wiz-next" data-step="2" id="uve-wiz-btn-to-3" disabled>Next Step <i class="fa-solid fa-arrow-right"></i></button>
+                    </div>
+                </div>
+
+                <!-- Wizard Step 3: Mapping -->
+                <div class="uve-wizard-slide" data-step="3">
+                    <h3 style="margin:0;"><i class="fa-solid fa-diagram-project" style="color:var(--uve-primary);"></i> Step 3: State Mapping</h3>
+                    <p style="margin:0; font-size:12px; color:var(--uve-text-muted);">Assign your uploaded images to standard engine triggers.</p>
+                    
+                    <div class="uve-mapping-list custom-scroll" id="uve-wiz-mapping-container">
+                        <!-- Populated dynamically with rows -->
+                    </div>
+
+                    <div style="display:flex; justify-content:space-between; gap:10px; margin-top:20px;">
+                        <button type="button" class="uve-btn uve-wiz-prev" data-step="3"><i class="fa-solid fa-arrow-left"></i> Back</button>
+                        <button type="button" class="uve-btn primary" id="uve-wiz-complete"><i class="fa-solid fa-circle-check"></i> Complete Setup</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<template id="uie-template-sprites-row">
+    <div class="uie-spr-row">
+        <div class="uie-spr-thumb"></div>
+        <div class="uie-spr-info">
+            <div class="uie-spr-key"></div>
+            <div class="uie-spr-status"></div>
+        </div>
+        <input type="file" class="uie-spr-file" accept="image/*" style="visibility:hidden; width:0; height:0; position:absolute;">
+        <button type="button" class="uve-btn uve-icon-btn uie-spr-pick" title="Choose image"><i class="fa-solid fa-image"></i></button>
+        <button type="button" class="uve-btn danger uve-icon-btn uie-spr-clear" title="Clear image"><i class="fa-solid fa-trash"></i></button>
+    </div>
+</template>

@@ -1,0 +1,382 @@
+<style>
+  #uie-view-equip{
+    height:100%;
+    min-height:0;
+    display:flex;
+    flex-direction:column;
+    gap:12px;
+    padding:12px;
+    box-sizing:border-box;
+    overflow:auto !important;
+    color:#f6e7c8;
+    font-family: serif;
+  }
+  @media not all {
+    #equip-status-wrap{ display:none !important; }
+    .equip-grid{ grid-template-columns: 1fr; gap:10px; }
+    .equip-doll{ display:flex; order:-1; }
+    .equip-doll-frame{ min-height:220px; max-height:38vh; }
+    .equip-side{ overflow:visible; }
+    .equip-mid .slot-name{ display:block; font-size:12px; }
+    .equip-mid .item-name{ font-size:13px; white-space:normal; }
+    .equip-slot{ min-height: 64px; }
+  }
+
+  .equip-top{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    padding:10px 12px;
+    border-radius:14px;
+    border:1px solid rgba(225,193,122,0.18);
+    background: rgba(0,0,0,0.25);
+  }
+
+  .equip-layer{
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
+  .equip-layer .nav{
+    width:38px;height:38px;border-radius:12px;
+    display:grid;place-items:center;
+    border:1px solid rgba(255,255,255,0.12);
+    background: rgba(0,0,0,0.25);
+    color:#cba35c;
+    cursor:pointer;
+    user-select:none;
+  }
+  .equip-layer .name{
+    font-weight:900;
+    letter-spacing:0.6px;
+    color:#cba35c;
+  }
+
+  .equip-summary{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    flex-wrap:wrap;
+    justify-content:flex-end;
+  }
+
+  .equip-fx-icon{
+    width:28px;height:28px;border-radius:10px;
+    display:grid;place-items:center;
+    border:1px solid rgba(255,255,255,0.12);
+    background: rgba(0,0,0,0.25);
+    color:rgba(255,255,255,0.90);
+    font-weight:900;
+    cursor:pointer;
+    user-select:none;
+  }
+  .equip-fx-icon:hover{ filter:brightness(1.08); }
+  .equip-chip{
+    padding:6px 10px;
+    border-radius:14px;
+    border:1px solid rgba(255,255,255,0.12);
+    background: rgba(0,0,0,0.25);
+    font-weight:900;
+    font-size:12px;
+    color:rgba(255,255,255,0.85);
+    white-space:nowrap;
+  }
+
+  .equip-body{
+    flex:1;
+    min-height:0;
+    display:flex;
+    flex-direction:column;
+    gap:12px;
+  }
+
+  .equip-grid{
+    flex:1;
+    min-height:0;
+    display:grid;
+    grid-template-columns: 1fr 260px 1fr;
+    gap:12px;
+  }
+
+  .equip-side{
+    min-height:0;
+    overflow:auto;
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+    padding-right:2px;
+  }
+
+  .equip-doll{
+    min-height:0;
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+  }
+
+  .equip-doll-frame{
+    flex:1;
+    min-height:0;
+    border-radius:6px;
+    border:1px solid rgba(225,193,122,0.18);
+    background: rgba(0,0,0,0.22);
+    overflow:hidden;
+    display:grid;
+    place-items:center;
+  }
+  .equip-doll-frame img{
+    width:100%;
+    height:100%;
+    object-fit:cover;
+    object-position:center top;
+  }
+
+  .equip-page{
+    display:flex;
+    gap:10px;
+    align-items:center;
+    justify-content:center;
+    padding:10px 12px;
+    border-radius:14px;
+    border:1px solid rgba(225,193,122,0.18);
+    background: rgba(0,0,0,0.22);
+  }
+  .equip-page .nav{
+    width:40px;height:36px;border-radius:12px;
+    display:grid;place-items:center;
+    border:1px solid rgba(255,255,255,0.12);
+    background: rgba(0,0,0,0.25);
+    color:#cba35c;
+    cursor:pointer;
+    user-select:none;
+  }
+  .equip-page .ind{
+    font-weight:900;
+    color:rgba(255,255,255,0.85);
+    letter-spacing:0.5px;
+  }
+
+  .equip-slot{
+    flex: 0 0 auto; /* Fill available vertical space */
+    min-height: 80px; /* Ensure a decent minimum size */
+    border-radius:8px;
+    border:1px solid rgba(225,193,122,0.18);
+    background: rgba(0,0,0,0.22);
+    padding:10px;
+    display:flex;
+    flex-direction:row;
+    gap:12px;
+    align-items:center;
+    text-align:left;
+    transition: all 0.2s;
+  }
+  .equip-slot:hover{
+    background: rgba(225,193,122,0.08);
+    border-color: rgba(225,193,122,0.4);
+  }
+
+  .equip-icon{
+    width:48px;height:48px;border-radius:10px;
+    display:grid;place-items:center;
+    border:1px solid rgba(255,255,255,0.12);
+    background: rgba(0,0,0,0.25);
+    flex:0 0 auto;
+    color:rgba(255,255,255,0.85);
+  }
+  .equip-icon img{width:100%;height:100%;object-fit:cover;border-radius:10px;}
+
+  .equip-mid{flex:1; min-width:0; width:100%; display:flex; flex-direction:column; align-items:flex-start;}
+  .equip-mid .slot-name{font-weight:900; font-size:11px; letter-spacing:0.5px; color:#cba35c; text-transform:uppercase; opacity:0.9;}
+  .equip-mid .slot-name-mobile{display:none; font-weight:900; font-size:10px; letter-spacing:0.5px; color:rgba(255,255,255,0.82);}
+  .equip-mid .item-name{margin-top:2px; font-size:13px; font-weight:900; color:rgba(255,255,255,0.95); overflow:hidden; text-overflow:ellipsis; white-space:normal; width:100%; line-height:1.25;}
+  .equip-mid .meta{margin-top:4px; display:flex; gap:4px; flex-wrap:wrap; justify-content:flex-start;}
+  .equip-badge{padding:2px 8px; border-radius:999px; border:1px solid rgba(255,255,255,0.12); background:rgba(0,0,0,0.25); font-size:10px; font-weight:900; color:rgba(255,255,255,0.75);}
+  .equip-outfit-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:auto;}
+  .equip-outfit-category{font-size:11px;font-weight:900;color:#cba35c;text-transform:uppercase;letter-spacing:0.5px;}
+  .equip-outfit-title{font-weight:900;color:#fff;line-height:1.3;}
+  .equip-outfit-sub{font-size:11px;opacity:0.68;line-height:1.25;}
+  .equip-outfit-modal{
+    position:fixed;
+    inset:0;
+    z-index:2147483665;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    padding:14px;
+    background:rgba(0,0,0,0.72);
+    backdrop-filter:blur(4px);
+  }
+  .equip-outfit-modal-card{
+    width:min(720px, 96vw);
+    max-height:min(88vh, 760px);
+    overflow:auto;
+    border-radius:18px;
+    border:1px solid rgba(225,193,122,0.26);
+    background:rgba(15,10,8,0.96);
+    box-shadow:0 22px 60px rgba(0,0,0,0.72);
+    padding:14px;
+    display:flex;
+    flex-direction:column;
+    gap:12px;
+  }
+  .equip-outfit-modal-head{display:flex;align-items:center;gap:12px;}
+  .equip-outfit-modal-title{font-weight:900;font-size:18px;color:#cba35c;letter-spacing:0.5px;}
+  .equip-outfit-modal-sub{font-size:12px;opacity:0.72;line-height:1.4;}
+  .equip-outfit-modal-close{margin-left:auto;}
+  .equip-outfit-form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;}
+  .equip-outfit-form-grid.full{grid-template-columns:1fr;}
+  .equip-outfit-field{display:flex;flex-direction:column;gap:6px;min-width:0;}
+  .equip-outfit-field label{font-size:11px;font-weight:900;letter-spacing:0.5px;color:#cba35c;text-transform:uppercase;}
+  .equip-outfit-field input,
+  .equip-outfit-field select,
+  .equip-outfit-field textarea{
+    width:100%;
+    border-radius:12px;
+    border:1px solid rgba(255,255,255,0.12);
+    background:rgba(0,0,0,0.28);
+    color:#fff;
+    padding:10px 12px;
+    box-sizing:border-box;
+    outline:none;
+  }
+  .equip-outfit-field textarea{min-height:108px;resize:vertical;}
+  .equip-outfit-preview{display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap;padding:12px;border-radius:14px;border:1px solid rgba(255,255,255,0.10);background:rgba(255,255,255,0.04);}
+  .equip-outfit-preview-box{width:124px;height:124px;border-radius:14px;border:1px solid rgba(255,255,255,0.12);background:rgba(0,0,0,0.28);display:grid;place-items:center;overflow:hidden;flex:0 0 124px;}
+  .equip-outfit-preview-box img{width:100%;height:100%;object-fit:cover;}
+  .equip-outfit-preview-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+  .equip-outfit-modal-actions{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;}
+  .equip-outfit-ai-tools{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+  .equip-outfit-hidden{display:none !important;}
+
+  @media not all {
+    #uie-view-equip{ padding:10px; }
+    .equip-top{ flex-wrap:wrap; align-items:stretch; }
+    .equip-layer{ width:100%; min-width:0; justify-content:space-between; }
+    .equip-layer .name{ min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-align:center; }
+    .equip-summary{ width:100%; min-width:0; justify-content:flex-start; }
+    .equip-outfit-toolbar{ display:flex; flex-wrap:wrap; gap:8px; width:100%; }
+    .equip-outfit-toolbar .equip-btn{ flex:1 1 140px; min-width:0; white-space:normal; }
+    .equip-grid{ grid-template-columns: 1fr; gap:10px; }
+    .equip-slot{ padding:10px 12px; align-items:flex-start; }
+    .equip-icon{ width:42px; height:42px; }
+    .equip-mid .slot-name{ display:block !important; font-size:12px; }
+    .equip-mid .slot-name-mobile{ display:block; margin-top:1px; }
+    .equip-summary{ justify-content:flex-start; }
+    .equip-outfit-toolbar{ justify-content:flex-start; }
+    .equip-outfit-form-grid{ grid-template-columns:1fr; }
+    .equip-outfit-modal-card{ width:min(100%, 96vw); max-height:min(92vh, 100dvh); }
+  }
+</style>
+
+<div class="equip-top">
+  <div class="equip-layer">
+    <div class="nav" id="equip-layer-prev" title="Previous Layer"><i class="fa-solid fa-chevron-left"></i></div>
+    <div class="name" id="equip-layer-name">ARMOR</div>
+    <div class="nav" id="equip-layer-next" title="Next Layer"><i class="fa-solid fa-chevron-right"></i></div>
+  </div>
+  <div class="equip-summary">
+    <div class="equip-outfit-toolbar">
+      <button type="button" class="equip-btn primary" id="equip-outfit-manual">Create outfit (Manual)</button>
+      <button type="button" class="equip-btn primary" id="equip-outfit-ai">Create outfit (AI)</button>
+    </div>
+    <div class="equip-fx-icon" onclick="uie.phone.openBooksGuide('guide-inventory')" title="Inventory Manual"><i class="fa-solid fa-circle-info"></i></div>
+    <div id="equip-status-wrap" style="display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end; max-width:260px;"></div>
+    <div class="equip-chip" id="equip-edit-chip" style="display:none;">EDIT</div>
+  </div>
+</div>
+
+<div class="equip-body">
+  <div class="equip-grid" id="equip-paper-doll-grid">
+    <div class="equip-side" id="equip-slot-left"></div>
+    <div class="equip-doll">
+      <div class="equip-doll-frame" id="equip-doll-frame" title="Paper Doll">
+        <img id="equip-doll-img" alt="" style="display:none;">
+        <div id="equip-doll-empty" style="opacity:0.8; font-weight:900; color:rgba(255,255,255,0.75);">PAPER DOLL</div>
+      </div>
+    </div>
+    <div class="equip-side" id="equip-slot-right"></div>
+  </div>
+  <div id="equip-outfit-container" style="display:none; flex:1; min-height:0; overflow:auto;"></div>
+</div>
+
+<div id="equip-outfit-modal" class="equip-outfit-modal">
+  <div class="equip-outfit-modal-card">
+    <div class="equip-outfit-modal-head">
+      <div>
+        <div id="equip-outfit-modal-title" class="equip-outfit-modal-title">Create outfit</div>
+        <div id="equip-outfit-modal-sub" class="equip-outfit-modal-sub">Edit the outfit directly, including category, sprite, and image.</div>
+      </div>
+      <button type="button" class="equip-btn equip-outfit-modal-close" id="equip-outfit-modal-close">Close</button>
+    </div>
+
+    <div class="equip-outfit-form-grid">
+      <div class="equip-outfit-field">
+        <label for="equip-outfit-name-input">Outfit name</label>
+        <input id="equip-outfit-name-input" type="text" placeholder="Street stage fit">
+      </div>
+      <div class="equip-outfit-field">
+        <label for="equip-outfit-category-input">Category</label>
+        <select id="equip-outfit-category-input">
+          <option value="Everyday">Everyday</option>
+          <option value="Sleepwear">Sleepwear</option>
+          <option value="Party wear">Party wear</option>
+          <option value="Custom">Custom</option>
+        </select>
+      </div>
+    </div>
+
+    <div id="equip-outfit-custom-category-wrap" class="equip-outfit-form-grid equip-outfit-hidden">
+      <div class="equip-outfit-field">
+        <label for="equip-outfit-custom-category-input">Custom category</label>
+        <input id="equip-outfit-custom-category-input" type="text" placeholder="Stagewear, Winter, Idol, Formal...">
+      </div>
+    </div>
+
+    <div class="equip-outfit-form-grid">
+      <div class="equip-outfit-field">
+        <label for="equip-outfit-slot-category-input">Slot group</label>
+        <input id="equip-outfit-slot-category-input" type="text" placeholder="Full Body">
+      </div>
+      <div class="equip-outfit-field">
+        <label for="equip-outfit-sprite-input">Sprite / image reference</label>
+        <input id="equip-outfit-sprite-input" type="text" placeholder="Asset URL, sprite id, or image path">
+      </div>
+    </div>
+
+    <div class="equip-outfit-preview">
+      <div id="equip-outfit-preview-box" class="equip-outfit-preview-box"><i class="fa-solid fa-shirt" style="font-size:34px;color:#cba35c;"></i></div>
+      <div style="flex:1; min-width:0; display:flex; flex-direction:column; gap:10px;">
+        <div class="equip-outfit-preview-actions">
+          <button type="button" class="equip-btn" id="equip-outfit-pick-image">Upload image</button>
+          <button type="button" class="equip-btn" id="equip-outfit-apply-sprite">Preview sprite</button>
+          <button type="button" class="equip-btn" id="equip-outfit-clear-image">Clear image</button>
+        </div>
+        <div class="equip-outfit-modal-sub">Use the sprite/image field for a persistent look reference. Uploading an image will fill that field with a local data URL.</div>
+      </div>
+    </div>
+
+    <div class="equip-outfit-form-grid full">
+      <div class="equip-outfit-field">
+        <label for="equip-outfit-description-input">Description</label>
+        <textarea id="equip-outfit-description-input" placeholder="Jacket, jeans, boots, jewelry, colors, vibe..."></textarea>
+      </div>
+    </div>
+
+    <div id="equip-outfit-ai-wrap" class="equip-outfit-form-grid full equip-outfit-hidden">
+      <div class="equip-outfit-field">
+        <label for="equip-outfit-ai-context">AI context</label>
+        <textarea id="equip-outfit-ai-context" placeholder="Describe the scene, performance, weather, mood, or recent chat context to generate an outfit draft."></textarea>
+        <div class="equip-outfit-ai-tools">
+          <button type="button" class="equip-btn primary" id="equip-outfit-ai-generate">Generate draft</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="equip-outfit-modal-actions">
+      <button type="button" class="equip-btn" id="equip-outfit-delete">Delete</button>
+      <button type="button" class="equip-btn" id="equip-outfit-cancel">Cancel</button>
+      <button type="button" class="equip-btn primary" id="equip-outfit-save">Save outfit</button>
+    </div>
+  </div>
+</div>

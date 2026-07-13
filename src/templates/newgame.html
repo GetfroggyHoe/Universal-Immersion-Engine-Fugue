@@ -1,0 +1,1840 @@
+<style>
+  /* ====== NEW GAME SETUP - FULL SCREEN MODAL ====== */
+  #uie-newgame-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.85);
+    z-index: 2147483647;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    backdrop-filter: blur(2px);
+    pointer-events: none;
+  }
+
+  #uie-newgame-overlay.active {
+    display: flex;
+    pointer-events: auto;
+  }
+
+  #uie-newgame-container {
+    position: relative;
+    width: min(1360px, 98vw);
+    max-width: 98vw;
+    height: min(900px, 94vh);
+    max-height: 94vh;
+    background: linear-gradient(135deg, #1a1410 0%, #2d2416 50%, #1f1915 100%);
+    border: 2px solid rgba(205, 127, 50, 0.3);
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 0 40px rgba(205, 127, 50, 0.15), inset 0 0 20px rgba(0, 0, 0, 0.8);
+    overflow: hidden;
+    font-family: 'Georgia', serif;
+    pointer-events: auto;
+  }
+
+  #uie-newgame-container::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, rgba(14, 20, 28, 0.72), rgba(14, 20, 28, 0.42), rgba(14, 20, 28, 0.72)), var(--uie-newgame-mode-bg, url("../../assets/ui/backplates/mode-guild-life-hall.png")) center/cover no-repeat;
+    opacity: 0.72;
+    pointer-events: none;
+    animation: uie-mode-bg-breathe 7s ease-in-out infinite;
+  }
+
+  #uie-newgame-overlay[data-mode-backplate="lifesim"] { --uie-newgame-mode-bg: url("../../assets/ui/backplates/mode-guild-life-hall.png"); }
+  #uie-newgame-overlay[data-mode-backplate="rpg"] { --uie-newgame-mode-bg: url("../../assets/ui/backplates/mode-dungeon-ruin-entrance.png"); }
+  #uie-newgame-overlay[data-mode-backplate="modern"] { --uie-newgame-mode-bg: url("../../assets/ui/backplates/mode-magic-academy-observatory.png"); }
+  #uie-newgame-overlay[data-mode-backplate="high-fantasy"] { --uie-newgame-mode-bg: url("../../assets/ui/backplates/mode-high-fantasy-courtyard.png"); }
+  #uie-newgame-overlay[data-mode-backplate="futuristic"] { --uie-newgame-mode-bg: url("../../assets/ui/backplates/mode-open-world-airship-dock.png"); }
+
+  #uie-newgame-container > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  @keyframes uie-mode-bg-breathe {
+    0%, 100% { transform: scale(1); filter: saturate(1.02) brightness(1); }
+    50% { transform: scale(1.018); filter: saturate(1.12) brightness(1.06); }
+  }
+
+  /* Header with title and close */
+  .uie-newgame-header {
+    padding: 14px 16px;
+    background: linear-gradient(90deg, rgba(205, 127, 50, 0.1) 0%, rgba(139, 110, 58, 0.1) 100%);
+    border-bottom: 1px solid rgba(205, 127, 50, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+  }
+
+  .uie-newgame-title {
+    font-size: 22px;
+    font-weight: bold;
+    color: #e1c16e;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+    margin: 0;
+    letter-spacing: 2px;
+  }
+
+  .uie-newgame-close {
+    background: rgba(205, 127, 50, 0.2);
+    border: 1px solid rgba(205, 127, 50, 0.4);
+    color: #e1c16e;
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 20px;
+    display: grid;
+    place-items: center;
+    transition: all 0.2s;
+  }
+
+  .uie-newgame-close:hover {
+    background: rgba(205, 127, 50, 0.4);
+    box-shadow: 0 0 10px rgba(205, 127, 50, 0.3);
+  }
+
+  /* Tab Navigation */
+  .uie-newgame-tabs {
+    display: flex;
+    gap: 2px;
+    padding: 8px 14px;
+    background: rgba(0, 0, 0, 0.3);
+    border-bottom: 1px solid rgba(205, 127, 50, 0.15);
+    overflow-x: auto;
+    flex-shrink: 0;
+  }
+
+  .uie-newgame-tab {
+    padding: 8px 12px;
+    background: rgba(139, 110, 58, 0.2);
+    border: 1px solid rgba(205, 127, 50, 0.15);
+    color: rgba(225, 193, 122, 0.7);
+    cursor: pointer;
+    border-radius: 6px 6px 0 0;
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+    transition: all 0.2s;
+  }
+
+  .uie-newgame-tab:hover {
+    background: rgba(205, 127, 50, 0.15);
+    color: #e1c16e;
+  }
+
+  .uie-newgame-tab.active {
+    background: linear-gradient(135deg, rgba(225, 193, 122, 0.15) 0%, rgba(205, 127, 50, 0.1) 100%);
+    border-color: rgba(225, 193, 122, 0.4);
+    color: #e1c16e;
+    box-shadow: 0 0 10px rgba(225, 193, 122, 0.1) inset;
+  }
+
+  /* Content Area */
+  .uie-newgame-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 14px 16px;
+    display: none;
+    min-height: 0;
+  }
+
+  .uie-newgame-content.active {
+    display: block;
+  }
+
+  .uie-newgame-content[data-tab="character"] .uie-newgame-section {
+    max-width: 1180px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .uie-newgame-content[data-tab="character"] #ng-primary-bars-list,
+  .uie-newgame-content[data-tab="character"] #ng-base-stats-list {
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  /* Form sections */
+  .uie-newgame-section {
+    margin-bottom: 16px;
+  }
+
+  .uie-newgame-section-title {
+    font-size: 14px;
+    font-weight: bold;
+    color: #e1c16e;
+    margin-bottom: 10px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid rgba(205, 127, 50, 0.2);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .uie-newgame-form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+
+  .uie-newgame-form-row.full {
+    grid-template-columns: 1fr;
+  }
+
+  .uie-newgame-form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .uie-newgame-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: rgba(225, 193, 122, 0.8);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .uie-newgame-input,
+  .uie-newgame-select,
+  .uie-newgame-textarea {
+    padding: 8px 10px;
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(205, 127, 50, 0.2);
+    color: #e0d0c0;
+    border-radius: 6px;
+    font-family: inherit;
+    font-size: 13px;
+    transition: all 0.2s;
+  }
+
+  .uie-newgame-input:focus,
+  .uie-newgame-select:focus,
+  .uie-newgame-textarea:focus {
+    outline: none;
+    background: rgba(0, 0, 0, 0.6);
+    border-color: rgba(225, 193, 122, 0.5);
+    box-shadow: 0 0 8px rgba(225, 193, 122, 0.1);
+  }
+
+  .uie-newgame-textarea {
+    resize: vertical;
+    min-height: 64px;
+    font-family: 'Georgia', serif;
+  }
+
+  /* 3-window layout for main content */
+  .uie-newgame-3-window {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+
+  .uie-newgame-window {
+    background: rgba(20, 18, 28, 0.6);
+    border: 1px solid rgba(205, 127, 50, 0.2);
+    border-radius: 8px;
+    padding: 16px;
+    min-height: 300px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .uie-newgame-window-title {
+    font-size: 14px;
+    font-weight: bold;
+    color: #e1c16e;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(205, 127, 50, 0.15);
+  }
+
+  /* Buttons */
+  .uie-newgame-btn {
+    padding: 8px 12px;
+    background: linear-gradient(135deg, rgba(205, 127, 50, 0.2) 0%, rgba(139, 110, 58, 0.1) 100%);
+    border: 1px solid rgba(205, 127, 50, 0.3);
+    color: #e1c16e;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 13px;
+    transition: all 0.2s;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .uie-newgame-btn:hover {
+    background: linear-gradient(135deg, rgba(205, 127, 50, 0.35) 0%, rgba(139, 110, 58, 0.2) 100%);
+    box-shadow: 0 0 12px rgba(225, 193, 122, 0.15);
+  }
+
+  .uie-newgame-btn.primary {
+    background: linear-gradient(135deg, rgba(225, 193, 122, 0.2) 0%, rgba(205, 127, 50, 0.15) 100%);
+    border-color: rgba(225, 193, 122, 0.4);
+    color: #e1c16e;
+  }
+
+  .uie-newgame-btn.danger {
+    background: rgba(205, 76, 60, 0.15);
+    border-color: rgba(205, 76, 60, 0.3);
+    color: #e17070;
+  }
+
+  .uie-newgame-btn.danger:hover {
+    background: rgba(205, 76, 60, 0.25);
+    box-shadow: 0 0 12px rgba(205, 76, 60, 0.2);
+  }
+
+  /* Button groups */
+  .uie-newgame-button-group {
+    display: flex;
+    gap: 10px;
+    margin-top: auto;
+  }
+
+  .uie-ng-choice-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 8px;
+  }
+
+  .uie-ng-choice {
+    min-height: 58px;
+    text-align: left;
+    padding: 9px 10px;
+    border-radius: 8px;
+    border: 1px solid rgba(205, 127, 50, 0.18);
+    background: rgba(0, 0, 0, 0.28);
+    color: #e0d0c0;
+    cursor: pointer;
+  }
+
+  .uie-ng-choice:hover,
+  .uie-ng-choice.active {
+    border-color: rgba(225, 193, 122, 0.5);
+    background: rgba(205, 127, 50, 0.16);
+  }
+
+  .uie-ng-choice b {
+    display: block;
+    font-size: 12px;
+    color: #f1d892;
+  }
+
+  .uie-ng-choice span {
+    display: block;
+    margin-top: 3px;
+    font-size: 10px;
+    color: rgba(224, 208, 192, 0.72);
+    line-height: 1.25;
+  }
+
+  /* List items */
+  .uie-newgame-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .uie-newgame-list-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(205, 127, 50, 0.1);
+    border-radius: 6px;
+    gap: 10px;
+  }
+
+  .uie-newgame-list-item.uie-newgame-empty {
+    justify-content: center;
+    min-height: 42px;
+    border-style: dashed;
+    color: rgba(225, 193, 122, 0.72);
+    background: rgba(0, 0, 0, 0.18);
+    font-size: 12px;
+    text-align: center;
+  }
+
+  .uie-newgame-list-actions {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    flex-shrink: 0;
+  }
+
+  .uie-newgame-btn.mini {
+    padding: 5px 8px;
+    font-size: 11px;
+  }
+
+  .uie-newgame-compact-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 12px;
+  }
+
+  .uie-newgame-file-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .uie-newgame-preview {
+    display: none;
+    width: 120px;
+    aspect-ratio: 1;
+    border-radius: 8px;
+    border: 1px solid rgba(205, 127, 50, 0.3);
+    background-size: cover;
+    background-position: center;
+    background-color: rgba(0, 0, 0, 0.5);
+  }
+
+  #uie-ng-card-picker-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 2147483647;
+    background: rgba(0,0,0,.72);
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+  }
+
+  #uie-ng-card-picker-overlay.active { display: flex; }
+
+  #uie-ng-card-picker {
+    width: min(560px, 94vw);
+    max-height: min(620px, 86vh);
+    overflow: hidden;
+    border: 1px solid rgba(225,193,122,.35);
+    border-radius: 10px;
+    background: #1f1915;
+    box-shadow: 0 24px 80px rgba(0,0,0,.55);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .uie-ng-card-picker-head {
+    padding: 14px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid rgba(225,193,122,.18);
+  }
+
+  #uie-ng-card-picker-list {
+    padding: 12px;
+    overflow: auto;
+    display: grid;
+    gap: 8px;
+  }
+
+  .uie-vital-builder { display: grid; gap: 8px; }
+  .uie-vital-row {
+    display: grid;
+    grid-template-columns: auto minmax(100px, 1fr) minmax(150px, 1.2fr);
+    gap: 10px;
+    align-items: center;
+    padding: 9px 10px;
+    border: 1px solid rgba(205, 127, 50, 0.18);
+    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.28);
+  }
+  .uie-vital-row.life-primary {
+    grid-template-columns: auto 1fr;
+    border-color: rgba(255, 107, 107, 0.35);
+    background: linear-gradient(90deg, rgba(125, 30, 30, 0.3), rgba(0, 0, 0, 0.25));
+  }
+  .uie-vital-row .uie-newgame-input,
+  .uie-vital-row .uie-newgame-select { width: 100%; min-width: 0; box-sizing: border-box; }
+  .uie-vital-note { color: rgba(225, 193, 122, 0.68); font-size: 11px; line-height: 1.35; }
+
+  /* Footer with action buttons */
+  .uie-newgame-footer {
+    padding: 12px 16px;
+    background: rgba(0, 0, 0, 0.3);
+    border-top: 1px solid rgba(205, 127, 50, 0.15);
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    flex-shrink: 0;
+  }
+
+  /* Responsive */
+  @media not all {
+    .uie-newgame-3-window {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  @media not all {
+    #uie-newgame-container {
+      width: 98vw;
+      max-width: 98vw;
+      height: 94vh;
+      max-height: 94vh;
+    }
+
+    .uie-newgame-form-row {
+      grid-template-columns: 1fr;
+    }
+
+    .uie-newgame-title {
+      font-size: 20px;
+    }
+
+    .uie-newgame-tab {
+      font-size: 11px;
+      padding: 8px 12px;
+    }
+  }
+</style>
+
+<div id="uie-newgame-overlay">
+  <div id="uie-newgame-container">
+    <!-- Header -->
+    <div class="uie-newgame-header">
+      <h1 class="uie-newgame-title">⚔️ New Game</h1>
+      <button class="uie-newgame-close" id="uie-newgame-close-btn">✕</button>
+    </div>
+
+    <!-- Tab Navigation -->
+    <div class="uie-newgame-tabs">
+      <button class="uie-newgame-tab active" data-tab="character">👤 Character</button>
+      <button class="uie-newgame-tab" data-tab="appearance">🎨 Appearance</button>
+      <button class="uie-newgame-tab" data-tab="currency">💰 Currency & Groups</button>
+      <button class="uie-newgame-tab" data-tab="trackers">❤️ Life Trackers</button>
+      <button class="uie-newgame-tab" data-tab="inventory">🎒 Items & Equipment</button>
+      <button class="uie-newgame-tab" data-tab="skills">⚡ Skills</button>
+      <button class="uie-newgame-tab" data-tab="quests">📜 Quests</button>
+      <button class="uie-newgame-tab" data-tab="lorebook">📚 Lorebook</button>
+      <button class="uie-newgame-tab" data-tab="assets">🏦 Assets</button>
+      <button class="uie-newgame-tab" data-tab="npcs">NPCs</button>
+      <button class="uie-newgame-tab" data-tab="location">🗺️ Starting Location</button>
+    </div>
+
+    <!-- Tab Content -->
+    <div class="uie-newgame-content active" data-tab="character">
+      <div class="uie-newgame-section">
+        <div class="uie-newgame-section-title">Character Details</div>
+
+        <div class="uie-newgame-form-row">
+          <div class="uie-newgame-form-group">
+            <label class="uie-newgame-label">Character Name</label>
+            <input type="text" class="uie-newgame-input" id="ng-char-name" placeholder="Enter character name...">
+          </div>
+          <div class="uie-newgame-form-group">
+            <label class="uie-newgame-label">Class</label>
+            <select class="uie-newgame-select" id="ng-char-class">
+              <option value="adventurer">Adventurer</option>
+              <option value="UIE">UIE</option>
+              <option value="mage">Mage</option>
+              <option value="rogue">Rogue</option>
+              <option value="paladin">Paladin</option>
+              <!-- Fantasy -->
+              <option value="warrior" selected>Warrior</option>
+              <option value="ranger">Ranger</option>
+              <option value="cleric">Cleric</option>
+              <option value="druid">Druid</option>
+              <option value="bard">Bard</option>
+              <!-- Modern -->
+              <option value="hacker">Hacker</option>
+              <option value="detective">Detective</option>
+              <option value="medic">Medic</option>
+              <option value="athlete">Athlete</option>
+              <option value="agent">Agent</option>
+              <option value="custom">Custom Class</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="uie-newgame-form-row" id="ng-char-class-custom-row" style="display: none;">
+          <div class="uie-newgame-form-group" style="grid-column: span 2;">
+            <label class="uie-newgame-label">Custom Class Name</label>
+            <input type="text" class="uie-newgame-input" id="ng-char-class-custom" placeholder="e.g. Shadowblade, Tech Knight...">
+          </div>
+        </div>
+
+        <div class="uie-newgame-form-row">
+          <div class="uie-newgame-form-group" style="grid-column: span 2;">
+            <label class="uie-newgame-label">Resource Profile</label>
+            <select class="uie-newgame-select" id="ng-char-resource-profile">
+              <option value="ap">AP Only (Action Points - Physical/General)</option>
+              <option value="mp">MP Only (Mana Points - Magical/Tech)</option>
+              <option value="hybrid" selected>Hybrid (Both AP and MP)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="uie-newgame-form-row full" id="ng-vitals-custom-checkboxes">
+          <div class="uie-newgame-form-group" style="grid-column: span 2;">
+            <label class="uie-newgame-label">Primary Life & Status Bars</label>
+            <div id="ng-primary-bars-list" class="uie-newgame-list" style="max-height: 190px; overflow-y: auto;"></div>
+            <div class="uie-newgame-button-group" style="margin-top:10px;">
+              <button type="button" class="uie-newgame-btn" id="ng-primary-bar-add-btn">+ Add Bar</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="uie-newgame-form-row">
+          <div class="uie-newgame-form-group">
+            <label class="uie-newgame-label">Starting Level</label>
+            <input type="number" class="uie-newgame-input" id="ng-char-level" min="1" max="999" value="1">
+          </div>
+          <div class="uie-newgame-form-group">
+            <label class="uie-newgame-label">Starting Age</label>
+            <input type="number" class="uie-newgame-input" id="ng-char-age" min="0" max="9999" value="18">
+          </div>
+        </div>
+
+        <div class="uie-newgame-form-row">
+          <div class="uie-newgame-form-group">
+            <label class="uie-newgame-label">Species / Race</label>
+            <input type="text" class="uie-newgame-input" id="ng-char-race" placeholder="Human, Elf, Dwarf, etc.">
+          </div>
+          <div class="uie-newgame-form-group">
+            <label class="uie-newgame-label">Game Mode</label>
+            <select class="uie-newgame-select" id="ng-char-mode">
+              <option value="lifesim">Life Sim / Guild Life</option>
+              <option value="rpg">RPG / Dungeon Crawl</option>
+              <option value="modern" selected>Modern / Contemporary</option>
+              <option value="high-fantasy">High Fantasy / Codice</option>
+              <option value="futuristic">Futuristic / Science Fiction</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="uie-newgame-section">
+          <div class="uie-newgame-section-title">Aging & Generations</div>
+          <div class="uie-newgame-form-row">
+            <div class="uie-newgame-form-group">
+              <label class="uie-newgame-label">Aging</label>
+              <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                <input type="checkbox" id="ng-aging-enabled">
+                <span>Enable character aging</span>
+              </label>
+            </div>
+            <div class="uie-newgame-form-group">
+              <label class="uie-newgame-label">Aging Speed</label>
+              <select class="uie-newgame-select" id="ng-aging-speed">
+                <option value="0.25">Slow</option>
+                <option value="1" selected>Normal</option>
+                <option value="2">Fast</option>
+                <option value="5">Saga</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="uie-newgame-section">
+          <div class="uie-newgame-section-title">Base Stats</div>
+          <div id="ng-base-stats-list" class="uie-newgame-list" style="max-height: 230px; overflow-y: auto;"></div>
+          <div class="uie-newgame-compact-grid" style="margin-top:12px;">
+            <div class="uie-newgame-form-group">
+              <label class="uie-newgame-label">Stat Name</label>
+              <input type="text" class="uie-newgame-input" id="ng-stat-name" placeholder="Strength">
+            </div>
+            <div class="uie-newgame-form-group">
+              <label class="uie-newgame-label">Key</label>
+              <input type="text" class="uie-newgame-input" id="ng-stat-key" placeholder="str">
+            </div>
+            <div class="uie-newgame-form-group">
+              <label class="uie-newgame-label">Value</label>
+              <input type="number" class="uie-newgame-input" id="ng-stat-value" value="10">
+            </div>
+          </div>
+          <div class="uie-newgame-button-group" style="margin-top:10px;">
+            <button class="uie-newgame-btn" id="ng-stat-add-btn">+ Add Stat</button>
+            <button class="uie-newgame-btn" id="ng-stat-cancel-btn" style="display:none;">Cancel Edit</button>
+          </div>
+        </div>
+
+        <div class="uie-newgame-section">
+          <div class="uie-newgame-section-title">Attributes</div>
+          <div class="uie-newgame-form-row full">
+            <div class="uie-newgame-form-group">
+              <label class="uie-newgame-label">Alignment</label>
+              <select class="uie-newgame-select" id="ng-alignment">
+                <option value="lawful-good">Lawful Good</option>
+                <option value="neutral-good">Neutral Good</option>
+                <option value="chaotic-good">Chaotic Good</option>
+                <option value="lawful-neutral">Lawful Neutral</option>
+                <option value="neutral">Neutral</option>
+                <option value="chaotic-neutral">Chaotic Neutral</option>
+                <option value="lawful-evil">Lawful Evil</option>
+                <option value="neutral-evil">Neutral Evil</option>
+                <option value="chaotic-evil">Chaotic Evil</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Appearance Tab -->
+    <div class="uie-newgame-content" data-tab="appearance">
+      <div class="uie-newgame-section">
+        <div class="uie-newgame-section-title">Character Appearance</div>
+
+        <div class="uie-newgame-form-row full">
+          <div class="uie-newgame-form-group">
+            <label class="uie-newgame-label">Physical Description</label>
+            <textarea class="uie-newgame-textarea" id="ng-appearance-desc" placeholder="Describe your character's appearance..."></textarea>
+          </div>
+        </div>
+
+        <div class="uie-newgame-form-row full">
+          <div class="uie-newgame-form-group">
+            <label class="uie-newgame-label">Backstory</label>
+            <textarea class="uie-newgame-textarea" id="ng-backstory" placeholder="Where did your character come from What shaped them?"></textarea>
+          </div>
+        </div>
+
+        <div class="uie-newgame-form-row full">
+          <div class="uie-newgame-form-group">
+            <label class="uie-newgame-label">Active Portrait Image</label>
+            <div class="uie-newgame-file-row">
+              <button type="button" class="uie-newgame-btn" id="ng-character-avatar-picker-btn"><i class="fas fa-image"></i> Pick File</button>
+              <button type="button" class="uie-newgame-btn danger" id="ng-character-avatar-clear-btn">Clear</button>
+              <div id="ng-character-avatar-preview" class="uie-newgame-preview"></div>
+            </div>
+            <input type="file" id="ng-character-avatar-file" accept="image/*" style="display:none;">
+            <input type="hidden" id="ng-character-avatar">
+          </div>
+        </div>
+
+        <div class="uie-newgame-form-row full">
+          <div class="uie-newgame-form-group">
+            <label class="uie-newgame-label">Character Sprites / Expressions</label>
+            <div id="ng-character-sprites-list" class="uie-newgame-list" style="max-height: 180px; overflow-y:auto;"></div>
+            <div class="uie-newgame-file-row" style="margin-top:8px;">
+              <input type="text" class="uie-newgame-input" id="ng-sprite-label" placeholder="Expression name, e.g. Happy" style="flex:1; min-width:180px;">
+              <button type="button" class="uie-newgame-btn" id="ng-sprite-picker-btn"><i class="fas fa-image"></i> Add Sprite</button>
+              <label style="display:flex;align-items:center;gap:8px;"><input type="checkbox" id="ng-sprite-aging-enabled"> Aging variant</label>
+            </div>
+            <input type="file" id="ng-sprite-file" accept="image/*" style="display:none;">
+          </div>
+        </div>
+
+        <div class="uie-newgame-form-row full">
+          <div class="uie-newgame-form-group">
+            <label class="uie-newgame-label">Aging Stage Sprites (Optional)</label>
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+              <!-- Baby/Toddler -->
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span style="width: 100px; font-size: 12px; opacity: 0.8;">Baby/Toddler:</span>
+                <button type="button" class="uie-newgame-btn mini" onclick="document.getElementById('ng-age-sprite-baby_toddler-file').click()"><i class="fas fa-image"></i> Upload</button>
+                <button type="button" class="uie-newgame-btn danger mini" id="ng-age-sprite-baby_toddler-clear">Clear</button>
+                <div id="ng-age-sprite-baby_toddler-preview" class="uie-newgame-preview" style="width: 32px; height: 32px; border-radius: 4px; display: none; background-size: cover; background-position: center; border: 1px solid rgba(225,193,122,0.4);"></div>
+                <input type="file" id="ng-age-sprite-baby_toddler-file" accept="image/*" style="display: none;">
+              </div>
+              <!-- Child -->
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span style="width: 100px; font-size: 12px; opacity: 0.8;">Child:</span>
+                <button type="button" class="uie-newgame-btn mini" onclick="document.getElementById('ng-age-sprite-child-file').click()"><i class="fas fa-image"></i> Upload</button>
+                <button type="button" class="uie-newgame-btn danger mini" id="ng-age-sprite-child-clear">Clear</button>
+                <div id="ng-age-sprite-child-preview" class="uie-newgame-preview" style="width: 32px; height: 32px; border-radius: 4px; display: none; background-size: cover; background-position: center; border: 1px solid rgba(225,193,122,0.4);"></div>
+                <input type="file" id="ng-age-sprite-child-file" accept="image/*" style="display: none;">
+              </div>
+              <!-- Teen -->
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span style="width: 100px; font-size: 12px; opacity: 0.8;">Teen:</span>
+                <button type="button" class="uie-newgame-btn mini" onclick="document.getElementById('ng-age-sprite-teen-file').click()"><i class="fas fa-image"></i> Upload</button>
+                <button type="button" class="uie-newgame-btn danger mini" id="ng-age-sprite-teen-clear">Clear</button>
+                <div id="ng-age-sprite-teen-preview" class="uie-newgame-preview" style="width: 32px; height: 32px; border-radius: 4px; display: none; background-size: cover; background-position: center; border: 1px solid rgba(225,193,122,0.4);"></div>
+                <input type="file" id="ng-age-sprite-teen-file" accept="image/*" style="display: none;">
+              </div>
+              <!-- Young Adult -->
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span style="width: 100px; font-size: 12px; opacity: 0.8;">Young Adult:</span>
+                <button type="button" class="uie-newgame-btn mini" onclick="document.getElementById('ng-age-sprite-young_adult-file').click()"><i class="fas fa-image"></i> Upload</button>
+                <button type="button" class="uie-newgame-btn danger mini" id="ng-age-sprite-young_adult-clear">Clear</button>
+                <div id="ng-age-sprite-young_adult-preview" class="uie-newgame-preview" style="width: 32px; height: 32px; border-radius: 4px; display: none; background-size: cover; background-position: center; border: 1px solid rgba(225,193,122,0.4);"></div>
+                <input type="file" id="ng-age-sprite-young_adult-file" accept="image/*" style="display: none;">
+              </div>
+              <!-- Adult -->
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span style="width: 100px; font-size: 12px; opacity: 0.8;">Adult:</span>
+                <button type="button" class="uie-newgame-btn mini" onclick="document.getElementById('ng-age-sprite-adult-file').click()"><i class="fas fa-image"></i> Upload</button>
+                <button type="button" class="uie-newgame-btn danger mini" id="ng-age-sprite-adult-clear">Clear</button>
+                <div id="ng-age-sprite-adult-preview" class="uie-newgame-preview" style="width: 32px; height: 32px; border-radius: 4px; display: none; background-size: cover; background-position: center; border: 1px solid rgba(225,193,122,0.4);"></div>
+                <input type="file" id="ng-age-sprite-adult-file" accept="image/*" style="display: none;">
+              </div>
+              <!-- Elder -->
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span style="width: 100px; font-size: 12px; opacity: 0.8;">Elder:</span>
+                <button type="button" class="uie-newgame-btn mini" onclick="document.getElementById('ng-age-sprite-elder-file').click()"><i class="fas fa-image"></i> Upload</button>
+                <button type="button" class="uie-newgame-btn danger mini" id="ng-age-sprite-elder-clear">Clear</button>
+                <div id="ng-age-sprite-elder-preview" class="uie-newgame-preview" style="width: 32px; height: 32px; border-radius: 4px; display: none; background-size: cover; background-position: center; border: 1px solid rgba(225,193,122,0.4);"></div>
+                <input type="file" id="ng-age-sprite-elder-file" accept="image/*" style="display: none;">
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Currency & Organizations Tab -->
+    <div class="uie-newgame-content" data-tab="currency">
+      <div class="uie-newgame-section">
+        <div class="uie-newgame-section-title">Currency</div>
+
+        <div class="uie-newgame-form-row">
+          <div class="uie-newgame-form-group">
+            <label class="uie-newgame-label">Currency Name</label>
+            <input type="text" class="uie-newgame-input" id="ng-currency-name" placeholder="Gold, Coins, Crowns...">
+          </div>
+          <div class="uie-newgame-form-group">
+            <label class="uie-newgame-label">Currency Symbol</label>
+            <input type="text" class="uie-newgame-input" id="ng-currency-symbol" placeholder="🪙 or $">
+          </div>
+        </div>
+
+        <div class="uie-newgame-form-row">
+          <div class="uie-newgame-form-group">
+            <label class="uie-newgame-label">Starting Amount</label>
+            <input type="number" class="uie-newgame-input" id="ng-currency-amount" min="0" value="100">
+          </div>
+          <div class="uie-newgame-form-group">
+            <label class="uie-newgame-label">Real-World Currency</label>
+            <select class="uie-newgame-select" id="ng-currency-real-code" style="width: 100%;">
+              <option value="USD" selected>USD ($) - US Dollar</option>
+              <option value="EUR">EUR (€) - Euro</option>
+              <option value="GBP">GBP (£) - British Pound</option>
+              <option value="JPY">JPY (¥) - Japanese Yen</option>
+              <option value="CAD">CAD (CA$) - Canadian Dollar</option>
+              <option value="AUD">AUD (A$) - Australian Dollar</option>
+              <option value="CNY">CNY (元) - Chinese Yuan</option>
+              <option value="INR">INR (₹) - Indian Rupee</option>
+              <option value="RUB">RUB (₽) - Russian Ruble</option>
+              <option value="BRL">BRL (R$) - Brazilian Real</option>
+              <option value="AED">AED (د.إ) - UAE Dirham</option>
+              <option value="AFN">AFN (؋) - Afghan Afghani</option>
+              <option value="ALL">ALL (L) - Albanian Lek</option>
+              <option value="AMD">AMD (֏) - Armenian Dram</option>
+              <option value="ANG">ANG (ƒ) - Netherlands Antillean Guilder</option>
+              <option value="AOA">AOA (Kz) - Angolan Kwanza</option>
+              <option value="ARS">ARS ($) - Argentine Peso</option>
+              <option value="AWG">AWG (Afl.) - Aruban Florin</option>
+              <option value="AZN">AZN (₼) - Azerbaijani Manat</option>
+              <option value="BAM">BAM (KM) - Bosnia and Herzegovina Mark</option>
+              <option value="BBD">BBD ($) - Barbadian Dollar</option>
+              <option value="BDT">BDT (৳) - Bangladeshi Taka</option>
+              <option value="BGN">BGN (лв) - Bulgarian Lev</option>
+              <option value="BHD">BHD (.د.ب) - Bahraini Dinar</option>
+              <option value="BIF">BIF (FBu) - Burundian Franc</option>
+              <option value="BMD">BMD ($) - Bermudian Dollar</option>
+              <option value="BND">BND ($) - Brunei Dollar</option>
+              <option value="BOB">BOB (Bs.) - Bolivian Boliviano</option>
+              <option value="BSD">BSD ($) - Bahamian Dollar</option>
+              <option value="BTN">BTN (Nu.) - Bhutanese Ngultrum</option>
+              <option value="BWP">BWP (P) - Botswana Pula</option>
+              <option value="BYN">BYN (Br) - Belarusian Ruble</option>
+              <option value="BZD">BZD ($) - Belize Dollar</option>
+              <option value="CDF">CDF (FC) - Congolese Franc</option>
+              <option value="CHF">CHF (CHF) - Swiss Franc</option>
+              <option value="CLP">CLP ($) - Chilean Peso</option>
+              <option value="COP">COP ($) - Colombian Peso</option>
+              <option value="CRC">CRC (₡) - Costa Rican Colón</option>
+              <option value="CUP">CUP ($) - Cuban Peso</option>
+              <option value="CVE">CVE (Esc) - Cape Verdean Escudo</option>
+              <option value="CZK">CZK (Kč) - Czech Koruna</option>
+              <option value="DJF">DJF (Fdj) - Djiboutian Franc</option>
+              <option value="DKK">DKK (kr) - Danish Krone</option>
+              <option value="DOP">DOP ($) - Dominican Peso</option>
+              <option value="DZD">DZD (د.ج) - Algerian Dinar</option>
+              <option value="EGP">EGP (E£) - Egyptian Pound</option>
+              <option value="ERN">ERN (Nfk) - Eritrean Nakfa</option>
+              <option value="ETB">ETB (Br) - Ethiopian Birr</option>
+              <option value="FJD">FJD ($) - Fijian Dollar</option>
+              <option value="FKP">FKP (£) - Falkland Islands Pound</option>
+              <option value="GEL">GEL (₾) - Georgian Lari</option>
+              <option value="GGP">GGP (£) - Guernsey Pound</option>
+              <option value="GHS">GHS (₵) - Ghanaian Cedi</option>
+              <option value="GIP">GIP (£) - Gibraltar Pound</option>
+              <option value="GMD">GMD (D) - Gambian Dalasi</option>
+              <option value="GNF">GNF (FG) - Guinean Franc</option>
+              <option value="GTQ">GTQ (Q) - Guatemalan Quetzal</option>
+              <option value="GYD">GYD ($) - Guyanese Dollar</option>
+              <option value="HKD">HKD (HK$) - Hong Kong Dollar</option>
+              <option value="HNL">HNL (L) - Honduran Lempira</option>
+              <option value="HRK">HRK (kn) - Croatian Kuna</option>
+              <option value="HTG">HTG (G) - Haitian Gourde</option>
+              <option value="HUF">HUF (Ft) - Hungarian Forint</option>
+              <option value="IDR">IDR (Rp) - Indonesian Rupiah</option>
+              <option value="ILS">ILS (₪) - Israeli New Shekel</option>
+              <option value="IMP">IMP (£) - Isle of Man Pound</option>
+              <option value="IQD">IQD (ع.د) - Iraqi Dinar</option>
+              <option value="IRR">IRR (﷼) - Iranian Rial</option>
+              <option value="ISK">ISK (kr) - Icelandic Króna</option>
+              <option value="JEP">JEP (£) - Jersey Pound</option>
+              <option value="JMD">JMD (J$) - Jamaican Dollar</option>
+              <option value="JOD">JOD (د.ا) - Jordanian Dinar</option>
+              <option value="KES">KES (KSh) - Kenyan Shilling</option>
+              <option value="KGS">KGS (сом) - Kyrgyzstani Som</option>
+              <option value="KHR">KHR (៛) - Cambodian Riel</option>
+              <option value="KMF">KMF (CF) - Comorian Franc</option>
+              <option value="KPW">KPW (₩) - North Korean Won</option>
+              <option value="KRW">KRW (₩) - South Korean Won</option>
+              <option value="KWD">KWD (د.ك) - Kuwaiti Dinar</option>
+              <option value="KYD">KYD ($) - Cayman Islands Dollar</option>
+              <option value="KZT">KZT (₸) - Kazakhstani Tenge</option>
+              <option value="LAK">LAK (₭) - Lao Kip</option>
+              <option value="LBP">LBP (ل.ل) - Lebanese Pound</option>
+              <option value="LKR">LKR (Rs) - Sri Lankan Rupee</option>
+              <option value="LRD">LRD ($) - Liberian Dollar</option>
+              <option value="LSL">LSL (L) - Lesotho Loti</option>
+              <option value="LYD">LYD (ل.د) - Libyan Dinar</option>
+              <option value="MAD">MAD (د.م.) - Moroccan Dirham</option>
+              <option value="MDL">MDL (L) - Moldovan Leu</option>
+              <option value="MGA">MGA (Ar) - Malagasy Ariary</option>
+              <option value="MKD">MKD (ден) - Macedonian Denar</option>
+              <option value="MMK">MMK (K) - Myanmar Kyat</option>
+              <option value="MNT">MNT (₮) - Mongolian Tögrög</option>
+              <option value="MOP">MOP (MOP$) - Macanese Pataca</option>
+              <option value="MRU">MRU (UM) - Mauritanian Ouguiya</option>
+              <option value="MUR">MUR (₨) - Mauritian Rupee</option>
+              <option value="MVR">MVR (Rf) - Maldivian Rufiyaa</option>
+              <option value="MWK">MWK (MK) - Malawian Kwacha</option>
+              <option value="MXN">MXN ($) - Mexican Peso</option>
+              <option value="MYR">MYR (RM) - Malaysian Ringgit</option>
+              <option value="MZN">MZN (MT) - Mozambican Metical</option>
+              <option value="NAD">NAD ($) - Namibian Dollar</option>
+              <option value="NGN">NGN (₦) - Nigerian Naira</option>
+              <option value="NIO">NIO (C$) - Nicaraguan Córdoba</option>
+              <option value="NOK">NOK (kr) - Norwegian Krone</option>
+              <option value="NPR">NPR (रु) - Nepalese Rupee</option>
+              <option value="NZD">NZD ($) - New Zealand Dollar</option>
+              <option value="OMR">OMR (ر.ع.) - Omani Rial</option>
+              <option value="PAB">PAB (B/.) - Panamanian Balboa</option>
+              <option value="PEN">PEN (S/.) - Peruvian Sol</option>
+              <option value="PGK">PGK (K) - Papua New Guinean Kina</option>
+              <option value="PHP">PHP (₱) - Philippine Peso</option>
+              <option value="PKR">PKR (Rs) - Pakistani Rupee</option>
+              <option value="PLN">PLN (zł) - Polish Złoty</option>
+              <option value="PYG">PYG (₲) - Paraguayan Guaraní</option>
+              <option value="QAR">QAR (ر.ق) - Qatari Riyal</option>
+              <option value="RON">RON (lei) - Romanian Leu</option>
+              <option value="RSD">RSD (дин.) - Serbian Dinar</option>
+              <option value="RWF">RWF (FRw) - Rwandan Franc</option>
+              <option value="SAR">SAR (ر.س) - Saudi Riyal</option>
+              <option value="SBD">SBD ($) - Solomon Islands Dollar</option>
+              <option value="SCR">SCR (₨) - Seychellois Rupee</option>
+              <option value="SDG">SDG (ج.س.) - Sudanese Pound</option>
+              <option value="SEK">SEK (kr) - Swedish Krona</option>
+              <option value="SGD">SGD ($) - Singapore Dollar</option>
+              <option value="SHP">SHP (£) - Saint Helena Pound</option>
+              <option value="SLL">SLL (Le) - Sierra Leonean Leone</option>
+              <option value="SOS">SOS (Sh.So.) - Somali Shilling</option>
+              <option value="SRD">SRD ($) - Surinamese Dollar</option>
+              <option value="SSP">SSP (£) - South Sudanese Pound</option>
+              <option value="STN">STN (Db) - São Tomé and Príncipe Dobra</option>
+              <option value="SVC">SVC (₡) - Salvadoran Colón</option>
+              <option value="SYP">SYP (£S) - Syrian Pound</option>
+              <option value="SZL">SZL (L) - Swazi Lilangeni</option>
+              <option value="THB">THB (฿) - Thai Baht</option>
+              <option value="TJS">TJS (смн) - Tajikistani Somoni</option>
+              <option value="TMT">TMT (T) - Turkmenistani Manat</option>
+              <option value="TND">TND (د.ت) - Tunisian Dinar</option>
+              <option value="TOP">TOP (T$) - Tongan Paʻanga</option>
+              <option value="TRY">TRY (₺) - Turkish Lira</option>
+              <option value="TTD">TTD (TT$) - Trinidad and Tobago Dollar</option>
+              <option value="TWD">TWD (NT$) - New Taiwan Dollar</option>
+              <option value="TZS">TZS (TSh) - Tanzanian Shilling</option>
+              <option value="UAH">UAH (₴) - Ukrainian Hryvnia</option>
+              <option value="UGX">UGX (USh) - Ugandan Shilling</option>
+              <option value="UYU">UYU ($) - Uruguayan Peso</option>
+              <option value="UZS">UZS (сум) - Uzbekistani Som</option>
+              <option value="VES">VES (Bs.S) - Venezuelan Bolívar Soberano</option>
+              <option value="VND">VND (₫) - Vietnamese Đồng</option>
+              <option value="VUV">VUV (VT) - Vanuatu Vatu</option>
+              <option value="WST">WST (WS$) - Samoan Tālā</option>
+              <option value="XAF">XAF (FCFA) - Central African CFA Franc</option>
+              <option value="XCD">XCD ($) - East Caribbean Dollar</option>
+              <option value="XOF">XOF (CFA) - West African CFA Franc</option>
+              <option value="XPF">XPF (₣) - CFP Franc</option>
+              <option value="YER">YER (﷼) - Yemeni Rial</option>
+              <option value="ZAR">ZAR (R) - South African Rand</option>
+              <option value="ZMW">ZMW (ZK) - Zambian Kwacha</option>
+              <option value="ZWL">ZWL ($) - Zimbabwean Dollar</option>
+            </select>
+          </div>
+        </div>
+        <div class="uie-newgame-form-row">
+          <div class="uie-newgame-form-group" style="grid-column: span 2;">
+            <label class="uie-newgame-label" id="ng-currency-value-label">Real-World Value (USD)</label>
+            <input type="number" class="uie-newgame-input" id="ng-currency-value" min="0" step="0.0001" placeholder="0.01">
+          </div>
+        </div>
+      </div>
+
+      <div class="uie-newgame-section">
+        <div class="uie-newgame-section-title">Groups &amp; Controlled Spaces</div>
+
+        <div class="uie-newgame-form-row full">
+          <div class="uie-newgame-form-group">
+            <label class="uie-newgame-label">Starting Groups</label>
+            <div id="ng-factions-list" class="uie-newgame-list" style="max-height: 200px; overflow-y: auto;"></div>
+          </div>
+        </div>
+
+        <div style="margin-top: 16px;">
+          <div class="uie-newgame-section-title">Create Starting Organization</div>
+          <div class="uie-newgame-form-row full">
+            <div class="uie-newgame-form-group">
+              <label class="uie-newgame-label">Group Name</label>
+              <input type="text" class="uie-newgame-input" id="ng-faction-name" placeholder="e.g., Class 2-B, Night Shift, Survival Team">
+            </div>
+          </div>
+
+          <div class="uie-newgame-form-row">
+            <div class="uie-newgame-form-group">
+              <label class="uie-newgame-label">Organization Kind</label>
+              <select class="uie-newgame-select" id="ng-faction-type-select">
+                <option value="crew" selected>Crew (Small active group)</option>
+                <option value="family">Family (House or clan)</option>
+                <option value="school">School (Class, club, faculty)</option>
+                <option value="business">Business (Shop, company, venue)</option>
+                <option value="guild">Guild (Trade or craft body)</option>
+                <option value="custom">Custom...</option>
+              </select>
+              <input type="text" class="uie-newgame-input" id="ng-faction-type" value="crew" placeholder="Type custom group kind..." style="margin-top: 8px; display: none;">
+            </div>
+            <div class="uie-newgame-form-group">
+              <label class="uie-newgame-label">Starting Standing</label>
+              <select class="uie-newgame-select" id="ng-faction-rep-select">
+                <option value="100">Hero (+100)</option>
+                <option value="30">Member (+30)</option>
+                <option value="0" selected>Stranger (0)</option>
+                <option value="-30">Outcast (-30)</option>
+                <option value="-100">Enemy (-100)</option>
+                <option value="custom">Custom Value...</option>
+              </select>
+              <input type="number" class="uie-newgame-input" id="ng-faction-rep" value="0" min="-100" max="100" placeholder="Type custom standing..." style="margin-top: 8px; display: none;">
+            </div>
+          </div>
+
+          <div class="uie-newgame-form-row">
+            <div class="uie-newgame-form-group">
+              <label class="uie-newgame-label">Your Role</label>
+              <select class="uie-newgame-select" id="ng-faction-status-select">
+                <option value="none" selected>None</option>
+                <option value="leader">Leader</option>
+                <option value="officer">Officer</option>
+                <option value="member">Member</option>
+                <option value="recruit">Recruit</option>
+                <option value="custom">Custom...</option>
+              </select>
+              <input type="text" class="uie-newgame-input" id="ng-faction-status" value="none" placeholder="Type custom role..." style="margin-top: 8px; display: none;">
+            </div>
+            <div class="uie-newgame-form-group">
+              <label class="uie-newgame-label">Control Scale</label>
+              <select class="uie-newgame-select" id="ng-faction-scope-select">
+                <option value="building" selected>Local (Building / Room)</option>
+                <option value="settlement">Citywide (Town / City)</option>
+                <option value="region">Regional (Province / Continent)</option>
+                <option value="world">Global (World-spanning)</option>
+                <option value="custom">Custom...</option>
+              </select>
+              <input type="text" class="uie-newgame-input" id="ng-faction-scope" value="building" placeholder="Type custom scale..." style="margin-top: 8px; display: none;">
+            </div>
+          </div>
+
+          <div class="uie-newgame-form-row full">
+            <div class="uie-newgame-form-group">
+              <label class="uie-newgame-label">Mapped Base / Asset</label>
+              <input type="text" class="uie-newgame-input" id="ng-faction-base" placeholder="Use a place that exists on the map">
+            </div>
+          </div>
+
+          <div class="uie-newgame-button-group">
+            <button class="uie-newgame-btn" id="ng-faction-add-btn">Create Organization</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="uie-newgame-section">
+        <div class="uie-newgame-section-title">Reputation Tracker</div>
+
+        <div class="uie-newgame-form-row full">
+          <div class="uie-newgame-form-group">
+            <label class="uie-newgame-label">Tracked Reputations</label>
+            <div id="ng-reputation-list" class="uie-newgame-list" style="max-height: 150px; overflow-y: auto;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Life Trackers Tab -->
+    <div class="uie-newgame-content" data-tab="trackers">
+      <div class="uie-newgame-section">
+        <div class="uie-newgame-section-title">Life Trackers</div>
+
+        <div class="uie-newgame-form-row full">
+          <div class="uie-newgame-form-group">
+            <label class="uie-newgame-label">Important Life Trackers</label>
+            <div class="uie-vital-note" style="margin-bottom:8px;">Optional UI trackers. HP, AP, MP, and XP are defaults only and can be removed, renamed, or replaced.</div>
+            <div id="ng-trackers-list" class="uie-newgame-list" style="max-height: 250px; overflow-y: auto;"></div>
+          </div>
+        </div>
+
+        <div style="margin-top: 16px;">
+          <div class="uie-newgame-section-title">Add Life Tracker</div>
+          <div class="uie-newgame-form-row full">
+            <div class="uie-newgame-form-group">
+              <label class="uie-newgame-label">Tracker Name (e.g., Health, Mana, Stamina)</label>
+              <input type="text" class="uie-newgame-input" id="ng-tracker-name" placeholder="Health">
+            </div>
+          </div>
+
+          <div class="uie-newgame-form-row">
+            <div class="uie-newgame-form-group">
+              <label class="uie-newgame-label">Current Value</label>
+              <input type="number" class="uie-newgame-input" id="ng-tracker-current" min="0" value="100">
+            </div>
+            <div class="uie-newgame-form-group">
+              <label class="uie-newgame-label">Max Value</label>
+              <input type="number" class="uie-newgame-input" id="ng-tracker-max" min="1" value="100">
+            </div>
+          </div>
+
+          <div class="uie-newgame-form-row">
+            <div class="uie-newgame-form-group">
+              <label class="uie-newgame-label">Color (Hex)</label>
+              <input type="color" class="uie-newgame-input" id="ng-tracker-color" value="#89b4fa">
+            </div>
+            <div class="uie-newgame-form-group">
+              <label class="uie-newgame-label">Icon</label>
+              <select class="uie-newgame-select ng-icon-picker" id="ng-tracker-icon"></select>
+            </div>
+          </div>
+          <div class="uie-newgame-form-row">
+            <div class="uie-newgame-form-group">
+              <label class="uie-newgame-label">Show on UI?</label>
+              <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                <input type="checkbox" id="ng-tracker-visible" checked>
+                <span>Display on Game UI</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="uie-newgame-form-row full">
+            <div class="uie-newgame-form-group">
+              <label class="uie-newgame-label">Notes</label>
+              <textarea class="uie-newgame-textarea" id="ng-tracker-notes" placeholder="Optional notes about this tracker..." style="min-height: 50px;"></textarea>
+            </div>
+          </div>
+
+          <div class="uie-newgame-button-group">
+            <button class="uie-newgame-btn" id="ng-tracker-add-btn">+ Add Tracker</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- Items & Equipment Tab -->
+    <div class="uie-newgame-content" data-tab="inventory">
+      <div class="uie-newgame-section">
+        <div class="uie-newgame-section-title">Starting Items & Equipment</div>
+
+        <div class="uie-newgame-form-row full">
+          <div class="uie-newgame-form-group">
+            <label class="uie-newgame-label">Current Items</label>
+            <div id="ng-items-list" class="uie-newgame-list" style="max-height: 250px; overflow-y: auto;"></div>
+          </div>
+        </div>
+
+        <div style="margin-top: 16px;">
+          <div class="uie-newgame-section-title" id="ng-item-form-title">Add Item or Equipment</div>
+          
+          <!-- Mode Toggle Buttons -->
+          <div class="uie-newgame-form-row" style="margin-bottom: 16px; display: flex; gap: 8px;">
+            <button class="uie-newgame-btn active" id="ng-item-btn-mode-standard" type="button" style="flex: 1; text-align: center; justify-content: center;">Standard Item</button>
+            <button class="uie-newgame-btn" id="ng-item-btn-mode-equipment" type="button" style="flex: 1; text-align: center; justify-content: center;">Equipment</button>
+          </div>
+
+          <!-- Standard Item Form Fields -->
+          <div id="ng-item-fields-standard">
+            <div class="uie-newgame-form-row full">
+              <div class="uie-newgame-form-group">
+                <label class="uie-newgame-label">Item Name</label>
+                <input type="text" class="uie-newgame-input" id="ng-item-name" placeholder="e.g., Healing Potion, Lockpick, Gold Coin">
+              </div>
+            </div>
+
+            <div class="uie-newgame-form-row">
+              <div class="uie-newgame-form-group">
+                <label class="uie-newgame-label">Item Category</label>
+                <select class="uie-newgame-select" id="ng-item-category-select">
+                  <option value="Consumable" selected>Consumable</option>
+                  <option value="Resource">Resource</option>
+                  <option value="Component">Component / Material</option>
+                  <option value="Food">Food / Ingredient</option>
+                  <option value="Medical">Medical / Medicine</option>
+                  <option value="Tech">Tech / Device</option>
+                  <option value="Evidence">Evidence</option>
+                  <option value="Quest Item">Quest Item</option>
+                  <option value="Key Item">Key Item</option>
+                  <option value="custom">Custom...</option>
+                </select>
+                <input type="text" class="uie-newgame-input" id="ng-item-category-custom" placeholder="Type custom category..." style="margin-top: 8px; display: none;">
+              </div>
+              <div class="uie-newgame-form-group">
+                <label class="uie-newgame-label">Quantity</label>
+                <input type="number" class="uie-newgame-input" id="ng-item-quantity" min="1" value="1">
+              </div>
+            </div>
+            
+            <div class="uie-newgame-form-row full">
+              <div class="uie-newgame-form-group">
+                <label class="uie-newgame-label">Description</label>
+                <textarea class="uie-newgame-textarea" id="ng-item-description" placeholder="Item details..." style="min-height: 50px;"></textarea>
+              </div>
+            </div>
+          </div>
+
+          <!-- Equipment Form Fields -->
+          <div id="ng-item-fields-equipment" style="display: none;">
+            <div class="uie-newgame-form-row full">
+              <div class="uie-newgame-form-group">
+                <label class="uie-newgame-label">Equipment Name</label>
+                <input type="text" class="uie-newgame-input" id="ng-item-eq-name" placeholder="e.g., Iron Sword, Leather Vest, Silver Ring">
+              </div>
+            </div>
+
+            <div class="uie-newgame-form-row">
+              <div class="uie-newgame-form-group">
+                <label class="uie-newgame-label">Equipment Slot</label>
+                <select class="uie-newgame-select" id="ng-item-eq-slot-select">
+                  <option value="outfit">Outfit</option>
+                  <option value="head">Head</option>
+                  <option value="chest">Chest</option>
+                  <option value="legs">Legs</option>
+                  <option value="feet">Feet</option>
+                  <option value="hands">Hands</option>
+                  <option value="main" selected>Main Hand</option>
+                  <option value="off">Off Hand</option>
+                  <option value="back">Back</option>
+                  <option value="neck">Neck</option>
+                  <option value="r1">Ring 1</option>
+                  <option value="r2">Ring 2</option>
+                  <option value="trinket">Trinket</option>
+                  <option value="focus">Focus</option>
+                  <option value="quick">Quick Slot</option>
+                  <option value="utility">Utility</option>
+                  <option value="undies">Undies</option>
+                  <option value="socks">Socks</option>
+                  <option value="tattoo">Tattoo</option>
+                  <option value="scar">Scar</option>
+                  <option value="ears">Ears</option>
+                  <option value="face">Face</option>
+                  <option value="ink">Ink</option>
+                  <option value="soul">Soul</option>
+                  <option value="shirt">Shirt</option>
+                  <option value="pants">Pants</option>
+                  <option value="vest">Vest</option>
+                  <option value="belt">Belt</option>
+                  <option value="boots">Boots</option>
+                  <option value="gloves">Gloves</option>
+                  <option value="aura">Aura</option>
+                  <option value="bag">Bag</option>
+                  <option value="shldr">Shoulder</option>
+                  <option value="range">Ranged</option>
+                  <option value="ammo">Ammo</option>
+                  <option value="tool">Tool</option>
+                  <option value="relic">Relic</option>
+                </select>
+              </div>
+              <div class="uie-newgame-form-group">
+                <label class="uie-newgame-label">Equipment Type</label>
+                <select class="uie-newgame-select" id="ng-item-eq-type-select">
+                  <option value="Sword" selected>Sword</option>
+                  <option value="Dagger">Dagger</option>
+                  <option value="Bow">Bow</option>
+                  <option value="Staff">Staff</option>
+                  <option value="Wand">Wand</option>
+                  <option value="Shield">Shield</option>
+                  <option value="Light Armor">Light Armor</option>
+                  <option value="Heavy Armor">Heavy Armor</option>
+                  <option value="Ring">Ring</option>
+                  <option value="Amulet">Amulet</option>
+                  <option value="Tool">Tool</option>
+                  <option value="custom">Custom...</option>
+                </select>
+                <input type="text" class="uie-newgame-input" id="ng-item-eq-type-custom" placeholder="Type custom equipment type..." style="margin-top: 8px; display: none;">
+              </div>
+            </div>
+
+            <div class="uie-newgame-form-row full">
+              <div class="uie-newgame-form-group">
+                <label class="uie-newgame-label">Description</label>
+                <textarea class="uie-newgame-textarea" id="ng-item-eq-description" placeholder="Equipment details, stat modifiers, etc..." style="min-height: 50px;"></textarea>
+              </div>
+            </div>
+          </div>
+
+          <div class="uie-newgame-button-group">
+            <button class="uie-newgame-btn" id="ng-item-add-btn">+ Add Item</button>
+            <button class="uie-newgame-btn" id="ng-item-cancel-btn" style="display:none;">Cancel Edit</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Skills Tab -->
+    <div class="uie-newgame-content" data-tab="skills">
+      <div class="uie-newgame-section">
+        <div class="uie-newgame-section-title">Starting Skills</div>
+
+        <div class="uie-newgame-form-row full">
+          <div class="uie-newgame-form-group">
+            <label class="uie-newgame-label">Learned Skills</label>
+            <div id="ng-skills-list" class="uie-newgame-list" style="max-height: 250px; overflow-y: auto;"></div>
+          </div>
+        </div>
+
+        <div style="margin-top: 16px;">
+          <div class="uie-newgame-section-title">Learn New Skill</div>
+          <div class="uie-newgame-form-row full">
+            <div class="uie-newgame-form-group">
+              <label class="uie-newgame-label">Skill Name</label>
+              <input type="text" class="uie-newgame-input" id="ng-skill-name" placeholder="e.g., Fireball, Lockpicking, Persuasion">
+            </div>
+          </div>
+
+          <div class="uie-newgame-form-row">
+            <div class="uie-newgame-form-group">
+              <label class="uie-newgame-label">Skill Type</label>
+              <select class="uie-newgame-select" id="ng-skill-type">
+                <option value="active" selected>Active</option>
+                <option value="passive">Passive</option>
+              </select>
+            </div>
+            <div class="uie-newgame-form-group">
+              <label class="uie-newgame-label">Skill Level</label>
+              <input type="number" class="uie-newgame-input" id="ng-skill-level" min="1" value="1">
+            </div>
+          </div>
+
+          <div class="uie-newgame-form-row full">
+            <div class="uie-newgame-form-group">
+              <label class="uie-newgame-label">Icon Glyph (FontAwesome class, e.g., fa-fire)</label>
+              <input type="text" class="uie-newgame-input" id="ng-skill-icon" placeholder="e.g., fa-fire, fa-shield-halved, fa-hand-fist">
+            </div>
+          </div>
+
+          <div class="uie-newgame-form-row full">
+            <div class="uie-newgame-form-group">
+              <label class="uie-newgame-label">Description</label>
+              <textarea class="uie-newgame-textarea" id="ng-skill-description" placeholder="What does this skill do?" style="min-height: 50px;"></textarea>
+            </div>
+          </div>
+
+          <div class="uie-newgame-button-group">
+            <button class="uie-newgame-btn" id="ng-skill-add-btn">+ Learn Skill</button>
+            <button class="uie-newgame-btn" id="ng-skill-cancel-btn" style="display:none;">Cancel Edit</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quests Tab -->
+    <div class="uie-newgame-content" data-tab="quests">
+      <div class="uie-newgame-section">
+        <div class="uie-newgame-section-title">Quest Journal</div>
+
+        <div class="uie-newgame-form-row full">
+          <div class="uie-newgame-form-group">
+            <label class="uie-newgame-label">Active Quests</label>
+            <div id="ng-quests-list" class="uie-newgame-list" style="max-height: 250px; overflow-y: auto;"></div>
+          </div>
+        </div>
+
+        <div style="margin-top: 16px;">
+          <div class="uie-newgame-section-title">Add Starting Quest</div>
+          <div class="uie-newgame-form-row full">
+            <div class="uie-newgame-form-group">
+              <label class="uie-newgame-label">Quest Title</label>
+              <input type="text" class="uie-newgame-input" id="ng-quest-title" placeholder="e.g., Find the Lost Amulet">
+            </div>
+          </div>
+
+          <div class="uie-newgame-form-row">
+            <div class="uie-newgame-form-group">
+              <label class="uie-newgame-label">Quest Type</label>
+              <select class="uie-newgame-select" id="ng-quest-type">
+                <option value="main">Main Quest</option>
+                <option value="side">Side Quest</option>
+                <option value="optional">Optional</option>
+              </select>
+            </div>
+            <div class="uie-newgame-form-group">
+              <label class="uie-newgame-label">Status</label>
+              <select class="uie-newgame-select" id="ng-quest-status">
+                <option value="active">Active</option>
+                <option value="available">Available</option>
+                <option value="completed">Completed</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="uie-newgame-form-row full">
+            <div class="uie-newgame-form-group">
+              <label class="uie-newgame-label">Quest Description</label>
+              <textarea class="uie-newgame-textarea" id="ng-quest-description" placeholder="What is this quest about?" style="min-height: 80px;"></textarea>
+            </div>
+          </div>
+
+          <div class="uie-newgame-form-row full">
+            <div class="uie-newgame-form-group">
+              <label class="uie-newgame-label">Objectives (comma-separated)</label>
+              <input type="text" class="uie-newgame-input" id="ng-quest-objectives" placeholder="Objective 1, Objective 2, Objective 3">
+            </div>
+          </div>
+
+          <div class="uie-newgame-button-group">
+            <button class="uie-newgame-btn" id="ng-quest-add-btn">+ Add Quest</button>
+            <button class="uie-newgame-btn" id="ng-quest-cancel-btn" style="display:none;">Cancel Edit</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Lorebook Tab -->
+    <div class="uie-newgame-content" data-tab="lorebook">
+      <div class="uie-newgame-section">
+        <div class="uie-newgame-section-title">Lorebook Entries</div>
+        <p style="color: rgba(225, 193, 122, 0.7); font-size: 12px; margin-bottom: 12px;">
+          Add world lore, important facts, characters, factions, or locations that should be remembered during gameplay.
+        </p>
+
+        <div class="uie-newgame-form-row full">
+          <div class="uie-newgame-form-group">
+            <label class="uie-newgame-label">Saved Lorebooks To Use In This New Game</label>
+            <div id="ng-saved-lorebooks-list" class="uie-newgame-list" style="max-height: 120px; overflow-y: auto;"></div>
+          </div>
+        </div>
+
+        <div style="margin-top: 16px;">
+          <div class="uie-newgame-section-title">Create Custom Lore Entry</div>
+          <div class="uie-newgame-form-row">
+            <div class="uie-newgame-form-group">
+              <label class="uie-newgame-label">Title / Memo</label>
+              <input type="text" class="uie-newgame-input" id="ng-lore-title" placeholder="e.g., Riverside Tavern, The Magic Sword">
+            </div>
+            <div class="uie-newgame-form-group">
+              <label class="uie-newgame-label">Keys (comma-separated)</label>
+              <input type="text" class="uie-newgame-input" id="ng-lore-keys" placeholder="e.g., tavern, inn, barkeeper">
+            </div>
+          </div>
+
+          <div class="uie-newgame-form-row">
+            <div class="uie-newgame-form-group">
+              <label class="uie-newgame-label">Category</label>
+              <select class="uie-newgame-select" id="ng-lore-category">
+                <option value="">None (General Lore)</option>
+                <option value="item">Item</option>
+                <option value="equipment">Equipment</option>
+                <option value="skill">Skill</option>
+                <option value="party">Party Member</option>
+                <option value="world_item">World Item</option>
+                <option value="world_equipment">World Equipment</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="uie-newgame-form-row full">
+            <div class="uie-newgame-form-group">
+              <label class="uie-newgame-label">Lore Content</label>
+              <textarea class="uie-newgame-textarea" id="ng-lore-content" placeholder="The factual information that should be injected when these keys are mentioned..." style="min-height: 80px;"></textarea>
+            </div>
+          </div>
+
+          <div class="uie-newgame-button-group">
+            <button class="uie-newgame-btn" id="ng-lore-add-btn">+ Add Entry</button>
+            <button class="uie-newgame-btn" id="ng-lore-import-btn">📂 Import Lorebook</button>
+            <button class="uie-newgame-btn" id="ng-lore-export-btn">💾 Export Lorebook</button>
+          </div>
+          <input type="file" id="ng-lore-import-file" accept=".json,application/json" style="display:none;">
+        </div>
+
+        <div style="margin-top: 16px;">
+          <label class="uie-newgame-label">Custom Lore Entries in this Game</label>
+          <div id="ng-lore-entries-list" class="uie-newgame-list" style="max-height: 180px; overflow-y: auto;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Assets Tab -->
+    <div class="uie-newgame-content" data-tab="assets">
+      <div class="uie-newgame-section">
+        <div class="uie-newgame-section-title">Assets & Properties</div>
+        <p style="color: rgba(225, 193, 122, 0.7); font-size: 12px; margin-bottom: 12px;">
+          Define starting assets like real estate, businesses, vehicles, or other properties.
+        </p>
+
+        <div class="uie-newgame-form-row full">
+          <div class="uie-newgame-form-group">
+            <label class="uie-newgame-label">Current Assets</label>
+            <div id="ng-assets-list" class="uie-newgame-list" style="max-height: 200px; overflow-y: auto;"></div>
+          </div>
+        </div>
+
+        <div style="margin-top: 16px;">
+          <div class="uie-newgame-section-title">Add Asset</div>
+          <div class="uie-newgame-form-row full">
+            <div class="uie-newgame-form-group">
+              <label class="uie-newgame-label">Asset Name</label>
+              <input type="text" class="uie-newgame-input" id="ng-asset-name" placeholder="e.g., Riverside Cottage, Family Business">
+            </div>
+          </div>
+
+          <div class="uie-newgame-form-row">
+            <div class="uie-newgame-form-group">
+              <label class="uie-newgame-label">Asset Type</label>
+              <select class="uie-newgame-select" id="ng-asset-type">
+                <option value="property">Property / Real Estate</option>
+                <option value="business">Business</option>
+                <option value="mount">Mount / Horse</option>
+                <option value="cart">Cart / Wagon</option>
+                <option value="road_vehicle">Road Vehicle</option>
+                <option value="boat">Boat / Ship</option>
+                <option value="spacecraft">Spacecraft</option>
+                <option value="aircraft">Aircraft</option>
+                <option value="rail">Train / Rail</option>
+                <option value="investment">Investment</option>
+                <option value="misc">Miscellaneous</option>
+              </select>
+            </div>
+            <div class="uie-newgame-form-group">
+              <label class="uie-newgame-label">Estimated Value</label>
+              <input type="number" class="uie-newgame-input" id="ng-asset-value" min="0" placeholder="0">
+            </div>
+          </div>
+
+          <div class="uie-newgame-form-row full">
+            <div class="uie-newgame-form-group">
+              <label class="uie-newgame-label">Description</label>
+              <textarea class="uie-newgame-textarea" id="ng-asset-description" placeholder="Details about this asset..." style="min-height: 60px;"></textarea>
+            </div>
+          </div>
+
+          <div class="uie-newgame-button-group">
+            <button class="uie-newgame-btn" id="ng-asset-add-btn">+ Add Asset</button>
+            <button class="uie-newgame-btn" id="ng-asset-cancel-btn" style="display:none;">Cancel Edit</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Starting Location Tab -->
+    <div class="uie-newgame-content" data-tab="location">
+      <div class="uie-newgame-section">
+        <div class="uie-newgame-section-title">Choose Starting Location (Room Anchor)</div>
+
+        <div class="uie-newgame-form-row full">
+          <div class="uie-newgame-form-group">
+            <label class="uie-newgame-label">Starting Location Name</label>
+            <input type="text" class="uie-newgame-input" id="ng-location-name" placeholder="e.g., Riverside Village, Dark Forest">
+          </div>
+        </div>
+
+        <div class="uie-newgame-form-row full">
+          <div class="uie-newgame-form-group">
+            <label class="uie-newgame-label">Starting Background Image</label>
+            <div style="display:flex; gap:10px; align-items:center;">
+              <input type="text" class="uie-newgame-input" id="ng-location-bg-url" placeholder="https://example.com/background.jpg" style="flex:1;">
+              <button type="button" class="uie-newgame-btn" id="ng-location-bg-picker-btn" style="white-space:nowrap;"><i class="fas fa-image"></i> Pick File</button>
+              <button type="button" class="uie-newgame-btn primary" id="ng-location-bg-presets-btn" style="white-space:nowrap;"><i class="fas fa-images"></i> Presets</button>
+            </div>
+            <input type="file" id="ng-location-bg-file" accept="image/*" style="display:none;">
+            <p style="font-size:11px; opacity:0.8; margin:2px 0 0 0; color:#ccc;">Select a local background image file or type a URL.</p>
+            <div id="ng-location-bg-preview" style="display:none; width:100%; height:120px; border-radius:8px; border:1px solid rgba(205, 127, 50, 0.3); margin-top:8px; background-size:cover; background-position:center; background-color:rgba(0,0,0,0.5);"></div>
+          </div>
+        </div>
+
+        <div class="uie-newgame-form-row full">
+          <div class="uie-newgame-form-group">
+            <label class="uie-newgame-label">Location Description</label>
+            <textarea class="uie-newgame-textarea" id="ng-location-description" placeholder="Describe this starting location..."></textarea>
+          </div>
+        </div>
+        <div class="uie-newgame-form-row full">
+          <div class="uie-newgame-form-group">
+            <label class="uie-newgame-label">Starting Sequence Prompt</label>
+            <textarea class="uie-newgame-textarea" id="ng-location-starting-sequence" placeholder="Describe the first beat the AI must generate: who is present, what is happening, and the immediate tone."></textarea>
+          </div>
+        </div>
+
+        <div class="uie-newgame-form-row full">
+          <div class="uie-newgame-form-group">
+            <label class="uie-newgame-label">Danger Level</label>
+            <select class="uie-newgame-select" id="ng-location-danger">
+              <option value="safe">Safe</option>
+              <option value="mild">Mild</option>
+              <option value="moderate">Moderate</option>
+              <option value="dangerous">Dangerous</option>
+              <option value="deadly">Deadly</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="uie-newgame-section" style="margin-top: 24px;">
+          <div class="uie-newgame-section-title">AI Generation</div>
+          <p style="color: rgba(225, 193, 122, 0.7); font-size: 12px; margin-bottom: 12px;">
+            The AI will generate outward from this starting room.
+          </p>
+          <button class="uie-newgame-btn primary" id="ng-location-generate-btn">✨ Generate Starting Surroundings</button>
+        </div>
+
+        <div class="uie-newgame-section" style="margin-top: 24px; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 16px;">
+          <div class="uie-newgame-section-title">Tutorial Settings</div>
+          <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: #e1c16e; font-size: 13px; font-weight: 800;">
+            <input type="checkbox" id="ng-location-tutorial-enabled" checked style="width: 16px; height: 16px; accent-color: #cba35c; cursor: pointer;">
+            Tutorial?
+          </label>
+          <p style="color: rgba(255,255,255,0.5); font-size: 11px; margin: 4px 0 0 24px;">
+            Enable guided tour and tutorial mode helper popup on game start.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="uie-newgame-content" data-tab="npcs">
+      <div class="uie-newgame-section" style="margin-top:24px;">
+        <div class="uie-newgame-section-title">NPCs</div>
+        <div id="ng-library-cards-list" style="display:none;"></div>
+        <div class="uie-newgame-button-group" style="margin-bottom:18px; display: flex; gap: 8px;">
+          <button type="button" class="uie-newgame-btn" id="ng-open-character-cards-btn" style="flex: 1;">Create Character Card</button>
+          <button type="button" class="uie-newgame-btn" id="ng-open-npc-modal-btn" style="flex: 1;">Create NPC</button>
+        </div>
+
+        <label class="uie-newgame-label">Create Cardless NPC</label>
+        <div class="uie-newgame-form-row">
+          <div class="uie-newgame-form-group"><label class="uie-newgame-label">Name</label><input type="text" class="uie-newgame-input" id="ng-location-npc-name" placeholder="e.g., Bria"></div>
+          <div class="uie-newgame-form-group"><label class="uie-newgame-label">Class</label><select class="uie-newgame-select" id="ng-location-npc-class"><option>Warrior</option><option>Mage</option><option>Rogue</option><option>Ranger</option><option>Cleric</option><option>Paladin</option><option>Bard</option><option>Companion</option></select></div>
+        </div>
+        <div class="uie-newgame-form-row full">
+          <div class="uie-newgame-form-group"><label class="uie-newgame-label">Description</label><input type="text" class="uie-newgame-input" id="ng-location-npc-desc" placeholder="e.g., nervous innkeeper with local gossip"></div>
+        </div>
+        <label style="display:flex;align-items:center;gap:8px;margin-bottom:12px;"><input type="checkbox" id="ng-location-npc-party"> Add to Party</label>
+        <div class="uie-newgame-button-group" style="margin-bottom:18px;"><button type="button" class="uie-newgame-btn" id="ng-location-npc-add-btn">+ Add NPC</button></div>
+
+        <label class="uie-newgame-label">NPCs in Starting Room</label>
+        <div id="ng-added-npcs-list" class="uie-newgame-list" style="max-height:240px;overflow-y:auto;"></div>
+      </div>
+    </div>
+
+    <!-- Footer with action buttons -->
+    <div class="uie-newgame-footer">
+      <button class="uie-newgame-btn" id="uie-newgame-cancel-btn">Cancel</button>
+      <button class="uie-newgame-btn primary" id="uie-newgame-start-btn">⚔️ Start Game</button>
+    </div>
+  </div>
+</div>
+
+<div id="uie-ng-card-picker-overlay">
+  <div id="uie-ng-card-picker">
+    <div class="uie-ng-card-picker-head">
+      <strong style="color:#e1c16e;">Character Cards</strong>
+      <button type="button" class="uie-newgame-close" id="uie-ng-card-picker-close">x</button>
+    </div>
+    <div id="uie-ng-card-picker-list"></div>
+  </div>
+</div>
+
+<!-- ====== PRESET BACKGROUND GALLERY MODAL ====== -->
+<style>
+  #uie-presets-gallery-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.9);
+    z-index: 2147483647;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    backdrop-filter: blur(4px);
+  }
+  #uie-presets-gallery-overlay.active {
+    display: flex;
+  }
+  #uie-presets-gallery-container {
+    width: 100%;
+    max-width: 800px;
+    height: 80vh;
+    max-height: 80vh;
+    background: linear-gradient(135deg, #1e1814 0%, #3a3020 50%, #261e18 100%);
+    border: 2px solid rgba(225, 193, 122, 0.4);
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 0 50px rgba(0, 0, 0, 0.9), inset 0 0 25px rgba(0, 0, 0, 0.8);
+    overflow: hidden;
+    color: #e0d0c0;
+    font-family: 'Georgia', serif;
+  }
+  .uie-presets-gallery-header {
+    padding: 16px 20px;
+    background: rgba(0, 0, 0, 0.4);
+    border-bottom: 1px solid rgba(225, 193, 122, 0.25);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+  }
+  .uie-presets-gallery-title {
+    font-size: 20px;
+    font-weight: bold;
+    color: #e1c16e;
+    letter-spacing: 1px;
+    margin: 0;
+  }
+  .uie-presets-gallery-close {
+    background: rgba(225, 193, 122, 0.1);
+    border: 1px solid rgba(225, 193, 122, 0.3);
+    color: #e1c16e;
+    width: 36px;
+    height: 36px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 16px;
+    display: grid;
+    place-items: center;
+    transition: all 0.2s;
+  }
+  .uie-presets-gallery-close:hover {
+    background: rgba(225, 193, 122, 0.3);
+  }
+  .uie-presets-gallery-nav {
+    display: flex;
+    gap: 12px;
+    padding: 12px 20px;
+    background: rgba(0, 0, 0, 0.25);
+    border-bottom: 1px solid rgba(225, 193, 122, 0.15);
+    flex-shrink: 0;
+  }
+  .uie-presets-gallery-nav-btn {
+    padding: 8px 14px;
+    background: rgba(139, 110, 58, 0.25);
+    border: 1px solid rgba(225, 193, 122, 0.2);
+    color: rgba(225, 193, 122, 0.8);
+    cursor: pointer;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    transition: all 0.2s;
+  }
+  .uie-presets-gallery-nav-btn:hover {
+    background: rgba(225, 193, 122, 0.2);
+    color: #e1c16e;
+  }
+  .uie-presets-gallery-nav-btn.active {
+    background: rgba(225, 193, 122, 0.25);
+    border-color: #e1c16e;
+    color: #e1c16e;
+    box-shadow: 0 0 8px rgba(225, 193, 122, 0.2) inset;
+  }
+  .uie-presets-gallery-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+  }
+  .uie-presets-gallery-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 20px;
+  }
+  .uie-presets-gallery-card {
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(225, 193, 122, 0.15);
+    border-radius: 10px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+  }
+  .uie-presets-gallery-card:hover {
+    transform: translateY(-4px);
+    border-color: #e1c16e;
+    box-shadow: 0 8px 24px rgba(225, 193, 122, 0.15);
+  }
+  .uie-presets-gallery-card-img {
+    width: 100%;
+    height: 130px;
+    background-size: cover;
+    background-position: center;
+    background-color: #000;
+    border-bottom: 1px solid rgba(225, 193, 122, 0.15);
+    position: relative;
+  }
+  .uie-presets-gallery-card-badge {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: rgba(0, 0, 0, 0.75);
+    border: 1px solid rgba(225, 193, 122, 0.35);
+    color: #e1c16e;
+    font-size: 9px;
+    font-weight: 800;
+    padding: 3px 8px;
+    border-radius: 99px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .uie-presets-gallery-card-info {
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+  }
+  .uie-presets-gallery-card-name {
+    font-size: 14px;
+    font-weight: bold;
+    color: #e1c16e;
+    margin: 0 0 6px 0;
+  }
+  .uie-presets-gallery-card-desc {
+    font-size: 11px;
+    color: rgba(225, 193, 122, 0.65);
+    margin: 0;
+    line-height: 1.4;
+    flex: 1;
+  }
+</style>
+
+<div id="uie-presets-gallery-overlay">
+  <div id="uie-presets-gallery-container">
+    <div class="uie-presets-gallery-header">
+      <h2 class="uie-presets-gallery-title">🎨 Preset Background Gallery</h2>
+      <button class="uie-presets-gallery-close" id="uie-presets-gallery-close-btn">✕</button>
+    </div>
+    <div class="uie-presets-gallery-nav">
+      <button class="uie-presets-gallery-nav-btn active" data-category="all">All Presets</button>
+      <button class="uie-presets-gallery-nav-btn" data-category="modes">Game Modes</button>
+      <button class="uie-presets-gallery-nav-btn" data-category="locations">Starting Locations</button>
+    </div>
+    <div class="uie-presets-gallery-body">
+      <div id="uie-presets-gallery-grid" class="uie-presets-gallery-grid">
+        <!-- Rendered dynamically -->
+      </div>
+    </div>
+  </div>
+</div>

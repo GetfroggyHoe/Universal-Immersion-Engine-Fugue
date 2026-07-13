@@ -1,0 +1,161 @@
+<style>
+  #uie-lfg-window {
+    position: fixed !important;
+    inset: 5vh auto auto 50% !important;
+    transform: translateX(-50%) !important;
+    width: min(900px, calc(100vw - 24px)) !important;
+    height: min(720px, calc(100vh - 48px)) !important;
+    z-index: 2147483635 !important;
+    display: none;
+    flex-direction: column;
+    overflow: hidden;
+    color: #edf8ff;
+    background: linear-gradient(180deg, rgba(13, 17, 27, .97), rgba(6, 10, 17, .99));
+    border: 1px solid rgba(153, 209, 123, .34);
+    border-radius: 8px;
+    box-shadow: 0 26px 84px rgba(0,0,0,.64), inset 0 1px rgba(255,255,255,.06);
+    font-family: Inter, system-ui, sans-serif;
+  }
+  #uie-lfg-window .mmo-head {
+    min-height: 50px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    background: rgba(6, 10, 18, .82);
+    border-bottom: 1px solid rgba(255,255,255,.08);
+  }
+  #uie-lfg-window .mmo-head-title { font-size: 12px; font-weight: 900; letter-spacing: .12em; text-transform: uppercase; color: #99d17b; }
+  #uie-lfg-window .mmo-icon-btn,
+  #uie-lfg-window button {
+    min-height: 34px;
+    border: 1px solid rgba(255,255,255,.1);
+    border-radius: 8px;
+    color: #edf8ff;
+    background: rgba(255,255,255,.04);
+    cursor: pointer;
+    font-weight: 850;
+  }
+  #uie-lfg-window .mmo-icon-btn { width: 34px; display: grid; place-items: center; padding: 0; }
+  #uie-lfg-window button:hover { border-color: rgba(153,209,123,.48); background: rgba(153,209,123,.1); }
+  .lfg-body {
+    flex: 1;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: minmax(0,1.25fr) minmax(280px,.75fr);
+    gap: 12px;
+    padding: 12px;
+    overflow: hidden;
+  }
+  .lfg-panel {
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: 8px;
+    background: rgba(255,255,255,.035);
+    overflow: hidden;
+  }
+  .lfg-panel-head {
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 10px;
+    border-bottom: 1px solid rgba(255,255,255,.07);
+  }
+  .lfg-panel-title { font-size: 11px; font-weight: 900; letter-spacing: .1em; text-transform: uppercase; color: #d5f2c6; }
+  .lfg-panel-head select,
+  #uie-lfg-window input,
+  #uie-lfg-window textarea,
+  #uie-lfg-window select {
+    min-width: 0;
+    border: 1px solid rgba(255,255,255,.12);
+    border-radius: 8px;
+    background: rgba(0,0,0,.28);
+    color: #fff;
+    padding: 8px 9px;
+    outline: none;
+  }
+  #uie-lfg-listings,
+  #uie-lfg-posts {
+    min-height: 0;
+    overflow: auto;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .lfg-row,
+  .lfg-post {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: 8px;
+    padding: 10px;
+    background: rgba(0,0,0,.22);
+  }
+  .lfg-main { min-width: 0; flex: 1; }
+  .lfg-title { font-weight: 950; color: #fff; overflow-wrap: anywhere; }
+  .lfg-title span { color: #99d17b; font-size: 12px; }
+  .lfg-meta { margin-top: 3px; color: rgba(237,248,255,.68); font-size: 12px; }
+  .lfg-meta b { color: #f4d58d; }
+  .lfg-note { margin-top: 6px; color: rgba(237,248,255,.76); font-size: 12px; line-height: 1.35; }
+  .lfg-apply { flex: 0 0 86px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 0 10px; }
+  #uie-lfg-post-form {
+    display: grid;
+    gap: 8px;
+    padding: 10px;
+    border-bottom: 1px solid rgba(255,255,255,.08);
+  }
+  #uie-lfg-post-note { resize: vertical; min-height: 68px; }
+  .lfg-applicants { width: 100%; display: grid; gap: 6px; margin-top: 8px; }
+  .lfg-applicant { display: flex; align-items: center; gap: 8px; justify-content: flex-start; padding: 8px 10px; text-align: left; }
+  .lfg-post { display: block; }
+  .lfg-empty { padding: 14px; border: 1px dashed rgba(255,255,255,.14); border-radius: 8px; color: rgba(237,248,255,.58); font-size: 12px; text-align: center; }
+  .lfg-empty.compact { padding: 8px; }
+  @media not all {
+    #uie-lfg-window { inset: 10px auto auto 50% !important; height: calc(100vh - 20px) !important; }
+    .lfg-body { grid-template-columns: 1fr; overflow: auto; }
+    .lfg-panel { min-height: 300px; }
+  }
+</style>
+
+<div id="uie-lfg-window" class="uie-window" data-open-display="flex">
+  <div class="mmo-head">
+    <div class="mmo-head-title"><i class="fa-solid fa-people-group"></i> LFG Board</div>
+    <button type="button" id="uie-lfg-refresh" class="mmo-icon-btn" title="Refresh listings"><i class="fa-solid fa-rotate"></i></button>
+    <button type="button" id="uie-lfg-close" class="mmo-icon-btn" title="Close"><i class="fa-solid fa-xmark"></i></button>
+  </div>
+  <div class="lfg-body">
+    <section class="lfg-panel">
+      <div class="lfg-panel-head">
+        <div class="lfg-panel-title">Open Listings</div>
+        <select id="uie-lfg-filter-role" style="margin-left:auto;">
+          <option>Any</option>
+          <option>Tank</option>
+          <option>Healer</option>
+          <option>DPS</option>
+        </select>
+      </div>
+      <div id="uie-lfg-listings"></div>
+    </section>
+    <section class="lfg-panel">
+      <div class="lfg-panel-head">
+        <div class="lfg-panel-title">Your Post</div>
+      </div>
+      <form id="uie-lfg-post-form">
+        <input id="uie-lfg-post-dungeon" placeholder="Dungeon or activity">
+        <select id="uie-lfg-post-role">
+          <option>DPS</option>
+          <option>Tank</option>
+          <option>Healer</option>
+        </select>
+        <textarea id="uie-lfg-post-note" placeholder="Group note"></textarea>
+        <button type="submit"><i class="fa-solid fa-bullhorn"></i> Post LFG</button>
+      </form>
+      <div id="uie-lfg-posts"></div>
+    </section>
+  </div>
+</div>

@@ -1,0 +1,105 @@
+<div id="uie-rune-root" style="height:100%; width:100%; position:relative;">
+  <style>
+    #uie-rune-root { color:#fff4df; font-family: Inter, system-ui, sans-serif; background:#3b2416; }
+    #uie-rune-bg { position:absolute; inset:0; background:radial-gradient(circle at 18% 12%, rgba(255,190,112,.24), transparent 32%), linear-gradient(135deg, #55311d, #2c1b12 64%, #17100c); }
+    #uie-rune-glass { position:absolute; inset:0; background:rgba(72,43,24,0.30); backdrop-filter: blur(2px); }
+    #uie-rune-ui { position:relative; z-index:1; height:100%; display:flex; flex-direction:column; }
+    #uie-rune-top { display:flex; gap:10px; align-items:center; padding:12px; border-bottom:1px solid rgba(255,222,172,0.18); background:rgba(70,40,22,0.40); }
+    #uie-rune-title { font-weight:900; letter-spacing:1px; color:#f0bf72; }
+    .uie-rune-btn { height:36px; padding:0 12px; border-radius:8px; border:1px solid rgba(255,222,172,0.20); background:rgba(255,245,230,0.08); color:#fff4df; font-weight:900; cursor:pointer; }
+    .uie-rune-btn.primary { border:none; background:#f0bf72; color:#28170d; }
+    .uie-rune-btn.danger { border-color:rgba(255,120,92,0.40); color:#ffb5a0; }
+    #uie-rune-grid { flex:1; min-height:0; display:grid; grid-template-columns: 1.08fr .92fr 1fr; gap:12px; padding:12px; overflow:hidden; }
+    .uie-rune-pane { border-radius:8px; border:1px solid rgba(255,222,172,0.18); background:rgba(255,245,230,0.08); overflow:hidden; display:flex; flex-direction:column; box-shadow:0 20px 48px rgba(18,10,5,0.30); }
+    .uie-rune-pane .head { padding:10px 12px; font-weight:900; border-bottom:1px solid rgba(255,222,172,0.14); color:#ffd38d; display:flex; gap:10px; align-items:center; }
+    .uie-rune-pane .body { padding:12px; overflow:auto; }
+    .uie-rune-field { margin-bottom:10px; }
+    .uie-rune-field label { display:block; font-size:12px; opacity:0.82; font-weight:900; margin-bottom:6px; }
+    .uie-rune-field input, .uie-rune-field select, .uie-rune-field textarea {
+      width:100%; border-radius:8px; border:1px solid rgba(255,222,172,0.20); background:rgba(42,24,13,0.62); color:#fff4df; padding:10px 12px; outline:none; box-sizing:border-box;
+    }
+    .uie-rune-field textarea { min-height:110px; resize:vertical; }
+    .uie-rune-swatches { display:grid; grid-template-columns: repeat(3, 1fr); gap:8px; }
+    .uie-rune-chip { display:flex; align-items:center; gap:8px; min-height:38px; padding:8px; border-radius:8px; border:1px solid rgba(255,222,172,0.16); background:rgba(42,24,13,0.34); font-size:12px; font-weight:800; cursor:pointer; }
+    .uie-rune-chip input { width:auto; }
+    #uie-rune-preview { min-height:260px; display:grid; place-items:center; border-radius:8px; background:radial-gradient(circle, rgba(255,199,123,0.22), rgba(38,21,10,0.82)); border:1px solid rgba(255,222,172,0.16); }
+    .uie-rune-sigil { width:min(72%, 280px); aspect-ratio:1; border-radius:50%; border:2px solid rgba(255,211,141,0.72); display:grid; place-items:center; box-shadow:0 0 36px rgba(255,179,88,0.28), inset 0 0 36px rgba(255,179,88,0.16); position:relative; }
+    .uie-rune-sigil::before, .uie-rune-sigil::after { content:""; position:absolute; inset:16%; border:1px solid rgba(255,211,141,0.50); transform:rotate(45deg); }
+    .uie-rune-sigil::after { inset:28%; transform:rotate(0deg); border-radius:50%; }
+    .uie-rune-sigil i { font-size:54px; color:#ffd38d; text-shadow:0 0 18px rgba(255,190,112,.65); }
+    .uie-rune-glyph { font-size:48px; color:#ffd38d; text-shadow:0 0 18px rgba(255,190,112,.65); font-weight:900; }
+    #uie-rune-trace-wrap { border-radius:8px; border:1px solid rgba(104,247,255,0.30); background:radial-gradient(circle at center, rgba(104,247,255,0.10), rgba(15,8,4,0.58)); padding:10px; }
+    #uie-rune-trace-canvas { width:100%; aspect-ratio:1; min-height:220px; display:block; border-radius:8px; border:1px dashed rgba(255,222,172,0.24); background:rgba(12,7,4,0.62); touch-action:none; cursor:crosshair; }
+    #uie-rune-trace-status { margin-top:8px; color:#baf7ff; font-size:12px; font-weight:850; }
+    #uie-rune-log { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size:12px; line-height:1.45; white-space:pre-wrap; color:rgba(255,244,223,0.84); }
+    @media not all { #uie-rune-grid { grid-template-columns:1fr; overflow:auto; } .uie-rune-pane { min-height:260px; } }
+    @media not all {
+      #uie-rune-top { height:auto; flex-wrap:wrap; }
+      #uie-rune-grid { padding:8px; gap:8px; }
+      .uie-rune-pane .body { max-height:none; }
+      .uie-rune-swatches { grid-template-columns:1fr 1fr; }
+    }
+  </style>
+  <div id="uie-rune-bg"></div>
+  <div id="uie-rune-glass"></div>
+  <div id="uie-rune-ui">
+    <div id="uie-rune-top">
+      <button class="uie-rune-btn" data-action="back-create">Back</button>
+      <div id="uie-rune-title">RUNE CREATION</div>
+      <div style="margin-left:auto; display:flex; gap:10px;">
+        <button class="uie-rune-btn danger" id="uie-rune-reset">Reset</button>
+        <button class="uie-rune-btn" id="uie-rune-ai">AI Draft</button>
+        <button class="uie-rune-btn primary" id="uie-rune-save">Create Rune</button>
+      </div>
+    </div>
+    <div id="uie-rune-grid">
+      <div class="uie-rune-pane">
+        <div class="head">Template</div>
+        <div class="body">
+          <div class="uie-rune-field"><label>Name</label><input id="uie-rune-name" placeholder="Rune of Ember Passage"></div>
+          <div class="uie-rune-field"><label>Magic School / Mode</label><input id="uie-rune-school" placeholder="Fire, warding, illusion, blood magic, star-tech"></div>
+          <div class="uie-rune-field"><label>Use Limit</label><select id="uie-rune-uses"><option value="single">Single use</option><option value="multiple" selected>Multiple use</option><option value="unlimited">Unlimited use</option></select></div>
+          <div class="uie-rune-field" id="uie-rune-charge-row"><label>Charges</label><input id="uie-rune-charges" type="number" min="2" max="999" value="3"></div>
+          <div class="uie-rune-field"><label>Rune Lock Compatibility</label><select id="uie-rune-lock-mode"><option value="auto" selected>Auto: game decides where it fits</option><option value="key">Can unlock rune locks</option><option value="seal">Can create rune locks/seals</option><option value="none">No lock behavior</option></select></div>
+          <div class="uie-rune-field"><label>Rune Design Pattern</label><textarea id="uie-rune-design" placeholder="Describe what the traced pattern means: outer circle, three diagonal cuts, spiral through center, or trace order."></textarea></div>
+          <div class="uie-rune-field"><label>Center Glyph</label><input id="uie-rune-glyph" maxlength="3" placeholder="A, *, IX"></div>
+          <div class="uie-rune-field"><label>Description / Intent</label><textarea id="uie-rune-desc" placeholder="What the rune does, what activates it, and what it should cost."></textarea></div>
+        </div>
+      </div>
+      <div class="uie-rune-pane">
+        <div class="head">Options</div>
+        <div class="body">
+          <div class="uie-rune-field"><label>Trigger</label><select id="uie-rune-trigger"><option value="touch">Touch</option><option value="spoken">Spoken phrase</option><option value="drawn">Drawn trace</option><option value="impact">Impact</option><option value="proximity">Proximity</option><option value="ritual">Ritual</option></select></div>
+          <div class="uie-rune-field"><label>Targeting</label><select id="uie-rune-targeting"><option value="self">Self</option><option value="single">Single target</option><option value="area">Area</option><option value="object">Object</option><option value="door">Door / barrier</option><option value="location">Location</option></select></div>
+          <div class="uie-rune-field"><label>Effects</label><input id="uie-rune-effects" placeholder="Burning, shield +10, unlock, teleport mark"></div>
+          <div class="uie-rune-field"><label>Costs / Risks</label><input id="uie-rune-cost" placeholder="MP 5, blood drop, focus, rare chalk"></div>
+          <div class="uie-rune-field"><label>Tags</label><div class="uie-rune-swatches">
+            <label class="uie-rune-chip"><input type="checkbox" value="combat"> Combat</label>
+            <label class="uie-rune-chip"><input type="checkbox" value="utility"> Utility</label>
+            <label class="uie-rune-chip"><input type="checkbox" value="lock"> Lock</label>
+            <label class="uie-rune-chip"><input type="checkbox" value="ward"> Ward</label>
+            <label class="uie-rune-chip"><input type="checkbox" value="crafting"> Crafting</label>
+            <label class="uie-rune-chip"><input type="checkbox" value="quest"> Quest</label>
+          </div></div>
+          <div class="uie-rune-field"><label>AI Prompt Seed</label><textarea id="uie-rune-ai-seed" placeholder="Optional: describe the scene, fantasy rules, user choice, or lock type."></textarea></div>
+        </div>
+      </div>
+      <div class="uie-rune-pane">
+        <div class="head">Trace, Preview & Log</div>
+        <div class="body" style="display:flex; flex-direction:column; gap:12px;">
+          <div id="uie-rune-trace-wrap">
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:8px;">
+              <strong style="color:#ffd38d;">Trace the Pattern</strong>
+              <button class="uie-rune-btn" id="uie-rune-clear-trace" type="button">Clear Trace</button>
+            </div>
+            <canvas id="uie-rune-trace-canvas"></canvas>
+            <div id="uie-rune-trace-status">Trace the rune pattern to enable creation.</div>
+          </div>
+          <div id="uie-rune-preview"><div class="uie-rune-sigil"><span class="uie-rune-glyph">*</span></div></div>
+          <div id="uie-rune-summary" style="font-size:13px; line-height:1.45; color:#ffe9c4;"></div>
+          <div id="uie-rune-log"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

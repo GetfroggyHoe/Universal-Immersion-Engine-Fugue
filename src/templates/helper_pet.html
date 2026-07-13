@@ -1,0 +1,32 @@
+<div id="uie-helper-pet-template" style="display:none;">
+  <style>
+    #uie-helper-pet-container {
+      user-select: none;
+      cursor: default !important;
+    }
+    #uie-helper-pet-container img,
+    #uie-helper-pet-container .pet-sprite {
+      cursor: grab !important;
+      pointer-events: none;
+    }
+    #uie-helper-pet-container.dragging,
+    #uie-helper-pet-container.dragging img,
+    #uie-helper-pet-container.dragging .pet-sprite {
+      cursor: grabbing !important;
+    }
+    #uie-helper-pet-container button {
+      line-height: 1;
+      pointer-events: auto;
+    }
+    #uie-pet-menu-modal .pet-type-btn.active {
+      border-color: #cba35c !important;
+      background: rgba(203, 163, 92, 0.28) !important;
+      color: #cba35c !important;
+    }
+    #uie-pet-menu-modal .pet-type-btn {
+      min-height: 42px !important;
+      font-size: 13px !important;
+      font-weight: 800 !important;
+    }
+  </style>
+</div>

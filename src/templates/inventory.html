@@ -1,0 +1,2940 @@
+<style>
+/* Retired mobile inventory sheet; desktop layout is used at every viewport. */
+@media not all {
+  .inventory-modal, .mobile-inventory, #uie-inventory-window {
+      background: rgba(13, 18, 28, 0.95) !important;
+      color: #e2e8f0 !important;
+      backdrop-filter: blur(4px) !important;
+      -webkit-backdrop-filter: blur(4px) !important;
+      border: 1px solid rgba(255, 255, 255, 0.08) !important;
+      border-radius: 16px 16px 0 0 !important;
+      position: fixed !important;
+      bottom: 0 !important;
+      left: 0 !important;
+      width: 100vw !important;
+      height: 85vh !important;
+      box-shadow: 0 -12px 32px rgba(0, 0, 0, 0.6) !important;
+      z-index: 200 !important;
+      /* The shared window controller owns visibility. */
+      flex-direction: column !important;
+      padding: 16px !important;
+      box-sizing: border-box !important;
+  }
+}
+
+:root {
+  --inv-glass: url("assets/ui/Modal Plates/RPG inveentory.png");
+  --inv-leather: var(--inv-life-sim-bg-v3);
+  --inv-grain: url("assets/ui/Modal Plates/Board for adventur.png");
+  --inv-bg: url("assets/ui/Modal Plates/RPG inveentory.png");
+  --inv-bg-mobile: var(--inv-life-sim-bg-v3);
+  --inv-fantasy-cozy-bg: url("assets/ui/generated/inventory-fantasy-cozy-bg.png");
+  --inv-fantasy-slot: url("assets/ui/generated/inventory-fantasy-slot-template.png");
+  --inv-futuristic-cozy-bg: url("assets/ui/generated/inventory-futuristic-cozy-bg.png");
+  --inv-futuristic-slot: url("assets/ui/generated/inventory-futuristic-slot-template.png");
+  --inv-life-sim-bg-v3: url("assets/ui/generated/inventory-life-sim-bg-v3.png");
+  --inv-fantasy-bright-bg-v3: url("assets/ui/generated/inventory-fantasy-bright-bg-v3.png");
+  --inv-fantasy-bg-v2: url("assets/ui/generated/inventory-fantasy-bg-v2.png");
+  --inv-fantasy-slot-v2: url("assets/ui/generated/inventory-fantasy-slot-v2.png");
+  --inv-futuristic-bg-v2: url("assets/ui/generated/inventory-futuristic-bg-v2.png");
+  --inv-futuristic-slot-v2: url("assets/ui/generated/inventory-futuristic-slot-v2.png");
+  --inv-mobile-fantasy-bg: url("assets/ui/generated/inventory-mobile-fantasy-bg.svg");
+  --inv-mobile-modern-bg: url("assets/ui/generated/inventory-mobile-modern-bg.svg");
+  --inv-mobile-futuristic-bg: url("assets/ui/generated/inventory-mobile-futuristic-bg.svg");
+  --inv-warm-bg-v2: url("assets/ui/generated/inventory-warm-bg-v2.png");
+  --inv-warm-slot-v2: url("assets/ui/generated/inventory-warm-slot-v2.png");
+  --inv-slot-template: var(--inv-fantasy-slot);
+  --inv-gold: #e1c17a;
+  --inv-wood: rgba(70, 40, 22, 0.75);
+  --inv-shadow: rgba(0, 0, 0, 0.75);
+  --inv-theme-bg: radial-gradient(120% 90% at 12% 0%, rgba(72, 140, 180, 0.25), transparent 45%),
+                  linear-gradient(135deg, rgba(6, 8, 12, 0.98), rgba(1, 2, 5, 0.99));
+  --inv-theme-panel: rgba(4, 6, 10, 0.84);
+  --inv-theme-panel-strong: rgba(7, 10, 16, 0.96);
+  --inv-theme-accent: #76d7ff;
+  --inv-theme-accent-2: #f6c76a;
+  --inv-theme-text: #f5f8ff;
+  --inv-theme-muted: #a9b7c8;
+  --inv-theme-border: rgba(118, 215, 255, 0.28);
+}
+
+#uie-inventory-window[data-inv-theme="fantasy"]{
+  --inv-bg: radial-gradient(circle, #f5e4bc 20%, #e0c28d 70%, #ba975d 100%);
+  --inv-glass: radial-gradient(circle, #f5e4bc 20%, #e0c28d 70%, #ba975d 100%);
+  --inv-slot-template:none;
+  --inv-theme-bg: radial-gradient(circle, #f5e4bc 20%, #e0c28d 70%, #ba975d 100%);
+  --inv-theme-panel:rgba(255, 252, 240, 0.75);
+  --inv-theme-panel-strong:rgba(247, 239, 215, 0.90);
+  --inv-theme-accent:#8b5a2b;
+  --inv-theme-accent-2:#5c3818;
+  --inv-theme-text:#000000;
+  --inv-theme-muted:#3a2a1b;
+  --inv-theme-border:rgba(139, 90, 43, 0.45);
+}
+
+#uie-inventory-window[data-inv-theme="lifesim"],
+#uie-inventory-window[data-inv-theme="modern"]{
+  --inv-bg: var(--inv-life-sim-bg-v3);
+  --inv-glass: var(--inv-life-sim-bg-v3);
+  --inv-slot-template:none;
+  --inv-theme-bg:
+    radial-gradient(120% 90% at 16% 0%, rgba(104, 191, 166, 0.30), transparent 46%),
+    linear-gradient(135deg, #eff8f5 0%, #d9ecff 48%, #ffe1d5 100%);
+  --inv-theme-panel:rgba(250, 254, 255, 0.76);
+  --inv-theme-panel-strong:rgba(255,255,255,0.94);
+  --inv-theme-accent:#398f8a;
+  --inv-theme-accent-2:#ef7f68;
+  --inv-theme-text:#263841;
+  --inv-theme-muted:#60757b;
+  --inv-theme-border:rgba(57,143,138,0.32);
+}
+
+#uie-inventory-window[data-inv-theme="futuristic"]{
+  --inv-bg: var(--inv-futuristic-cozy-bg);
+  --inv-glass: var(--inv-futuristic-cozy-bg);
+  --inv-slot-template: var(--inv-futuristic-slot);
+  --inv-theme-accent:#83ecff;
+  --inv-theme-accent-2:#b9a7ff;
+  --inv-theme-border:rgba(131,236,255,0.32);
+}
+
+#uie-inventory-window[data-inv-theme="warm"]{
+  --inv-bg: var(--inv-warm-bg-v2);
+  --inv-glass: var(--inv-warm-bg-v2);
+  --inv-slot-template: var(--inv-warm-slot-v2);
+  --inv-theme-bg:
+    radial-gradient(120% 90% at 16% 0%, rgba(200, 120, 60, 0.30), transparent 46%),
+    linear-gradient(135deg, #2a1810 0%, #1a0f08 48%, #0d0705 100%);
+  --inv-theme-panel:rgba(40, 24, 16, 0.85);
+  --inv-theme-panel-strong:rgba(60, 36, 24, 0.95);
+  --inv-theme-accent:#d4956a;
+  --inv-theme-accent-2:#f0c090;
+  --inv-theme-text:#f5e8d8;
+  --inv-theme-muted:#b8a090;
+  --inv-theme-border:rgba(212, 149, 106, 0.35);
+}
+
+#uie-inventory-window[data-inv-theme="academic"],
+#uie-inventory-window[data-inv-theme="board"]{
+  --inv-bg: url("assets/ui/Modal Plates/Board for adventur.png");
+  --inv-glass: url("assets/ui/Modal Plates/Board for adventur.png");
+  --inv-theme-accent:#f2d28b;
+  --inv-theme-accent-2:#91d0c5;
+  --inv-theme-border:rgba(242,210,139,0.3);
+}
+
+#uie-inventory-window[data-inv-theme="cooking"]{
+  --inv-bg: url("assets/ui/Modal Plates/Cooking.png");
+  --inv-glass: url("assets/ui/Modal Plates/Cooking.png");
+  --inv-theme-accent:#ffd38c;
+  --inv-theme-accent-2:#97d7a8;
+  --inv-theme-border:rgba(255,211,140,0.3);
+}
+
+#uie-inventory-window[data-inv-theme="factions"]{
+  --inv-bg: url("assets/ui/Modal Plates/Orpg factions.png");
+  --inv-glass: url("assets/ui/Modal Plates/Orpg factions.png");
+  --inv-theme-accent:#87d7ef;
+  --inv-theme-accent-2:#e0c477;
+  --inv-theme-border:rgba(135,215,239,0.3);
+}
+
+@media not all {
+  :root{ --inv-bg: var(--inv-bg-mobile); }
+}
+
+@media not all {
+  #uie-inventory-window{
+    padding: 0 !important;
+    top: 0 !important;
+    left: 0 !important;
+    transform: none !important;
+  }
+  #uie-inventory-window .uie-inv-panel{
+    width:100vw !important;
+    height:100vh !important;
+    border-radius:0 !important;
+  }
+  /* Reduce black overlay on mobile */
+  #uie-inventory-window::after {
+    background: rgba(10, 6, 5, 0.15) !important;
+    backdrop-filter: blur(1px) !important;
+  }
+  #uie-inventory-window::before {
+    opacity: 0.08 !important;
+  }
+}
+
+@media not all {
+    .uie-grid-view { grid-template-columns: repeat(3, 1fr) !important; }
+}
+
+#uie-inv-gear-menu{
+  max-height: min(72vh, 640px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(203,163,92,0.85) rgba(0,0,0,0.25);
+}
+
+#uie-inv-gear-menu::-webkit-scrollbar{ width: 8px; }
+#uie-inv-gear-menu::-webkit-scrollbar-track{ background: rgba(0,0,0,0.25); }
+#uie-inv-gear-menu::-webkit-scrollbar-thumb{ background: rgba(203,163,92,0.85); border-radius: 8px; }
+
+#uie-inventory-window {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  max-width: none;
+  max-height: none;
+  display: none;
+  top: 0;
+  left: 0;
+  transform: none !important;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(10px, 2vw, 28px);
+  box-sizing: border-box;
+  z-index: 2147483647;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  background: var(--inv-theme-bg);
+  color: var(--inv-theme-text);
+  font-family: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+  pointer-events: auto !important;
+  isolation: isolate;
+}
+
+#uie-inventory-window::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background-image: var(--inv-grain);
+  background-size: 420px 420px;
+  background-repeat: repeat;
+  opacity: 0.18;
+  mix-blend-mode: overlay;
+  pointer-events: none;
+}
+
+#uie-inventory-window::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: rgba(10, 6, 5, 0.55);
+  backdrop-filter: blur(3px);
+  pointer-events: none;
+}
+
+#uie-inventory-window[data-fullscreen="false"] {
+  inset: auto;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(1150px, 92vw);
+  height: min(950px, 92vh);
+  padding: 0;
+  align-items: stretch;
+  justify-content: stretch;
+  background: transparent;
+  border: 2px solid rgba(203, 163, 92, 0.75);
+  border-radius: 14px;
+  box-shadow: 0 20px 80px rgba(0,0,0,0.75);
+}
+
+#uie-inventory-window[data-fullscreen="false"]::before,
+#uie-inventory-window[data-fullscreen="false"]::after {
+  display: none;
+}
+
+#uie-inventory-window[data-fullscreen="false"] .uie-inv-panel {
+  width: 100%;
+  height: 100%;
+  border-radius: 12px;
+}
+
+#uie-inventory-window .uie-inv-panel {
+  position: relative;
+  z-index: 1;
+  width: min(1100px, 96vw);
+  height: min(950px, 95vh);
+  display: flex;
+  flex-direction: column;
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 0 22px 90px var(--inv-shadow), inset 0 1px rgba(255,255,255,0.08);
+  border: 1px solid var(--inv-theme-border);
+  pointer-events: auto !important;
+}
+
+.uie-view-pane{
+  position: relative;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+.uie-view-pane::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  background: rgba(0,0,0,0.35);
+  pointer-events:none;
+}
+.uie-view-pane > *{
+  position: relative;
+  z-index: 1;
+}
+
+#uie-inventory-window .uie-inv-panel::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(6, 10, 16, 0.55) 0%, rgba(6, 8, 12, 0.92) 100%),
+    var(--inv-bg);
+  background-size: cover;
+  background-position: center;
+  pointer-events: none;
+}
+
+#uie-inventory-window .uie-inv-panel::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(0,0,0,0.25) 0%, rgba(0,0,0,0.45) 100%);
+  pointer-events: none;
+}
+
+#uie-inventory-window .uie-inv-panel > * {
+  position: relative;
+  z-index: 1;
+}
+
+#uie-inventory-window .uie-inv-topbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 14px 10px 14px;
+  background: var(--inv-theme-panel-strong);
+  background-image: var(--inv-glass);
+  background-size: 420px 420px;
+  background-repeat: repeat;
+  border-bottom: 1px solid var(--inv-theme-border);
+}
+
+#uie-inventory-window .uie-inv-avatar {
+  flex: 0 0 52px;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  border: 2px solid rgba(225, 193, 122, 0.7);
+  box-shadow: 0 6px 18px rgba(0,0,0,0.55);
+  background: rgba(255,255,255,0.06);
+  backdrop-filter: blur(4px);
+  background-image: var(--inv-glass);
+  background-size: cover;
+}
+
+#uie-inventory-window .uie-inv-title {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+#uie-inventory-window .uie-inv-title .name {
+  font-size: 1.2rem;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  color: var(--inv-theme-accent);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+#uie-inventory-window .uie-inv-title .meta {
+  font-size: 0.85rem;
+  opacity: 0.85;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+#uie-inventory-window .uie-inv-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  position: relative;
+}
+
+#uie-inventory-window .uie-inv-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  background: rgba(0,0,0,0.25);
+  border: 1px solid var(--inv-theme-border);
+  color: rgba(255, 255, 255, 0.85);
+  user-select: none;
+}
+
+#uie-inventory-window .uie-inv-icon i {
+  font-size: 16px;
+}
+
+#uie-inventory-window .uie-inv-icon:hover {
+  background: rgba(0,0,0,0.32);
+  color: #fff;
+}
+
+#uie-inventory-window .uie-inv-icon.active {
+  color: #cba35c;
+  box-shadow: 0 0 14px rgba(203, 163, 92, 0.35);
+  border-color: rgba(203, 163, 92, 0.45);
+}
+
+#uie-inventory-window .uie-inv-currency {
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: var(--inv-theme-panel);
+  border: 1px solid var(--inv-theme-border);
+  font-weight: 700;
+  color: var(--inv-theme-accent-2);
+}
+
+#uie-inventory-window .uie-inv-close {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  background: rgba(120, 20, 20, 0.55);
+  border: 1px solid rgba(225, 193, 122, 0.25);
+  user-select: none;
+}
+
+#uie-inventory-window .uie-inv-close:hover {
+  background: rgba(160, 20, 20, 0.65);
+}
+
+#uie-inventory-window #tabs {
+  display: flex;
+  gap: 14px;
+  padding: 10px 14px 6px 14px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-x;
+  scrollbar-width: none;
+  align-items: center;
+}
+
+#uie-inventory-window #tabs::-webkit-scrollbar {
+  display: none;
+}
+
+#uie-inventory-window .tab-wrap {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+#uie-inventory-window .tab-pill {
+  flex: 0 0 auto;
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  background: rgba(0, 0, 0, 0.15);
+  border: 1px solid rgba(255,255,255,0.10);
+  user-select: none;
+}
+
+#uie-inventory-window .tab-pill i {
+  font-size: 20px;
+  color: rgba(255,255,255,0.80);
+  transform: scale(1);
+  transition: transform 120ms ease, color 120ms ease, filter 120ms ease;
+}
+
+#uie-inventory-window .tab-pill:hover i {
+  transform: scale(1.15);
+  color: #fff;
+}
+
+#uie-inventory-window .tab-wrap.active .tab-pill i {
+  transform: scale(1.22);
+  color: var(--inv-theme-accent);
+  filter: drop-shadow(0 0 10px color-mix(in srgb, var(--inv-theme-accent), transparent 45%));
+}
+
+#uie-inventory-window .tab-name {
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.4px;
+  color: rgba(255,255,255,0.72);
+  user-select: none;
+}
+
+#uie-inventory-window .tab-wrap.active .tab-name {
+  color: var(--inv-theme-accent);
+}
+
+#uie-inventory-window .uie-inv-body {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  grid-template-rows: 1fr auto;
+  grid-template-areas:
+    "doll pane"
+    "stats stats";
+  gap: 14px;
+  padding: 14px;
+  box-sizing: border-box;
+}
+
+#uie-inventory-window #paper-doll {
+  grid-area: doll;
+  min-height: 0;
+  border-radius: 14px;
+  border: 1px solid rgba(225, 193, 122, 0.22);
+  overflow: hidden;
+  background-image: var(--inv-leather);
+  background-size: 420px 420px;
+  background-repeat: repeat;
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,0.2);
+}
+
+#uie-inventory-window #paper-doll .uie-inv-side {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  box-sizing: border-box;
+  padding: 12px;
+  gap: 12px;
+}
+
+#uie-inventory-window .uie-inv-card {
+  border-radius: 12px;
+  border: 1px solid rgba(225, 193, 122, 0.2);
+  background: rgba(255,255,255,0.06);
+  backdrop-filter: blur(6px);
+  background-image: var(--inv-glass);
+  background-size: 420px 420px;
+  background-repeat: repeat;
+  padding: 10px;
+}
+
+#uie-inventory-window .uie-inv-card .label {
+  font-weight: 800;
+  letter-spacing: 0.6px;
+  color: var(--inv-theme-accent);
+  margin-bottom: 6px;
+}
+
+#uie-inventory-window .uie-inv-side .portrait {
+  flex: 1;
+  min-height: 160px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  border: 1px solid rgba(225, 193, 122, 0.2);
+  background: rgba(255,255,255,0.05);
+  background-image: var(--inv-glass);
+  background-size: 420px 420px;
+  background-repeat: repeat;
+  overflow: hidden;
+}
+
+#uie-inventory-window .uie-inv-side .portrait img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+#uie-inventory-window #pane {
+  grid-area: pane;
+  min-height: 0;
+  border-radius: 14px;
+  border: 1px solid rgba(225, 193, 122, 0.22);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  background: rgba(255,255,255,0.05);
+  background-image: var(--inv-glass);
+  background-size: 420px 420px;
+  background-repeat: repeat;
+}
+
+#uie-inventory-window .uie-inv-content {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  padding: 12px;
+  background: rgba(255,255,255,0.02);
+}
+
+#uie-inventory-window .uie-view-pane {
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+ #uie-inventory-window #uie-view-items{ overflow:auto; -webkit-overflow-scrolling: touch; }
+
+#uie-inventory-window .uie-inv-pager {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  padding: 12px 0 2px 0;
+  opacity: 0.8;
+}
+
+#uie-inventory-window .uie-inv-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.25);
+  border: 1px solid rgba(225, 193, 122, 0.25);
+}
+
+#uie-inventory-window .uie-inv-dot.active {
+  background: rgba(255, 224, 163, 0.75);
+}
+
+#uie-inventory-window #bottom-stats {
+  grid-area: stats;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  padding: 12px 14px 14px 14px;
+  background: rgba(255,255,255,0.05);
+  background-image: var(--inv-glass);
+  background-size: 420px 420px;
+  background-repeat: repeat;
+  border-top: 1px solid rgba(225, 193, 122, 0.18);
+}
+
+#uie-inv-status-strip{
+  grid-column: 1 / -1;
+}
+
+#uie-inventory-window #bottom-stats .stat {
+  border-radius: 12px;
+  border: 1px solid rgba(225, 193, 122, 0.2);
+  background: rgba(255,255,255,0.06);
+  background-image: var(--inv-glass);
+  background-size: 420px 420px;
+  background-repeat: repeat;
+  padding: 10px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+#uie-inventory-window #bottom-stats .stat .v {
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: rgba(255,255,255,0.85);
+  text-align: right;
+  letter-spacing: 0.2px;
+}
+
+#uie-inventory-window #bottom-stats .stat .k {
+  font-size: 0.75rem;
+  opacity: 0.85;
+  font-weight: 800;
+  color: var(--inv-gold);
+  letter-spacing: 0.6px;
+}
+
+#uie-inventory-window #bottom-stats .stat .bar {
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.18);
+  overflow: hidden;
+  border: 1px solid rgba(225, 193, 122, 0.18);
+}
+
+#uie-inventory-window #bottom-stats .stat .fill {
+  height: 100%;
+  width: 60%;
+  border-radius: 999px;
+}
+
+#uie-inventory-window #bottom-stats .stat.hp .fill { background: linear-gradient(90deg, #ff3b3b, #b81212); }
+#uie-inventory-window #bottom-stats .stat.mp .fill { background: linear-gradient(90deg, #6f6bff, #2f3fe3); }
+#uie-inventory-window #bottom-stats .stat.ap .fill { background: linear-gradient(90deg, #ffd56a, #e18f1f); }
+#uie-inventory-window #bottom-stats .stat.xp .fill { background: linear-gradient(90deg, #ffda7a, #b8860b); }
+
+#uie-inventory-window[data-active-tab="equipment"] .uie-inv-body {
+    display: flex !important;
+    flex-direction: column !important;
+    padding: 0 !important;
+    gap: 0 !important;
+  }
+  #uie-inventory-window[data-active-tab="equipment"] #pane {
+    flex: 1 !important;
+    width: 100% !important;
+    height: auto !important;
+    border: none !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+  }
+  #uie-inventory-window[data-active-tab="equipment"] #uie-view-equip {
+    padding: 4px;
+  }
+  #uie-inventory-window[data-active-tab="equipment"] #paper-doll,
+  #uie-inventory-window[data-active-tab="equipment"] #bottom-stats,
+  #uie-inventory-window[data-active-tab="equipment"] #uie-inv-mobile-ident,
+  #uie-inventory-window[data-active-tab="equipment"] #uie-inv-status-strip {
+    display: none !important;
+  }
+
+  @media not all {
+  #uie-inventory-window .uie-inv-body {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr auto;
+    grid-template-areas:
+      "doll"
+      "pane"
+      "stats";
+  }
+  #uie-inventory-window #paper-doll .uie-inv-side {
+    flex-direction: row;
+    align-items: stretch;
+  }
+  #uie-inventory-window #paper-doll .portrait {
+    min-height: 120px;
+    flex: 1;
+  }
+}
+
+@media not all {
+  #uie-inventory-window {
+    padding: 0;
+  }
+  #uie-inventory-window[data-active-tab="equipment"]::after {
+    background: rgba(10, 6, 5, 0.05) !important;
+    backdrop-filter: blur(0px) !important;
+  }
+  #uie-inventory-window[data-active-tab="equipment"]::before {
+    opacity: 0.02 !important;
+  }
+  #uie-inventory-window{ --uie-mobile-toprow: 190px; }
+  #uie-inventory-window .uie-inv-panel {
+    width: 100vw;
+    height: 100vh;
+    border-radius: 0;
+    border: none;
+  }
+  #uie-inventory-window[data-active-tab="equipment"] #uie-view-equip .equip-mid .slot-name{
+    display:block !important;
+    font-size:12px !important;
+    line-height:1.05 !important;
+    opacity:0.92 !important;
+  }
+  #uie-inventory-window .uie-inv-topbar {
+    padding: 8px 10px 6px 10px;
+    gap: 8px;
+  }
+  #uie-inventory-window .uie-inv-avatar,
+  #uie-inventory-window .uie-inv-title {
+    display: none;
+  }
+  #uie-inventory-window .uie-inv-currency {
+    margin-left: 0;
+    padding: 6px 10px;
+    border-radius: 10px;
+    font-weight: 900;
+    font-size: 13px;
+    background: rgba(255,255,255,0.06);
+    background-image: var(--inv-glass);
+    background-size: 420px 420px;
+    background-repeat: repeat;
+    border: 1px solid rgba(225, 193, 122, 0.20);
+    color: #ffdf93;
+  }
+  #uie-inventory-window #tabs {
+    order: 1;
+    padding: 6px 10px 8px 10px;
+    border-top: none;
+    border-bottom: 1px solid rgba(225, 193, 122, 0.18);
+    background: rgba(255,255,255,0.06);
+    background-image: var(--inv-glass);
+    background-size: 420px 420px;
+    background-repeat: repeat;
+    gap: 10px;
+  }
+  #uie-inventory-window .tab-pill {
+    width: 38px;
+    height: 38px;
+    background: rgba(255,255,255,0.06);
+    background-image: var(--inv-glass);
+    background-size: 420px 420px;
+    background-repeat: repeat;
+    border-color: rgba(255,255,255,0.2);
+  }
+  #uie-inventory-window .tab-pill i {
+    font-size: 18px;
+    color: #fff;
+    opacity: 1;
+  }
+  #uie-inventory-window .uie-inv-body {
+    order: 2;
+    padding: 8px;
+    gap: 8px;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto 1fr;
+    grid-template-areas:
+      "doll stats"
+      "pane pane";
+  }
+  #uie-inventory-window #paper-doll,
+  #uie-inventory-window #bottom-stats{
+    height: var(--uie-mobile-toprow);
+    max-height: var(--uie-mobile-toprow);
+    overflow: hidden;
+  }
+  #uie-inventory-window #bottom-stats {
+    order: 3;
+    grid-area: stats;
+    grid-template-columns: 1fr;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 6px;
+    padding: 0;
+    border-top: none;
+    background: transparent;
+  }
+  #uie-inventory-window #paper-doll {
+    border: none;
+    background: transparent;
+    box-shadow: none;
+    min-height: 0;
+  }
+  #uie-inventory-window #paper-doll .uie-inv-side {
+    padding: 0;
+    gap: 6px;
+    height: 100%;
+  }
+  #uie-inventory-window .uie-inv-card {
+    display: none;
+  }
+  #uie-inventory-window .uie-inv-side .portrait {
+    border: none;
+    background: rgba(255,255,255,0.05);
+    background-image: var(--inv-glass);
+    background-size: 420px 420px;
+    background-repeat: repeat;
+    border-radius: 12px;
+    min-height: 0;
+    height: 100%;
+    overflow: hidden;
+  }
+  #uie-inventory-window .uie-inv-side .portrait img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center top;
+  }
+  #uie-inventory-window #pane {
+    border: none;
+    border-radius: 14px;
+    background: rgba(255,255,255,0.05);
+    background-image: var(--inv-glass);
+    background-size: 420px 420px;
+    background-repeat: repeat;
+  }
+  #uie-inventory-window #bottom-stats .stat {
+    background: rgba(255,255,255,0.06);
+    background-image: var(--inv-glass);
+    background-size: 420px 420px;
+    background-repeat: repeat;
+    border: 1px solid rgba(225, 193, 122, 0.15);
+    padding: 0;
+    border-radius: 999px; /* Sleeker pill shape */
+    display: block;
+    position: relative;
+    height: 16px; /* Thinner */
+    overflow: hidden;
+  }
+  #uie-inventory-window #bottom-stats .stat .k {
+    display: none;
+  }
+  #uie-inventory-window #bottom-stats .stat .bar {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    background: transparent;
+    border-radius: 0;
+    border: none;
+  }
+  #uie-inventory-window #bottom-stats .stat .fill {
+    height: 100%;
+    border-radius: 0;
+    opacity: 0.85;
+  }
+  #uie-inventory-window #bottom-stats .stat .v {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    font-size: 10px;
+    font-weight: 900;
+    color: #fff;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.9);
+    z-index: 2;
+    letter-spacing: 0.5px;
+  }
+  #uie-inventory-window #bottom-stats .stat::after { content: none !important; display:none !important; }
+  #uie-inv-mobile-ident {
+    display: flex !important;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    padding: 8px 8px 0 8px;
+    grid-column: 1 / -1;
+  }
+  #uie-inv-mobile-ident .name{ display:none !important; }
+  #uie-inv-mobile-ident .meta{
+    display:block !important;
+    font-weight: 900;
+    letter-spacing: 0.6px;
+    color: rgba(255,255,255,0.82);
+    text-align:center;
+  }
+  #uie-inv-status-strip{
+    display:flex !important;
+    margin: 6px 8px 0 8px;
+    justify-content: center;
+  }
+  #uie-inv-status-strip .inv-fx{
+    width:26px;height:26px;border-radius:10px;
+    border:1px solid rgba(255,255,255,0.12);
+    background: rgba(0,0,0,0.25);
+    display:grid;place-items:center;
+    font-weight:900;
+    color:rgba(255,255,255,0.9);
+    user-select:none;
+  }
+}
+
+@media not all {
+  #uie-inv-sparkle-menu.uie-create-menu {
+    position: fixed !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    z-index: 2147483645 !important;
+  }
+  #uie-inv-sparkle-menu .uie-create-row {
+    flex-wrap: wrap;
+  }
+  #uie-inv-sparkle-menu .uie-create-row > * {
+    flex: 1 1 auto;
+  }
+  #uie-create-count,
+  #uie-create-stack-qty {
+    flex: 0 0 60px !important;
+    width: 60px !important;
+  }
+}
+
+#uie-inv-sparkle-menu.uie-create-menu{
+  position: absolute;
+  top: 70px;
+  right: 40px;
+  z-index: 2147483646;
+  width: min(520px, calc(100vw - 24px));
+  max-height: min(760px, calc(100vh - 24px));
+  overflow-y: auto;
+  overflow-x: hidden;
+  border-radius: 8px;
+  border: 1px solid var(--inv-theme-border);
+  background: var(--inv-theme-panel-strong);
+  box-shadow: 0 22px 70px rgba(0,0,0,0.78), inset 0 1px rgba(255,255,255,0.08);
+  padding: 14px;
+  box-sizing: border-box;
+}
+
+#uie-inv-sparkle-menu.uie-create-menu * {
+  box-sizing: border-box;
+}
+#uie-inv-sparkle-menu.uie-create-menu::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  background:
+    radial-gradient(110% 80% at 12% 0%, color-mix(in srgb, var(--inv-theme-accent), transparent 78%) 0%, transparent 56%),
+    linear-gradient(180deg, rgba(255,255,255,0.04) 0%, rgba(0,0,0,0.42) 100%);
+  background-size: cover;
+  background-position: center;
+  pointer-events:none;
+}
+#uie-inv-sparkle-menu.uie-create-menu > *{ position: relative; z-index: 1; }
+#uie-inv-sparkle-menu .uie-create-top{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin-bottom:10px;
+  position: sticky;
+  top: 0;
+  background: rgba(15,10,8,0.94);
+  padding: 4px 0 10px 0;
+  z-index: 2;
+}
+#uie-inv-sparkle-menu .uie-create-title{
+  font-weight: 900;
+  letter-spacing: 0.6px;
+  color: var(--inv-theme-accent);
+}
+#uie-inv-sparkle-menu .uie-create-status{
+  margin-left:auto;
+  font-size: 12px;
+  font-weight: 900;
+  opacity: 0.85;
+  color: rgba(255,255,255,0.70);
+  max-width: 55%;
+  overflow:hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+#uie-inv-sparkle-menu .uie-create-close{
+  width:32px;height:32px;border-radius:8px;
+  display:grid;place-items:center;
+  border:1px solid rgba(255,255,255,0.12);
+  background: rgba(0,0,0,0.25);
+  color: rgba(255,255,255,0.90);
+  font-weight: 900;
+  cursor: pointer;
+  user-select:none;
+}
+#uie-inv-sparkle-menu .uie-create-row{ display:flex; gap:10px; margin-bottom:10px; }
+#uie-inv-sparkle-menu .uie-create-select{
+  flex: 1 1 auto;
+  height: 38px;
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.14);
+  background: rgba(0,0,0,0.28);
+  color: rgba(255,255,255,0.92);
+  padding: 0 10px;
+  outline: none;
+}
+#uie-inv-sparkle-menu .uie-create-btn{
+  flex: 0 0 auto;
+  height: 38px;
+  padding: 0 14px;
+  border-radius: 8px;
+  border: 1px solid var(--inv-theme-border);
+  background: color-mix(in srgb, var(--inv-theme-accent), transparent 84%);
+  color: var(--inv-theme-accent);
+  font-weight: 900;
+  cursor: pointer;
+}
+#uie-inv-sparkle-menu .uie-create-btn:active{ transform: translateY(1px); }
+#uie-inv-sparkle-menu .uie-create-desc{
+  width: 100%;
+  height: 86px;
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(0,0,0,0.28);
+  color: rgba(255,255,255,0.92);
+  padding: 10px 12px;
+  resize: vertical;
+  outline: none;
+}
+#uie-inv-sparkle-menu .uie-create-select:focus,
+#uie-inv-sparkle-menu .uie-create-desc:focus{
+  border-color: rgba(203, 163, 92,0.55);
+  box-shadow: 0 0 0 3px rgba(203, 163, 92,0.12);
+}
+
+#uie-inv-sparkle-menu .uie-create-quick{
+  display:flex;
+  gap:10px;
+  margin-top:10px;
+}
+#uie-inv-sparkle-menu .uie-create-quick .qbox{
+  flex:1 1 0;
+  display:flex;
+  gap:8px;
+  align-items:center;
+  padding:8px;
+  border-radius:14px;
+  border:1px solid rgba(255,255,255,0.10);
+  background: rgba(0,0,0,0.20);
+}
+#uie-inv-sparkle-menu .uie-create-quick input{
+  flex:1 1 auto;
+  height:34px;
+  border-radius:12px;
+  border:1px solid rgba(255,255,255,0.12);
+  background: rgba(0,0,0,0.25);
+  color: rgba(255,255,255,0.92);
+  padding:0 10px;
+  outline:none;
+  font-weight:900;
+}
+#uie-inv-sparkle-menu .uie-create-quick button{
+  height:34px;
+  padding:0 10px;
+  border-radius:12px;
+  border:1px solid rgba(203, 163, 92,0.40);
+  background: rgba(203, 163, 92,0.16);
+  color: rgba(203, 163, 92,0.95);
+  font-weight:900;
+  cursor:pointer;
+}
+@media not all {
+  #uie-inv-sparkle-menu .uie-create-quick{ flex-direction:column; }
+  #uie-inv-sparkle-menu .uie-create-quick .qbox{ width:100%; }
+  #uie-inv-sparkle-menu .uie-create-quick button{ min-width:72px; }
+}
+
+@media not all {
+  #uie-inventory-window[data-active-tab="equipment"] #paper-doll,
+  #uie-inventory-window[data-active-tab="equipment"] #bottom-stats,
+  #uie-inventory-window[data-active-tab="equipment"] #uie-inv-mobile-ident,
+  #uie-inventory-window[data-active-tab="equipment"] #uie-inv-status-strip {
+    display: none !important;
+  }
+  #uie-inventory-window[data-active-tab="equipment"] .uie-inv-body {
+    grid-template-columns: 1fr !important;
+    grid-template-rows: 1fr;
+    grid-template-areas: "pane";
+    padding: 0 !important;
+    gap: 0 !important;
+  }
+  #uie-inventory-window[data-active-tab="equipment"] #pane {
+    border-radius: 0;
+    border: none;
+    background: transparent;
+  }
+  #uie-inventory-window[data-active-tab="equipment"] #uie-view-equip {
+    padding: 4px;
+  }
+}
+
+#uie-view-items .uie-inv-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: stretch;
+}
+#uie-view-items .uie-inv-grid .uie-item {
+  min-height: 124px;
+  flex: 0 0 clamp(176px, 15vw, 240px);
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  width: clamp(176px, 15vw, 240px);
+}
+#uie-view-items .uie-inv-grid .uie-thumb {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  flex: 0 0 auto;
+  min-height: 0;
+}
+#uie-view-items .uie-inv-grid .uie-item-name {
+  flex: 0 0 auto;
+}
+
+#uie-inventory-window[data-inv-theme="fantasy"] {
+  --inv-theme-bg: radial-gradient(circle, #f5e4bc 20%, #e0c28d 70%, #ba975d 100%);
+  --inv-theme-panel: rgba(255, 252, 240, 0.75);
+  --inv-theme-panel-strong: rgba(247, 239, 215, 0.90);
+  --inv-theme-accent: #8b5a2b;
+  --inv-theme-accent-2: #5c3818;
+  --inv-theme-border: rgba(139, 90, 43, 0.45);
+}
+#uie-inventory-window[data-inv-theme="lifesim"],
+#uie-inventory-window[data-inv-theme="modern"] {
+  --inv-theme-bg: radial-gradient(100% 80% at 8% 4%, rgba(104, 191, 166, 0.26), transparent 46%),
+                  linear-gradient(135deg, #eff8f5, #d9ecff 58%, #ffe1d5);
+  --inv-theme-panel: rgba(250, 254, 255, 0.76);
+  --inv-theme-panel-strong: rgba(255,255,255,0.94);
+  --inv-theme-accent: #398f8a;
+  --inv-theme-accent-2: #ef7f68;
+  --inv-theme-border: rgba(57,143,138,0.32);
+}
+#uie-inventory-window[data-inv-theme="futuristic"] {
+  --inv-theme-bg: radial-gradient(100% 90% at 12% 0%, rgba(0, 229, 255, 0.24), transparent 45%),
+                  linear-gradient(135deg, #030711, #071827 52%, #090a14);
+  --inv-theme-panel: rgba(3, 17, 30, 0.72);
+  --inv-theme-panel-strong: rgba(3, 12, 23, 0.94);
+  --inv-theme-accent: #00e5ff;
+  --inv-theme-accent-2: #b6ff6d;
+  --inv-theme-border: rgba(0, 229, 255, 0.34);
+}
+#uie-inventory-window[data-inv-theme="academic"] {
+  --inv-theme-bg: radial-gradient(120% 90% at 12% 0%, rgba(85, 118, 255, 0.22), transparent 46%),
+                  linear-gradient(135deg, #101725, #1a1720 60%, #0d1218);
+  --inv-theme-panel: rgba(22, 27, 39, 0.78);
+  --inv-theme-panel-strong: rgba(18, 22, 32, 0.94);
+  --inv-theme-accent: #ffd166;
+  --inv-theme-accent-2: #9ddcff;
+  --inv-theme-border: rgba(255, 209, 102, 0.3);
+}
+
+#uie-inv-theme-row {
+  display:flex;
+  gap:6px;
+  align-items:center;
+  padding:6px 0 2px;
+}
+.uie-inv-theme-chip {
+  width:28px;
+  height:28px;
+  border-radius:8px;
+  border:1px solid rgba(255,255,255,0.16);
+  cursor:pointer;
+}
+.uie-inv-theme-chip.active { outline:2px solid var(--inv-theme-accent); outline-offset:2px; }
+
+/* RPG plate inventory shell. Keeps controllers/data, replaces the old HUD shell. */
+#uie-inventory-window{
+  --uie-rpg-shell:url("assets/ui/Modal Plates/RPG inveentory.png");
+  --uie-rpg-board:url("assets/ui/Modal Plates/Board for adventur.png");
+  background:radial-gradient(80% 80% at 50% 50%, rgba(24,16,10,0.22), rgba(0,0,0,0.86)), #090807 !important;
+  padding:clamp(8px, 1.6vw, 22px) !important;
+}
+#uie-inventory-window::before,
+#uie-inventory-window::after,
+#uie-inventory-window .uie-inv-panel::before,
+#uie-inventory-window .uie-inv-panel::after{
+  display:none !important;
+}
+#uie-inventory-window .uie-inv-panel{
+  width:min(1120px, 98vw) !important;
+  height:min(860px, 96vh) !important;
+  display:grid !important;
+  grid-template-columns:84px minmax(0, 1fr) 52px !important;
+  grid-template-rows:76px minmax(0, 1fr) !important;
+  grid-template-areas:"top top top" "tabs body rail" !important;
+  gap:0 !important;
+  border:0 !important;
+  border-radius:8px !important;
+  overflow:hidden !important;
+  background:linear-gradient(180deg, rgba(40,22,10,0.2), rgba(12,7,4,0.42)), var(--uie-rpg-shell) center / 100% 100% no-repeat !important;
+  box-shadow:0 24px 90px rgba(0,0,0,0.72) !important;
+  padding:22px 34px 30px 26px !important;
+  box-sizing:border-box !important;
+}
+#uie-inventory-window .uie-inv-topbar{
+  grid-area:top !important;
+  min-height:0 !important;
+  padding:0 4px 10px 12px !important;
+  gap:8px !important;
+  background:transparent !important;
+  background-image:none !important;
+  border:0 !important;
+}
+#uie-inventory-window .uie-inv-avatar,
+#uie-inventory-window .uie-inv-title,
+#uie-inventory-window #paper-doll,
+#uie-inventory-window #bottom-stats{
+  display:none !important;
+}
+#uie-inventory-window .uie-inv-actions{
+  width:100% !important;
+  margin-left:0 !important;
+  justify-content:flex-end !important;
+}
+#uie-inventory-window .uie-inv-currency{
+  margin-right:auto !important;
+  border-radius:4px !important;
+  background:rgba(44,25,13,0.68) !important;
+  border:1px solid rgba(118,72,32,0.54) !important;
+  color:#f4d18a !important;
+}
+#uie-inventory-window .uie-inv-icon,
+#uie-inventory-window .uie-inv-close{
+  width:36px !important;
+  height:36px !important;
+  border-radius:4px !important;
+  background:rgba(46,27,16,0.72) !important;
+  border:1px solid rgba(128,82,40,0.58) !important;
+  color:#f2d7a2 !important;
+}
+#uie-inventory-window .uie-inv-close{
+  background:rgba(88,31,22,0.76) !important;
+}
+#uie-inventory-window #tabs{
+  grid-area:tabs !important;
+  display:flex !important;
+  flex-direction:column !important;
+  gap:8px !important;
+  padding:12px 10px 12px 2px !important;
+  overflow:hidden auto !important;
+  background:transparent !important;
+  border:0 !important;
+}
+#uie-inventory-window .tab-wrap{
+  width:52px !important;
+  min-height:56px !important;
+  gap:2px !important;
+}
+#uie-inventory-window .tab-pill{
+  width:46px !important;
+  height:42px !important;
+  border-radius:4px !important;
+  background:rgba(39,23,13,0.7) !important;
+  border:1px solid rgba(119,75,35,0.56) !important;
+}
+#uie-inventory-window .tab-wrap.active .tab-pill{
+  background:rgba(111,69,31,0.76) !important;
+  border-color:rgba(233,183,94,0.7) !important;
+  box-shadow:inset 0 0 12px rgba(245,200,117,0.18), 0 0 12px rgba(0,0,0,0.36) !important;
+}
+#uie-inventory-window .tab-pill i{
+  color:#edcf96 !important;
+}
+#uie-inventory-window .tab-name{
+  max-width:52px !important;
+  overflow:hidden !important;
+  text-overflow:ellipsis !important;
+  white-space:nowrap !important;
+  font-size:9px !important;
+  letter-spacing:0 !important;
+  color:#e0bd7e !important;
+}
+#uie-inventory-window .uie-inv-body{
+  grid-area:body !important;
+  display:block !important;
+  min-width:0 !important;
+  min-height:0 !important;
+  padding:12px 14px 14px !important;
+  border:1px solid rgba(96,57,27,0.44) !important;
+  border-radius:4px !important;
+  background:linear-gradient(180deg, rgba(255,244,207,0.05), rgba(51,30,15,0.22)), var(--uie-rpg-board) center / cover no-repeat !important;
+  box-shadow:inset 0 0 0 1px rgba(247,207,133,0.08), inset 0 0 36px rgba(0,0,0,0.32) !important;
+  overflow:hidden !important;
+}
+#uie-inventory-window #pane{
+  width:100% !important;
+  height:100% !important;
+  min-height:0 !important;
+  border:0 !important;
+  border-radius:0 !important;
+  background:transparent !important;
+  overflow:hidden !important;
+}
+#uie-inventory-window .uie-inv-content{
+  width:100% !important;
+  height:100% !important;
+  padding:0 !important;
+  background:transparent !important;
+}
+#uie-inventory-window .uie-view-pane{
+  background:rgba(20,13,8,0.32) !important;
+  border-radius:4px !important;
+}
+#uie-inventory-window .uie-view-pane::before{
+  background:rgba(0,0,0,0.1) !important;
+}
+
+@media not all {
+  #uie-inventory-window .uie-inv-panel{
+    width:100vw !important;
+    height:100dvh !important;
+    grid-template-columns:1fr !important;
+    grid-template-rows:54px 62px minmax(0, 1fr) !important;
+    grid-template-areas:"top" "tabs" "body" !important;
+    padding:10px !important;
+  }
+  #uie-inventory-window #tabs{
+    flex-direction:row !important;
+    overflow:auto hidden !important;
+    padding:8px 0 !important;
+  }
+  #uie-inventory-window .tab-wrap{
+    flex:0 0 52px !important;
+  }
+  #uie-inventory-window .uie-inv-body{
+    padding:8px !important;
+  }
+}
+.uie-create-mini-label {
+  flex:0 0 112px;
+  min-width:112px;
+  align-self:center;
+  color:var(--inv-theme-muted);
+  font-size:11px;
+  font-weight:900;
+  letter-spacing:.04em;
+  text-transform:uppercase;
+}
+.uie-create-hint {
+  margin:-4px 0 10px;
+  color:var(--inv-theme-muted);
+  font-size:11px;
+  font-weight:750;
+  line-height:1.35;
+}
+/* Inventory background cleanup only. Preserve the existing inventory layout. */
+#uie-inventory-window,
+#uie-inventory-window[data-fullscreen="false"]{
+  background:
+    radial-gradient(95% 80% at 18% 0%, rgba(48, 79, 110, 0.20), transparent 50%),
+    linear-gradient(135deg, rgba(9, 13, 19, 0.54), rgba(5, 7, 11, 0.62)),
+    var(--inv-bg) center / cover no-repeat,
+    linear-gradient(135deg, rgba(9, 13, 19, 0.96), rgba(5, 7, 11, 0.98)) !important;
+}
+#uie-inventory-window::before,
+#uie-inventory-window::after,
+#uie-inventory-window .uie-inv-panel::before,
+#uie-inventory-window .uie-inv-panel::after,
+#uie-inventory-window .uie-view-pane::before{
+  background-image:none !important;
+}
+#uie-inventory-window .uie-inv-panel,
+#uie-inventory-window .uie-inv-body,
+#uie-inventory-window .uie-inv-topbar,
+#uie-inventory-window #tabs,
+#uie-inventory-window #pane,
+#uie-inventory-window .uie-inv-card,
+#uie-inventory-window #paper-doll,
+#uie-inventory-window #bottom-stats,
+#uie-inventory-window .uie-view-pane{
+  background-image:none !important;
+}
+#uie-inventory-window *,
+#uie-activities-window *{
+  transition-duration:0ms !important;
+  animation-duration:0ms !important;
+}
+
+#uie-inventory-window .uie-inv-preset-select-wrap {
+  height: 36px;
+  min-width: 168px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 10px;
+  border-radius: 8px;
+  border: 1px solid var(--inv-theme-border);
+  background: rgba(255,255,255,0.08);
+  color: var(--inv-theme-text);
+}
+#uie-inventory-window .uie-inv-preset-select-wrap i {
+  color: var(--inv-theme-accent);
+  font-size: 14px;
+}
+#uie-inventory-window #uie-inv-theme-select {
+  min-width: 0;
+  flex: 1 1 auto;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--inv-theme-text);
+  font-weight: 800;
+  font-size: 12px;
+}
+#uie-inventory-window #uie-inv-theme-select option {
+  color: #152033;
+}
+
+#uie-inventory-window #uie-view-items #uie-items-grid-inner.uie-grid {
+  --uie-item-card-w: clamp(176px, 15vw, 240px);
+  display: flex !important;
+  flex-wrap: wrap !important;
+  justify-content: flex-start !important;
+  align-content: start !important;
+  align-items: stretch !important;
+  gap: 14px !important;
+  padding: 14px !important;
+  border: 1px solid rgba(255,255,255,0.10) !important;
+  border-radius: 8px !important;
+  background: rgba(2,6,12,0.30) !important;
+}
+#uie-inventory-window #uie-view-items .uie-item {
+  width: var(--uie-item-card-w) !important;
+  flex: 0 0 var(--uie-item-card-w) !important;
+  min-height: 196px !important;
+  aspect-ratio: auto !important;
+  border-radius: 8px !important;
+  margin: 0 !important;
+  border: 1px solid rgba(255,255,255,0.20) !important;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.20), rgba(255,255,255,0.08)),
+    var(--inv-slot-template) center / cover no-repeat !important;
+  box-shadow: 0 10px 24px rgba(20,20,24,0.20) !important;
+}
+#uie-inventory-window #uie-view-items .uie-thumb {
+  margin: 9px 9px 0 !important;
+  width: calc(100% - 18px) !important;
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  border-radius: 6px !important;
+  background: rgba(255,255,255,0.16) !important;
+  border: 1px solid rgba(255,255,255,0.16) !important;
+  overflow: hidden !important;
+  padding: 6px !important;
+  box-sizing: border-box !important;
+}
+#uie-inventory-window #uie-view-items .uie-thumb img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: contain !important;
+  display: block !important;
+}
+#uie-inventory-window #uie-view-items .uie-item-body {
+  flex: 0 0 31px !important;
+  padding: 4px 7px 6px !important;
+  background: linear-gradient(180deg, rgba(255,255,255,0.12), rgba(36,48,50,0.18)) !important;
+}
+#uie-inventory-window #uie-view-items .uie-item-name {
+  color: var(--inv-theme-text) !important;
+  font-family: Inter, system-ui, sans-serif !important;
+  font-size: 11px !important;
+  line-height: 1.15 !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.28) !important;
+}
+#uie-inventory-window[data-inv-theme="fantasy"] #uie-view-items .uie-item-body {
+  background: linear-gradient(180deg, rgba(255, 251, 238, 0.5), rgba(230, 215, 180, 0.3)) !important;
+}
+#uie-inventory-window[data-inv-theme="fantasy"] #uie-view-items .uie-item-name {
+  text-shadow: none !important;
+}
+#uie-inventory-window[data-inv-theme="futuristic"] #uie-view-items .uie-item {
+  border-color: rgba(131,236,255,0.34) !important;
+}
+#uie-inventory-window[data-inv-theme="futuristic"] #uie-view-items .uie-item-body {
+  background: linear-gradient(180deg, rgba(131,236,255,0.16), rgba(255,129,121,0.10)) !important;
+}
+
+/* Final inventory rebuild: three modes, larger window, exact grid cells. */
+#uie-inventory-window[data-inv-theme="lifesim"],
+#uie-inventory-window[data-inv-theme="modern"]{
+  --inv-mode-bg: var(--inv-life-sim-bg-v3);
+  --inv-mode-slot: none;
+  --inv-mode-page: rgba(34, 24, 18, 0.70);
+  --inv-mode-panel: rgba(42, 28, 20, 0.62);
+  --inv-mode-surface: rgba(54, 36, 25, 0.70);
+  --inv-mode-slot-bg: rgba(47, 32, 22, 0.66);
+  --inv-mode-slot-border: rgba(210, 158, 95, 0.34);
+  --inv-theme-accent: #f0c17a;
+  --inv-theme-accent-2: #8edbd2;
+  --inv-theme-text: #fffaf0;
+  --inv-theme-muted: #e3c7a8;
+  --inv-theme-border: rgba(214, 164, 100, 0.36);
+}
+#uie-inventory-window[data-inv-theme="fantasy"]{
+  --inv-mode-bg: radial-gradient(circle, #f5e4bc 20%, #e0c28d 70%, #ba975d 100%);
+  --inv-mode-slot: none;
+  --inv-mode-page: rgba(255, 252, 240, 0.65);
+  --inv-mode-panel: rgba(250, 243, 220, 0.70);
+  --inv-mode-surface: rgba(242, 231, 201, 0.75);
+  --inv-mode-slot-bg: rgba(230, 215, 180, 0.50);
+  --inv-mode-slot-border: rgba(139, 90, 43, 0.40);
+  --inv-theme-accent: #8b5a2b;
+  --inv-theme-accent-2: #5c3818;
+  --inv-theme-text: #000000;
+  --inv-theme-muted: #3a2a1b;
+  --inv-theme-border: rgba(139, 90, 43, 0.45);
+}
+#uie-inventory-window[data-inv-theme="futuristic"]{
+  --inv-mode-bg: var(--inv-futuristic-bg-v2);
+  --inv-mode-slot: var(--inv-futuristic-slot-v2);
+  --inv-mode-page: rgba(12, 28, 38, 0.78);
+  --inv-mode-panel: rgba(10, 24, 34, 0.68);
+  --inv-mode-surface: rgba(18, 38, 48, 0.76);
+  --inv-mode-slot-bg: #152a33;
+  --inv-mode-slot-border: rgba(89, 218, 238, 0.48);
+  --inv-theme-accent: #60dce9;
+  --inv-theme-accent-2: #f0a650;
+  --inv-theme-text: #e8fbff;
+  --inv-theme-muted: #9dc4cc;
+  --inv-theme-border: rgba(93, 219, 238, 0.34);
+}
+#uie-inventory-window,
+#uie-inventory-window[data-fullscreen="false"]{
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.14), rgba(255,255,255,0.03)),
+    var(--inv-mode-bg) center / cover no-repeat !important;
+  padding: clamp(14px, 2vw, 32px) !important;
+}
+#uie-inventory-window .uie-inv-panel{
+  /* Keep the desktop panel's 1540 × 920 silhouette at every viewport.
+     The old independent width/height caps made a 2.45:1 strip in landscape. */
+  width: min(1540px, calc(100vw - 64px), calc(167.4dvh - 107.136px)) !important;
+  height: auto !important;
+  aspect-ratio: 1.674 / 1 !important;
+  max-height: calc(100dvh - 64px) !important;
+  box-sizing: border-box !important;
+  display: grid !important;
+  grid-template-columns: 96px minmax(0, 1fr) !important;
+  grid-template-rows: 64px minmax(0, 1fr) !important;
+  grid-template-areas: "tabs top" "tabs body" !important;
+  gap: 14px !important;
+  padding: 18px 22px 22px !important;
+  border-radius: 10px !important;
+  border: 1px solid var(--inv-theme-border) !important;
+  background: color-mix(in srgb, var(--inv-mode-page), transparent 7%) !important;
+  box-shadow: 0 24px 70px rgba(0,0,0,0.50), inset 0 1px rgba(255,255,255,0.16) !important;
+  overflow: hidden !important;
+}
+#uie-inventory-window .uie-inv-panel::before,
+#uie-inventory-window .uie-inv-panel::after{
+  content: "" !important;
+  display: block !important;
+  position: absolute !important;
+  pointer-events: none !important;
+}
+#uie-inventory-window .uie-inv-panel::before{
+  inset: 0 !important;
+  background: var(--inv-mode-bg) center / cover no-repeat !important;
+  opacity: .14 !important;
+}
+#uie-inventory-window .uie-inv-panel::after{
+  inset: 10px !important;
+  border: 1px solid color-mix(in srgb, var(--inv-theme-border), transparent 20%) !important;
+  border-radius: 8px !important;
+}
+#uie-inventory-window .uie-inv-topbar{
+  grid-area: top !important;
+  min-height: 0 !important;
+  padding: 0 !important;
+  align-items: center !important;
+  background: transparent !important;
+  border: 0 !important;
+}
+#uie-inventory-window .uie-inv-actions{
+  width: 100% !important;
+  gap: 10px !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+}
+#uie-inventory-window .uie-inv-currency{
+  margin-right: auto !important;
+  min-width: 104px !important;
+  height: 42px !important;
+  border-radius: 8px !important;
+  background: color-mix(in srgb, var(--inv-mode-surface), transparent 16%) !important;
+  border: 1px solid var(--inv-theme-border) !important;
+  color: var(--inv-theme-text) !important;
+}
+#uie-inventory-window .uie-inv-preset-select-wrap{
+  min-width: 188px !important;
+  height: 42px !important;
+  border-radius: 8px !important;
+  background: color-mix(in srgb, var(--inv-mode-surface), transparent 16%) !important;
+  border: 1px solid var(--inv-theme-border) !important;
+}
+#uie-inventory-window #uie-inv-theme-select{
+  color: var(--inv-theme-text) !important;
+  font-size: 13px !important;
+}
+#uie-inventory-window #uie-inv-theme-select option{ color:#1f2933 !important; }
+#uie-inventory-window .uie-inv-icon,
+#uie-inventory-window .uie-inv-close{
+  width: 42px !important;
+  height: 42px !important;
+  border-radius: 8px !important;
+  background: color-mix(in srgb, var(--inv-mode-surface), transparent 18%) !important;
+  border: 1px solid var(--inv-theme-border) !important;
+  color: var(--inv-theme-text) !important;
+}
+#uie-inventory-window .uie-inv-close{
+  color: #fff !important;
+  background: color-mix(in srgb, #7b2e2e, var(--inv-mode-surface) 36%) !important;
+}
+#uie-inventory-window #tabs{
+  grid-area: tabs !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 10px !important;
+  padding: 0 !important;
+  overflow: auto !important;
+  background: transparent !important;
+  border: 0 !important;
+}
+#uie-inventory-window .tab-wrap{
+  width: 72px !important;
+  min-height: 68px !important;
+}
+#uie-inventory-window .tab-pill{
+  width: 56px !important;
+  height: 48px !important;
+  border-radius: 8px !important;
+  background: color-mix(in srgb, var(--inv-mode-surface), transparent 18%) !important;
+  border: 1px solid var(--inv-theme-border) !important;
+}
+#uie-inventory-window .tab-name{
+  max-width: 72px !important;
+  font-size: 10px !important;
+  color: var(--inv-theme-text) !important;
+}
+#uie-inventory-window .uie-inv-body{
+  grid-area: body !important;
+  display: block !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  padding: 14px !important;
+  border-radius: 10px !important;
+  border: 1px solid var(--inv-theme-border) !important;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.18), rgba(255,255,255,.03)),
+    color-mix(in srgb, var(--inv-mode-panel), transparent 4%) !important;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.08), inset 0 18px 54px rgba(255,255,255,.04) !important;
+  overflow: hidden !important;
+}
+#uie-inventory-window #pane,
+#uie-inventory-window .uie-inv-content,
+#uie-inventory-window .uie-view-pane,
+#uie-inventory-window #uie-view-items{
+  height: 100% !important;
+  min-height: 0 !important;
+  background: transparent !important;
+  overflow: hidden !important;
+}
+#uie-inventory-window #uie-view-items #uie-items-root{
+  height: 100% !important;
+  padding: 0 !important;
+}
+#uie-inventory-window #uie-view-items .uie-items-toolbar{
+  padding: 0 !important;
+  margin: 0 0 12px !important;
+}
+#uie-inventory-window #uie-view-items .uie-chip-select,
+#uie-inventory-window #uie-view-items .uie-search,
+#uie-inventory-window #uie-view-items .uie-btn{
+  border-radius: 8px !important;
+  color: var(--inv-theme-text) !important;
+  border: 1px solid var(--inv-theme-border) !important;
+  background: color-mix(in srgb, var(--inv-mode-surface), transparent 18%) !important;
+}
+#uie-inventory-window #uie-view-items .uie-search input{
+  color: var(--inv-theme-text) !important;
+}
+#uie-inventory-window #uie-view-items #uie-items-grid{
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  overflow: auto !important;
+  padding: 0 4px 10px 0 !important;
+}
+#uie-inventory-window #uie-view-items #uie-items-grid-inner.uie-grid{
+  --uie-item-card-w: clamp(176px, 15vw, 240px);
+  --uie-item-thumb-h: 128px;
+  --uie-item-card-h: 208px;
+  display: flex !important;
+  flex-wrap: wrap !important;
+  justify-content: flex-start !important;
+  align-content: start !important;
+  align-items: stretch !important;
+  gap: 14px !important;
+  padding: 14px !important;
+  border-radius: 8px !important;
+  border: 1px solid color-mix(in srgb, var(--inv-theme-border), transparent 36%) !important;
+  background: color-mix(in srgb, var(--inv-mode-surface), transparent 42%) !important;
+}
+#uie-inventory-window #uie-view-items #uie-items-grid-inner .uie-item{
+  width: var(--uie-item-card-w) !important;
+  height: var(--uie-item-card-h) !important;
+  flex: 0 0 var(--uie-item-card-w) !important;
+  min-width: var(--uie-item-card-w) !important;
+  min-height: var(--uie-item-card-h) !important;
+  max-width: var(--uie-item-card-w) !important;
+  max-height: var(--uie-item-card-h) !important;
+  aspect-ratio: auto !important;
+  display: flex !important;
+  flex-direction: column !important;
+  padding: 10px !important;
+  gap: 8px !important;
+  border-radius: 8px !important;
+  border: 1px solid var(--inv-mode-slot-border) !important;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.075), rgba(255,255,255,.025)),
+    var(--inv-mode-slot-bg) !important;
+  box-shadow: 0 14px 28px rgba(0,0,0,.26), inset 0 1px rgba(255,255,255,.10) !important;
+  overflow: hidden !important;
+  contain: layout paint !important;
+}
+#uie-inventory-window #uie-view-items #uie-items-grid-inner .uie-thumb{
+  flex: 0 0 var(--uie-item-thumb-h) !important;
+  width: 100% !important;
+  height: var(--uie-item-thumb-h) !important;
+  min-height: var(--uie-item-thumb-h) !important;
+  padding: 10px !important;
+  box-sizing: border-box !important;
+  border-radius: 8px !important;
+  border: 1px solid color-mix(in srgb, var(--inv-mode-slot-border), transparent 28%) !important;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.05), rgba(0,0,0,.20)),
+    color-mix(in srgb, var(--inv-mode-slot-bg), transparent 8%) !important;
+  overflow: hidden !important;
+}
+#uie-inventory-window #uie-view-items #uie-items-grid-inner .uie-thumb img{
+  width: 100% !important;
+  height: 100% !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
+  object-fit: contain !important;
+  display: block !important;
+}
+#uie-inventory-window #uie-view-items #uie-items-grid-inner .uie-item-body{
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  padding: 0 2px 2px !important;
+  background: transparent !important;
+  color: var(--inv-theme-text) !important;
+}
+#uie-inventory-window #uie-view-items #uie-items-grid-inner .uie-item-name{
+  color: var(--inv-theme-text) !important;
+  font-size: 12px !important;
+  line-height: 1.14 !important;
+  font-weight: 900 !important;
+  text-align: left !important;
+  text-shadow: none !important;
+  display: -webkit-box !important;
+  -webkit-line-clamp: 2 !important;
+  line-clamp: 2 !important;
+  -webkit-box-orient: vertical !important;
+  overflow: hidden !important;
+  overflow-wrap: anywhere !important;
+  white-space: normal !important;
+}
+#uie-inventory-window #uie-view-items #uie-items-grid-inner .uie-item-sub,
+#uie-inventory-window #uie-view-items #uie-items-grid-inner .uie-item-notes{
+  color: var(--inv-theme-muted) !important;
+  font-size: 10px !important;
+  line-height: 1.1 !important;
+}
+#uie-inventory-window[data-inv-theme="futuristic"] #uie-view-items #uie-items-grid-inner .uie-item{
+  background:
+    linear-gradient(180deg, rgba(96,220,233,.20), rgba(240,166,80,.08)),
+    var(--inv-mode-slot) center / cover no-repeat,
+    var(--inv-mode-slot-bg) !important;
+}
+@media not all {
+  #uie-inventory-window .uie-inv-preset-select-wrap {
+    min-width: 124px;
+    height: 34px;
+  }
+  #uie-inventory-window #uie-view-items #uie-items-grid-inner.uie-grid {
+    --uie-item-card-w: clamp(160px, 42vw, 208px);
+    justify-content: center !important;
+  }
+}
+@media not all {
+  #uie-inventory-window {
+    inset: 0 !important;
+    width: 100vw !important;
+    height: 100dvh !important;
+    padding: 8px !important;
+    overflow: hidden !important;
+  }
+  #uie-inventory-window .uie-inv-panel {
+    width: 100% !important;
+    height: 100% !important;
+    border-radius: 8px !important;
+    display: grid !important;
+    grid-template-rows: auto auto minmax(0, 1fr) auto !important;
+    padding: 8px !important;
+    overflow: hidden !important;
+  }
+  #uie-inventory-window .uie-inv-topbar {
+    min-height: 42px !important;
+    gap: 6px !important;
+  }
+  #uie-inventory-window .uie-inv-avatar,
+  #uie-inventory-window .uie-inv-title {
+    display: none !important;
+  }
+  #uie-inventory-window .uie-inv-actions {
+    gap: 6px !important;
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+  }
+  #uie-inventory-window .uie-inv-icon,
+  #uie-inventory-window .uie-inv-close {
+    width: 34px !important;
+    height: 34px !important;
+    flex: 0 0 34px !important;
+  }
+  #uie-inventory-window #tabs {
+    min-height: 44px !important;
+    padding: 4px 0 !important;
+  }
+  #uie-inventory-window .tab-pill {
+    width: 38px !important;
+    height: 38px !important;
+  }
+  #uie-inventory-window .uie-inv-body {
+    grid-template-columns: 1fr !important;
+    overflow: auto !important;
+    gap: 8px !important;
+  }
+  #uie-inventory-window #paper-doll,
+  #uie-inventory-window #bottom-stats {
+    display: none !important;
+  }
+  #uie-inventory-window #pane {
+    min-height: 0 !important;
+    overflow: auto !important;
+  }
+}
+@media not all {
+  #uie-inventory-window {
+    inset: 0 !important;
+    width: 100vw !important;
+    height: 100dvh !important;
+    padding: max(6px, env(safe-area-inset-top)) max(6px, env(safe-area-inset-right)) max(6px, env(safe-area-inset-bottom)) max(6px, env(safe-area-inset-left)) !important;
+    overflow: hidden !important;
+  }
+  #uie-inventory-window .uie-inv-panel {
+    width: 100% !important;
+    height: 100% !important;
+    max-width: none !important;
+    max-height: none !important;
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    grid-template-rows: auto auto minmax(0, 1fr) !important;
+    grid-template-areas:
+      "top"
+      "tabs"
+      "body" !important;
+    gap: 8px !important;
+    padding: 8px !important;
+    overflow: hidden !important;
+  }
+  #uie-inventory-window .uie-inv-topbar {
+    grid-area: top !important;
+    min-height: 38px !important;
+  }
+  #uie-inventory-window .uie-inv-avatar,
+  #uie-inventory-window .uie-inv-title {
+    display: none !important;
+  }
+  #uie-inventory-window .uie-inv-actions {
+    gap: 6px !important;
+    min-width: 0 !important;
+    overflow: visible !important;
+  }
+  #uie-inventory-window .uie-inv-currency,
+  #uie-inventory-window .uie-inv-preset-select-wrap {
+    height: 34px !important;
+    min-width: 0 !important;
+  }
+  #uie-inventory-window .uie-inv-icon,
+  #uie-inventory-window .uie-inv-close {
+    width: 34px !important;
+    height: 34px !important;
+    flex: 0 0 34px !important;
+  }
+  #uie-inventory-window #tabs {
+    grid-area: tabs !important;
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: stretch !important;
+    gap: 6px !important;
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+  #uie-inventory-window .tab-wrap {
+    width: auto !important;
+    min-width: 0 !important;
+    min-height: 42px !important;
+    flex: 1 1 0 !important;
+  }
+  #uie-inventory-window .tab-pill {
+    width: 100% !important;
+    height: 30px !important;
+  }
+  #uie-inventory-window .tab-name {
+    max-width: 100% !important;
+    font-size: 9px !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+  #uie-inventory-window .uie-inv-body {
+    grid-area: body !important;
+    display: block !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+    padding: 8px !important;
+  }
+  #uie-inventory-window #paper-doll,
+  #uie-inventory-window #bottom-stats {
+    display: none !important;
+  }
+  #uie-inventory-window #pane,
+  #uie-inventory-window .uie-inv-content,
+  #uie-inventory-window .uie-view-pane,
+  #uie-inventory-window #uie-view-items {
+    width: 100% !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    overflow: auto !important;
+  }
+  #uie-inventory-window #uie-view-items .uie-items-toolbar {
+    flex-wrap: wrap !important;
+    gap: 6px !important;
+  }
+  #uie-inventory-window #uie-view-items #uie-items-grid-inner.uie-grid {
+    --uie-item-card-w: clamp(132px, 23vw, 176px);
+    --uie-item-thumb-h: clamp(76px, 16vh, 112px);
+    --uie-item-card-h: clamp(154px, 37vh, 196px);
+    gap: 8px !important;
+    padding: 8px !important;
+    justify-content: center !important;
+  }
+}
+@media not all {
+  #uie-inventory-window[data-inv-theme="modern"],
+  #uie-inventory-window[data-inv-theme="lifesim"] {
+    --inv-mode-bg: var(--inv-mobile-modern-bg);
+  }
+  #uie-inventory-window[data-inv-theme="fantasy"] {
+    --inv-mode-bg: radial-gradient(circle, #f5e4bc 20%, #e0c28d 70%, #ba975d 100%);
+  }
+  #uie-inventory-window[data-inv-theme="futuristic"] {
+    --inv-mode-bg: var(--inv-mobile-futuristic-bg);
+  }
+}
+@media not all {
+  #uie-inventory-window[data-inv-theme="modern"],
+  #uie-inventory-window[data-inv-theme="lifesim"] {
+    --inv-mode-bg: var(--inv-life-sim-bg-v3);
+  }
+  #uie-inventory-window[data-inv-theme="fantasy"] {
+    --inv-mode-bg: radial-gradient(circle, #f5e4bc 20%, #e0c28d 70%, #ba975d 100%);
+  }
+  #uie-inventory-window[data-inv-theme="futuristic"] {
+    --inv-mode-bg: var(--inv-futuristic-bg-v2);
+  }
+}
+
+@media not all {
+  #uie-inventory-window {
+    width: 100vw !important;
+    height: 100dvh !important;
+    max-width: 100vw !important;
+    max-height: 100dvh !important;
+    padding: max(6px, env(safe-area-inset-top)) max(6px, env(safe-area-inset-right)) max(6px, env(safe-area-inset-bottom)) max(6px, env(safe-area-inset-left)) !important;
+    overflow: hidden !important;
+  }
+  #uie-inventory-window .uie-inv-panel {
+    width: 100% !important;
+    height: 100% !important;
+    max-width: none !important;
+    max-height: none !important;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    grid-template-rows: auto auto minmax(0, 1fr) !important;
+    grid-template-areas: "top" "tabs" "body" !important;
+    gap: 6px !important;
+    padding: 8px !important;
+    overflow: hidden !important;
+    box-sizing: border-box !important;
+  }
+  #uie-inventory-window .uie-inv-topbar {
+    grid-area: top !important;
+    display: grid !important;
+    grid-template-columns: auto minmax(0, 1fr) !important;
+    align-items: center !important;
+    gap: 6px !important;
+    min-height: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+  }
+  #uie-inventory-window .uie-inv-actions {
+    min-width: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    display: flex !important;
+    justify-content: flex-start !important;
+    gap: 6px !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    scrollbar-width: none !important;
+  }
+  #uie-inventory-window .uie-inv-actions::-webkit-scrollbar {
+    display: none !important;
+  }
+  #uie-inventory-window .uie-inv-currency {
+    min-width: 52px !important;
+    height: 34px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    white-space: normal !important;
+    line-height: 1.05 !important;
+    text-align: center !important;
+    padding: 4px 8px !important;
+  }
+  #uie-inventory-window .uie-inv-preset-select-wrap {
+    flex: 0 0 min(168px, 44vw) !important;
+    min-width: 124px !important;
+    height: 34px !important;
+  }
+  #uie-inventory-window .uie-inv-icon,
+  #uie-inventory-window .uie-inv-close {
+    flex: 0 0 34px !important;
+    width: 34px !important;
+    height: 34px !important;
+  }
+  #uie-inventory-window #tabs {
+    grid-area: tabs !important;
+    display: flex !important;
+    flex-direction: row !important;
+    gap: 6px !important;
+    padding: 0 0 4px !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    scrollbar-width: none !important;
+  }
+  #uie-inventory-window #tabs::-webkit-scrollbar {
+    display: none !important;
+  }
+  #uie-inventory-window .tab-wrap {
+    flex: 0 0 clamp(54px, 16vw, 72px) !important;
+    width: auto !important;
+    min-width: 0 !important;
+    min-height: 44px !important;
+  }
+  #uie-inventory-window .tab-pill {
+    width: 100% !important;
+    height: 32px !important;
+  }
+  #uie-inventory-window .tab-name {
+    max-width: 100% !important;
+    font-size: 9px !important;
+    line-height: 1.05 !important;
+    letter-spacing: 0 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+  #uie-inventory-window .uie-inv-body {
+    grid-area: body !important;
+    display: block !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    padding: 6px !important;
+    overflow: hidden !important;
+  }
+  #uie-inventory-window #pane,
+  #uie-inventory-window .uie-inv-content,
+  #uie-inventory-window .uie-view-pane {
+    width: 100% !important;
+    height: 100% !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    overflow: auto !important;
+  }
+  #uie-inventory-window .uie-skills-root {
+    min-width: 0 !important;
+    padding: 8px !important;
+    overflow-x: hidden !important;
+  }
+  #uie-inventory-window .uie-skills-controls {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 8px !important;
+    align-items: stretch !important;
+  }
+  #uie-inventory-window .uie-skills-controls input,
+  #uie-inventory-window .uie-skills-controls button {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    height: auto !important;
+    min-height: 36px !important;
+    white-space: normal !important;
+  }
+  #uie-inventory-window #uie-skills-stats,
+  #uie-inventory-window .uie-skill-card,
+  #uie-inventory-window .uie-skill-branch {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    overflow-wrap: anywhere !important;
+  }
+  #uie-inventory-window .uie-skill-branch {
+    grid-template-columns: minmax(0, 1fr) !important;
+    padding: 10px !important;
+  }
+  #uie-inventory-window .uie-skill-card > div {
+    min-width: 0 !important;
+  }
+  #uie-inventory-window .uie-skill-card button {
+    min-width: 34px !important;
+  }
+}
+@media not all {
+  #uie-inventory-window {
+    inset: 0 !important;
+    width: 100vw !important;
+    height: 100dvh !important;
+    max-width: 100vw !important;
+    max-height: 100dvh !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+  }
+
+  #uie-inventory-window .uie-inv-panel {
+    width: 100vw !important;
+    height: 100dvh !important;
+    max-width: 100vw !important;
+    max-height: 100dvh !important;
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    grid-template-rows: auto auto minmax(0, 1fr) !important;
+    grid-template-areas: "top" "tabs" "body" !important;
+    gap: 0 !important;
+    padding: 0 !important;
+    border-radius: 0 !important;
+    border: 0 !important;
+    overflow: hidden !important;
+  }
+
+  #uie-inventory-window .uie-inv-topbar {
+    grid-area: top !important;
+    display: grid !important;
+    grid-template-columns: auto minmax(0, 1fr) auto !important;
+    min-height: 58px !important;
+    padding: max(8px, env(safe-area-inset-top)) 10px 8px !important;
+    gap: 8px !important;
+    align-items: center !important;
+    overflow: visible !important;
+  }
+
+  #uie-inventory-window .uie-inv-avatar,
+  #uie-inventory-window .uie-inv-title,
+  #uie-inventory-window .uie-inv-preset-select-wrap {
+    display: none !important;
+  }
+
+  #uie-inventory-window .uie-inv-currency {
+    min-width: 64px !important;
+    height: 42px !important;
+    padding: 0 10px !important;
+    font-size: 13px !important;
+    line-height: 1.1 !important;
+    white-space: normal !important;
+  }
+
+  #uie-inventory-window .uie-inv-actions {
+    min-width: 0 !important;
+    justify-content: flex-end !important;
+    overflow: visible !important;
+    gap: 8px !important;
+  }
+
+  #uie-inventory-window .uie-inv-icon,
+  #uie-inventory-window .uie-inv-close {
+    width: 42px !important;
+    height: 42px !important;
+    flex: 0 0 42px !important;
+    min-width: 42px !important;
+    font-size: 16px !important;
+  }
+
+  #uie-inventory-window #tabs {
+    grid-area: tabs !important;
+    display: flex !important;
+    flex-direction: row !important;
+    gap: 8px !important;
+    min-height: 62px !important;
+    padding: 6px 10px 8px !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    scrollbar-width: none !important;
+  }
+
+  #uie-inventory-window #tabs::-webkit-scrollbar {
+    display: none !important;
+  }
+
+  #uie-inventory-window .tab-wrap {
+    flex: 0 0 76px !important;
+    width: 76px !important;
+    min-width: 76px !important;
+    min-height: 52px !important;
+    display: grid !important;
+    grid-template-rows: 30px auto !important;
+    place-items: center !important;
+    gap: 3px !important;
+  }
+
+  #uie-inventory-window .tab-pill {
+    width: 44px !important;
+    height: 30px !important;
+  }
+
+  #uie-inventory-window .tab-name {
+    font-size: 11px !important;
+    line-height: 1.1 !important;
+    white-space: nowrap !important;
+    max-width: 72px !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
+  #uie-inventory-window .uie-inv-body {
+    grid-area: body !important;
+    display: block !important;
+    padding: 10px !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+  }
+
+  #uie-inventory-window #paper-doll,
+  #uie-inventory-window #bottom-stats {
+    display: none !important;
+  }
+
+  #uie-inventory-window #pane,
+  #uie-inventory-window .uie-inv-content,
+  #uie-inventory-window .uie-view-pane {
+    width: 100% !important;
+    height: 100% !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+  }
+
+  #uie-inv-gear-menu {
+    position: fixed !important;
+    inset: auto 0 0 0 !important;
+    top: auto !important;
+    right: auto !important;
+    width: 100vw !important;
+    max-width: 100vw !important;
+    max-height: min(76dvh, 620px) !important;
+    border-radius: 18px 18px 0 0 !important;
+    border-left: 0 !important;
+    border-right: 0 !important;
+    border-bottom: 0 !important;
+    padding: 14px 14px max(14px, env(safe-area-inset-bottom)) !important;
+    overflow-y: auto !important;
+  }
+
+  #uie-inv-gear-menu label,
+  #uie-inv-gear-menu button,
+  #uie-inv-gear-menu [onclick] {
+    min-height: 44px !important;
+    font-size: 14px !important;
+    line-height: 1.25 !important;
+    overflow-wrap: anywhere !important;
+  }
+
+  #uie-inv-theme-row {
+    display: grid !important;
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    gap: 10px !important;
+  }
+
+  #uie-inventory-window .uie-skills-controls,
+  #uie-inventory-window .uie-create-row,
+  #uie-inventory-window .uie-items-toolbar,
+  #uie-inventory-window .uie-assets-toolbar,
+  #uie-inventory-window .uie-equip-toolbar {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+  }
+
+  #uie-inventory-window input,
+  #uie-inventory-window select,
+  #uie-inventory-window textarea,
+  #uie-inventory-window button {
+    max-width: 100% !important;
+    font-size: 16px;
+  }
+
+  #uie-inventory-window button {
+    min-height: 44px;
+    white-space: normal;
+  }
+}
+
+@media not all {
+  #uie-inventory-window.inventory-modal.mobile-inventory {
+    top: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: 100dvh !important;
+    max-width: 100vw !important;
+    max-height: 100dvh !important;
+    padding: max(8px, env(safe-area-inset-top)) max(8px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left)) !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    align-items: stretch !important;
+    justify-content: stretch !important;
+    overflow: hidden !important;
+  }
+
+  #uie-inventory-window.inventory-modal.mobile-inventory .uie-inv-panel {
+    width: 100% !important;
+    height: 100% !important;
+    max-width: none !important;
+    max-height: none !important;
+    border-radius: 12px !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    grid-template-rows: minmax(36px, auto) minmax(44px, auto) minmax(0, 1fr) !important;
+    grid-template-areas: "top" "tabs" "body" !important;
+    gap: 8px !important;
+    padding: 10px !important;
+    overflow: hidden !important;
+  }
+
+  #uie-inventory-window.inventory-modal.mobile-inventory .uie-inv-topbar {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto !important;
+    min-height: 0 !important;
+    padding: 0 !important;
+    gap: 8px !important;
+    overflow: hidden !important;
+  }
+
+  #uie-inventory-window.inventory-modal.mobile-inventory .uie-inv-actions {
+    justify-content: flex-start !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    gap: 7px !important;
+    padding-bottom: 1px !important;
+    scrollbar-width: none !important;
+  }
+
+  #uie-inventory-window.inventory-modal.mobile-inventory .uie-inv-actions::-webkit-scrollbar,
+  #uie-inventory-window.inventory-modal.mobile-inventory #tabs::-webkit-scrollbar {
+    display: none !important;
+  }
+
+  #uie-inventory-window.inventory-modal.mobile-inventory .uie-inv-currency,
+  #uie-inventory-window.inventory-modal.mobile-inventory .uie-inv-preset-select-wrap {
+    height: 32px !important;
+    min-width: 0 !important;
+    flex: 0 0 auto !important;
+    font-size: 12px !important;
+  }
+
+  #uie-inventory-window.inventory-modal.mobile-inventory .uie-inv-preset-select-wrap {
+    display: inline-flex !important;
+    flex-basis: min(150px, 38vw) !important;
+  }
+
+  #uie-inventory-window.inventory-modal.mobile-inventory .uie-inv-icon,
+  #uie-inventory-window.inventory-modal.mobile-inventory .uie-inv-close {
+    width: 32px !important;
+    height: 32px !important;
+    min-height: 32px !important;
+    flex: 0 0 32px !important;
+    font-size: 14px !important;
+  }
+
+  #uie-inventory-window.inventory-modal.mobile-inventory #tabs {
+    flex-direction: row !important;
+    gap: 6px !important;
+    min-height: 0 !important;
+    padding: 0 0 2px !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    scrollbar-width: none !important;
+  }
+
+  #uie-inventory-window.inventory-modal.mobile-inventory .tab-wrap {
+    flex: 0 0 clamp(48px, 14vw, 64px) !important;
+    min-height: 40px !important;
+  }
+
+  #uie-inventory-window.inventory-modal.mobile-inventory .tab-pill {
+    height: 28px !important;
+    min-height: 28px !important;
+  }
+
+  #uie-inventory-window.inventory-modal.mobile-inventory .tab-name {
+    font-size: 8px !important;
+    line-height: 1 !important;
+  }
+
+  #uie-inventory-window.inventory-modal.mobile-inventory .uie-inv-body,
+  #uie-inventory-window.inventory-modal.mobile-inventory #pane,
+  #uie-inventory-window.inventory-modal.mobile-inventory .uie-inv-content,
+  #uie-inventory-window.inventory-modal.mobile-inventory .uie-view-pane,
+  #uie-inventory-window.inventory-modal.mobile-inventory #uie-view-items,
+  #uie-inventory-window.inventory-modal.mobile-inventory #uie-view-items #uie-items-root {
+    min-width: 0 !important;
+    min-height: 0 !important;
+    height: 100% !important;
+    overflow: hidden !important;
+  }
+
+  #uie-inventory-window.inventory-modal.mobile-inventory .uie-inv-body {
+    padding: 8px !important;
+  }
+
+  #uie-inventory-window.inventory-modal.mobile-inventory #uie-view-items #uie-items-grid {
+    height: auto !important;
+    max-height: none !important;
+    overflow: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
+  #uie-inventory-window.inventory-modal.mobile-inventory #uie-view-items #uie-items-grid-inner.uie-grid {
+    --uie-item-card-w: clamp(120px, 29vw, 154px);
+    --uie-item-thumb-h: clamp(66px, 15dvh, 96px);
+    --uie-item-card-h: clamp(136px, 32dvh, 174px);
+    gap: 8px !important;
+    padding: 8px !important;
+    justify-content: center !important;
+  }
+}
+</style>
+
+<template id="uie-template-item-card">
+  <div class="uie-item" style="border:1px solid rgba(255,255,255,0.1); border-radius:12px; padding:8px; background:rgba(0,0,0,0.22);">
+    <div class="uie-thumb" style="width:100%; border-radius:8px; background:rgba(0,0,0,0.35); position:relative; overflow:hidden; display:flex; align-items:center; justify-content:center;"></div>
+    <div class="uie-item-name" style="font-size:11px; font-weight:800; margin-top:8px; text-align:center; line-height:1.25; overflow:hidden; text-overflow:ellipsis; display:-webkit-box; line-clamp:2; -webkit-line-clamp:2; -webkit-box-orient:vertical;"></div>
+  </div>
+</template>
+
+<div id="uie-inventory-window" class="uie-window inventory-modal" data-fullscreen="true" style="display:none;">
+  <div class="uie-inv-panel">
+    <div class="uie-inv-topbar" id="uie-inv-drag">
+      <div class="uie-inv-avatar"></div>
+      <div class="uie-inv-currency">150 G</div>
+      <div class="uie-inv-actions">
+        <label class="uie-inv-preset-select-wrap" title="Inventory visual preset">
+          <i class="fa-solid fa-palette"></i>
+          <select id="uie-inv-theme-select" aria-label="Inventory visual preset">
+            <option value="lifesim">Life Sim</option>
+            <option value="fantasy">High Fantasy</option>
+            <option value="futuristic">Futuristic</option>
+          </select>
+        </label>
+        <div class="uie-inv-icon" onclick="UIE_openGuide('guide-inventory')" title="Inventory Manual" data-i18n-title="inv.help"><i class="fa-solid fa-circle-info"></i></div>
+        <div class="uie-inv-icon" id="uie-inv-pencil" title="Edit Mode" data-i18n-title="inv.edit_mode"><i class="fa-solid fa-pencil"></i></div>
+        <div class="uie-inv-icon" id="uie-inv-sparkle" title="Creation Station" data-i18n-title="inv.creation_station"><i class="fa-solid fa-wand-magic-sparkles"></i></div>
+        <div id="uie-inv-sparkle-menu" class="uie-create-menu" style="display:none;">
+          <div class="uie-create-top">
+            <div class="uie-create-title" data-i18n="inv.creation_station">Creation Station</div>
+            <div id="uie-create-status" class="uie-create-status"></div>
+            <div id="uie-create-close" class="uie-create-close">×</div>
+          </div>
+
+          <input id="uie-create-mode" type="hidden" value="ai">
+          <div class="uie-create-row" style="display:flex; gap:10px; margin-bottom:10px;">
+            <button id="uie-create-mode-ai" class="uie-create-btn" type="button" style="flex:1; border-color:rgba(203, 163, 92,0.45); background:rgba(203, 163, 92,0.18); color:#cba35c;">AI Draft</button>
+            <button id="uie-create-mode-manual" class="uie-create-btn" type="button" style="flex:1;">Manual</button>
+          </div>
+
+          <div class="uie-create-row" style="display:flex; gap:10px; margin-bottom:10px;">
+            <select id="uie-create-kind" class="uie-create-select" style="flex:1;">
+              <option value="item" selected data-i18n="inv.create.kind.item">Item</option>
+              <option value="equipment">Equipment</option>
+              <option value="readable">Book / Note / Scroll</option>
+              <option value="rune">Rune</option>
+              <option value="container" data-i18n="inv.create.kind.container">Container</option>
+              <option value="asset" data-i18n="inv.create.kind.asset">Asset</option>
+              <option value="class" data-i18n="inv.create.kind.class">Class</option>
+              <option value="status" data-i18n="inv.create.kind.status">Status</option>
+            </select>
+            <button id="uie-create-run" class="uie-create-btn" title="Generate" data-i18n-title="inv.create.generate" style="flex:0 0 auto; min-width:108px;">Generate</button>
+          </div>
+
+          <div id="uie-create-ai-count-row" class="uie-create-row" style="display:flex; gap:10px; margin-bottom:10px;">
+            <span class="uie-create-mini-label">Generate</span>
+            <input id="uie-create-count" class="uie-create-select" type="number" min="1" max="20" value="1" title="How many separate drafts to generate" style="flex:1; text-align:center; font-weight:900;">
+            <span class="uie-create-mini-label" style="min-width:82px;flex-basis:82px;">Stack Qty</span>
+            <input id="uie-create-stack-qty" class="uie-create-select" type="number" min="1" max="999" value="1" title="Quantity inside each stack" style="flex:1; text-align:center; font-weight:900;">
+          </div>
+          <div class="uie-create-hint">Generate count creates separate drafts. Stack Qty changes item quantity inside one stack when that item can stack.</div>
+
+          <div id="uie-create-item-type-row" class="uie-create-row" style="display:flex; gap:10px; margin-bottom:10px;">
+            <span class="uie-create-mini-label">Item Type</span>
+            <select id="uie-create-item-type" class="uie-create-select" style="flex:1;">
+              <option value="none">None</option>
+              <option value="item" selected>General Item</option>
+              <option value="consumable">Consumable</option>
+              <option value="component">Component / Material</option>
+              <option value="tool">Tool</option>
+              <option value="key_item">Key Item</option>
+              <option value="quest_item">Quest Item</option>
+              <option value="food">Food</option>
+              <option value="medical">Medical</option>
+              <option value="tech">Tech / Device</option>
+              <option value="evidence">Evidence</option>
+              <option value="custom">Custom From Prompt</option>
+            </select>
+          </div>
+
+          <div id="uie-create-equipment-row" class="uie-create-row" style="display:none; gap:10px; margin-bottom:10px;">
+            <span class="uie-create-mini-label">Equip Slot</span>
+            <select id="uie-create-equipment-slot" class="uie-create-select" style="flex:1;">
+              <option value="none">None</option>
+              <option value="outfit">Outfit</option>
+              <option value="undies">Undies</option>
+              <option value="socks">Socks</option>
+              <option value="tattoo">Tattoo</option>
+              <option value="scar">Scar</option>
+              <option value="ears">Ears</option>
+              <option value="face">Face</option>
+              <option value="ink">Ink</option>
+              <option value="soul">Soul</option>
+              <option value="shirt">Shirt</option>
+              <option value="pants">Pants</option>
+              <option value="vest">Vest</option>
+              <option value="belt">Belt</option>
+              <option value="boots">Boots</option>
+              <option value="gloves">Gloves</option>
+              <option value="aura">Aura</option>
+              <option value="bag">Bag</option>
+              <option value="head">Head</option>
+              <option value="chest">Chest</option>
+              <option value="legs">Legs</option>
+              <option value="feet">Feet</option>
+              <option value="hands">Hands</option>
+              <option value="shldr">Shoulder</option>
+              <option value="back">Back</option>
+              <option value="neck">Neck</option>
+              <option value="main">Main Hand</option>
+              <option value="off">Off Hand</option>
+              <option value="range">Ranged</option>
+              <option value="ammo">Ammo</option>
+              <option value="tool">Tool</option>
+              <option value="relic">Relic</option>
+              <option value="r1">Ring 1</option>
+              <option value="r2">Ring 2</option>
+              <option value="trinket">Trinket</option>
+              <option value="focus">Focus</option>
+              <option value="quick">Quick Slot</option>
+              <option value="utility">Utility</option>
+            </select>
+          </div>
+
+          <div id="uie-create-readable-row" class="uie-create-row" style="display:none; gap:10px; margin-bottom:10px;">
+            <select id="uie-create-readable-type" class="uie-create-select" style="flex:1;">
+              <option value="none">None</option>
+              <option value="normal_book">Normal Book</option>
+              <option value="tome">Tome</option>
+              <option value="grimoire">Grimoire</option>
+              <option value="school_textbook">School Textbook</option>
+              <option value="document">Document</option>
+              <option value="test">Test / Exam</option>
+              <option value="worksheet">Worksheet</option>
+              <option value="study_guide">Study Guide</option>
+              <option value="manual">Manual</option>
+              <option value="journal">Journal</option>
+              <option value="diary">Diary</option>
+              <option value="ledger">Ledger</option>
+              <option value="dossier">Dossier</option>
+              <option value="transcript">Transcript</option>
+              <option value="report">Report</option>
+              <option value="letter">Letter</option>
+              <option value="pamphlet">Pamphlet</option>
+              <option value="note">Note</option>
+              <option value="scroll">Scroll</option>
+            </select>
+            <button id="uie-create-rune-shortcut" class="uie-create-btn" type="button" style="flex:0 0 auto;">Rune</button>
+          </div>
+
+          <div id="uie-create-asset-travel-row" class="uie-create-row" style="display:none;gap:10px;margin-bottom:10px;align-items:center;">
+            <label for="uie-create-asset-travel-category" style="font-size:.82em;color:#cfcfcf;min-width:96px;">Travel Category</label>
+            <select id="uie-create-asset-travel-category" class="uie-create-select" style="flex:1;">
+              <option value="none">None</option>
+              <option value="auto" selected>Auto-detect with JavaScript</option>
+              <option value="not_travel">Not a travel asset</option>
+              <option value="mount">Mount / Horse</option>
+              <option value="cart">Cart / Wagon</option>
+              <option value="road_vehicle">Road Vehicle</option>
+              <option value="boat">Boat / Ship</option>
+              <option value="spacecraft">Spacecraft</option>
+              <option value="aircraft">Aircraft</option>
+              <option value="rail">Train / Rail</option>
+            </select>
+          </div>
+
+          <div id="uie-create-ai-fields">
+            <div id="uie-create-container-controls" style="display:none; align-items:center; gap:8px; margin-bottom:10px;">
+              <label for="uie-create-container-type" style="font-size:0.85em; color:#cfcfcf; min-width:96px;" data-i18n="inv.create.container_type">Container Type</label>
+              <select id="uie-create-container-type" class="uie-create-select" style="flex:1; height:36px; border-radius:10px; border:1px solid rgba(255,255,255,0.15); background:rgba(0,0,0,0.25); color:#fff; padding:0 10px;">
+                <option value="none">None</option>
+                <option value="bag" selected data-i18n="inv.create.container.bag">Bag</option>
+                <option value="school_bag">School Bag</option>
+                <option value="bookbag">Bookbag</option>
+                <option value="briefcase">Briefcase</option>
+                <option value="case">Case</option>
+                <option value="chest" data-i18n="inv.create.container.chest">Chest</option>
+                <option value="container" data-i18n="inv.create.container.container">Container</option>
+              </select>
+            </div>
+
+            <div id="uie-create-gen-img-row" style="display:flex; align-items:center; gap:8px; margin-bottom:10px; padding-left:4px;">
+               <label style="display:flex; align-items:center; gap:6px; font-size:0.85em; opacity:0.9; cursor:pointer;">
+                   <input type="checkbox" id="uie-create-gen-img"> <span data-i18n="inv.create.generate_image">Generate Image</span>
+               </label>
+            </div>
+
+            <textarea id="uie-create-desc" class="uie-create-desc" placeholder="Describe what you're creating (optional)..." data-i18n-placeholder="inv.create.desc_placeholder"></textarea>
+          </div>
+
+          <div id="uie-create-manual-fields" style="display:none; gap:10px; flex-direction:column; margin-bottom:10px;">
+            <div class="uie-create-row" style="display:flex; gap:10px; margin-bottom:0;">
+              <input id="uie-create-manual-name" class="uie-create-select" type="text" placeholder="Name" style="flex:1;">
+              <select id="uie-create-manual-type" class="uie-create-select" style="flex:1;"></select>
+            </div>
+            <div class="uie-create-row" style="display:flex; gap:10px; margin-bottom:0;">
+              <input id="uie-create-manual-extra" class="uie-create-select" type="text" placeholder="Extra details (rarity, level, status list)" style="flex:1;">
+              <input id="uie-create-manual-image" class="uie-create-select" type="text" placeholder="Image or sprite URL (optional)" style="flex:1;">
+            </div>
+            <div class="uie-create-row" style="display:flex; gap:10px; margin-bottom:0;">
+              <button id="uie-create-manual-pick-image" class="uie-create-btn" type="button" style="flex:1;">Pick Image</button>
+              <button id="uie-create-manual-clear-image" class="uie-create-btn" type="button" style="flex:1;">Clear Image</button>
+            </div>
+            <textarea id="uie-create-manual-desc" class="uie-create-desc" placeholder="Describe the entry you want to add manually..."></textarea>
+          </div>
+
+          <div style="margin-top:10px; display:flex; gap:10px;">
+            <button id="uie-create-scan-loot" class="uie-create-btn" style="flex:1;" data-i18n="inv.create.scan_chat">Scan Chat Log</button>
+          </div>
+
+          <div id="uie-create-staging" style="display:none; flex-direction:column; gap:10px; margin-top:15px; border-top:1px solid rgba(255,255,255,0.15); padding-top:10px;"></div>
+        </div>
+
+        <!-- Create Class reset modal: larger on desktop, light overlay (no big black box) -->
+        <div id="uie-class-reset-modal" class="uie-overlay" style="display:none; position:fixed; inset:0; z-index:2147483645; background:rgba(0,0,0,0.25); backdrop-filter:blur(2px); align-items:center; justify-content:center;">
+          <div class="uie-class-reset-box" style="width:min(560px,95vw); min-width:320px; background:rgba(28,22,18,0.98); border:1px solid rgba(203,163,92,0.45); border-radius:16px; padding:24px; box-shadow:0 12px 40px rgba(0,0,0,0.35);">
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;">
+              <h3 style="margin:0; color:#cba35c; font-size:1.1em;" data-i18n="inv.class.reset_title">Apply New Class – What to Reset?</h3>
+              <button id="uie-class-reset-close" style="background:none; border:none; color:#888; font-size:20px; cursor:pointer; padding:0 4px;">×</button>
+            </div>
+            <div style="font-size:0.9em; color:#aaa; margin-bottom:14px;" data-i18n="inv.class.reset_desc">Select which modules to reset with this new class. Unchecked items will be merged with existing data.</div>
+            <div id="uie-class-reset-checks" style="display:flex; flex-direction:column; gap:8px; margin-bottom:16px;">
+              <label style="display:flex; align-items:center; gap:8px; cursor:pointer; color:#ccc;"><input type="checkbox" class="uie-class-reset-cb" data-reset="skills" checked> <span data-i18n="inv.class.reset_skills">Skills</span></label>
+              <label style="display:flex; align-items:center; gap:8px; cursor:pointer; color:#ccc;"><input type="checkbox" class="uie-class-reset-cb" data-reset="assets" checked> <span data-i18n="inv.class.reset_assets">Assets & Abilities</span></label>
+              <label style="display:flex; align-items:center; gap:8px; cursor:pointer; color:#ccc;"><input type="checkbox" class="uie-class-reset-cb" data-reset="stats" checked> <span data-i18n="inv.class.reset_stats">Stats</span></label>
+              <label style="display:flex; align-items:center; gap:8px; cursor:pointer; color:#ccc;"><input type="checkbox" class="uie-class-reset-cb" data-reset="bars" checked> <span data-i18n="inv.class.reset_bars">Bars (HP/MP/AP/XP)</span></label>
+              <label style="display:flex; align-items:center; gap:8px; cursor:pointer; color:#ccc;"><input type="checkbox" class="uie-class-reset-cb" data-reset="life" checked> <span data-i18n="inv.class.reset_life">Life Trackers</span></label>
+              <label style="display:flex; align-items:center; gap:8px; cursor:pointer; color:#ccc;"><input type="checkbox" class="uie-class-reset-cb" data-reset="items" checked> <span data-i18n="inv.class.reset_items">Items</span></label>
+              <label style="display:flex; align-items:center; gap:8px; cursor:pointer; color:#ccc;"><input type="checkbox" class="uie-class-reset-cb" data-reset="equipment" checked> <span data-i18n="inv.class.reset_equipment">Equipment</span></label>
+              <label style="display:flex; align-items:center; gap:8px; cursor:pointer; color:#ccc;"><input type="checkbox" class="uie-class-reset-cb" data-reset="statusEffects" checked> <span data-i18n="inv.class.reset_status">Status Effects</span></label>
+            </div>
+            <div style="display:flex; gap:10px; justify-content:flex-end;">
+              <button id="uie-class-reset-cancel" style="padding:8px 16px; background:rgba(150,150,150,0.2); border:1px solid #555; color:#ccc; border-radius:8px; cursor:pointer;" data-i18n="inv.common.cancel">Cancel</button>
+              <button id="uie-class-reset-apply" style="padding:8px 20px; background:rgba(203,163,92,0.25); border:1px solid rgba(203,163,92,0.5); color:#cba35c; border-radius:8px; cursor:pointer; font-weight:bold;" data-i18n="inv.class.apply">Apply Class</button>
+            </div>
+          </div>
+        </div>
+        <style>
+          @media not all {
+            #uie-class-reset-modal {
+              transform: none !important;
+              align-items: center !important;
+              justify-content: center !important;
+              padding: max(12px, env(safe-area-inset-top)) 12px max(12px, env(safe-area-inset-bottom)) !important;
+            }
+            #uie-class-reset-modal .uie-class-reset-box {
+              width: min(640px, 100%) !important;
+              min-width: 0 !important;
+              max-height: min(62dvh, 560px) !important;
+              overflow: auto;
+              border-radius: 16px !important;
+              padding: 16px !important;
+              transform: translateY(min(27dvh, 180px)) !important;
+            }
+          }
+        </style>
+        <div class="uie-inv-icon" id="uie-inv-gear" title="Inventory Settings" data-i18n-title="inv.settings"><i class="fa-solid fa-gear"></i></div>
+        <div id="uie-inv-gear-menu" style="display:none; position:absolute; top:70px; right:124px; width:280px; border-radius:14px; border:1px solid rgba(225,193,122,0.25); background:rgba(10,6,5,0.92); backdrop-filter: blur(6px); padding:10px; z-index:2147483646;">
+          <div style="padding:8px; border-radius:10px; background:rgba(255,255,255,0.08); margin-bottom:10px; cursor:pointer; display:flex; align-items:center; gap:8px; font-weight:900; color:#cba35c;" onclick="uie.phone.openBooksGuide('guide-inventory');"><i class="fa-solid fa-circle-info"></i> <span data-i18n="inv.help_guide">Help / Guide</span></div>
+          <div style="font-weight:900; color:#fff; margin-bottom:8px;" data-i18n="inv.tabs.title">Inventory Tabs</div>
+          <label style="display:flex; align-items:center; gap:8px; padding:8px; border-radius:10px; background:rgba(255,255,255,0.05); margin-bottom:6px; cursor:pointer;"><input type="checkbox" id="inv-tab-items"> <span data-i18n="inv.tab.items">Items</span></label>
+          <label style="display:flex; align-items:center; gap:8px; padding:8px; border-radius:10px; background:rgba(255,255,255,0.05); margin-bottom:6px; cursor:pointer;"><input type="checkbox" id="inv-tab-skills"> <span data-i18n="inv.tab.skills">Skills</span></label>
+          <label style="display:flex; align-items:center; gap:8px; padding:8px; border-radius:10px; background:rgba(255,255,255,0.05); margin-bottom:6px; cursor:pointer;"><input type="checkbox" id="inv-tab-assets"> <span data-i18n="inv.tab.assets">Assets</span></label>
+          <label style="display:flex; align-items:center; gap:8px; padding:8px; border-radius:10px; background:rgba(255,255,255,0.05); margin-bottom:6px; cursor:pointer;"><input type="checkbox" id="inv-tab-equipment"> <span data-i18n="inv.tab.equipment">Equipment</span></label>
+          <label style="display:flex; align-items:center; gap:8px; padding:8px; border-radius:10px; background:rgba(255,255,255,0.05); margin-bottom:6px; cursor:pointer;"><input type="checkbox" id="inv-tab-life"> <span data-i18n="inv.tab.life">Life</span></label>
+          <label style="display:flex; align-items:center; gap:8px; padding:8px; border-radius:10px; background:rgba(255,255,255,0.05); margin-bottom:6px; cursor:pointer;"><input type="checkbox" id="inv-tab-create"> <span data-i18n="inv.tab.create">Create</span></label>
+
+          <div style="font-weight:900; color:#fff; margin:10px 0 8px;" data-i18n="inv.functions.title">Functions</div>
+          <label style="display:flex; align-items:center; gap:8px; padding:8px; border-radius:10px; background:rgba(255,255,255,0.05); margin-bottom:6px; cursor:pointer;"><input type="checkbox" id="inv-fn-edit"> <span data-i18n="inv.fn.edit_pencil">Edit Pencil</span></label>
+          <label style="display:flex; align-items:center; gap:8px; padding:8px; border-radius:10px; background:rgba(255,255,255,0.05); margin-bottom:6px; cursor:pointer;"><input type="checkbox" id="inv-fn-fabricate"> <span data-i18n="inv.fn.creation_station">Creation Station</span></label>
+          <label style="display:flex; align-items:center; gap:8px; padding:8px; border-radius:10px; background:rgba(255,255,255,0.05); cursor:pointer;"><input type="checkbox" id="inv-fn-slottypes"> <span data-i18n="inv.fn.slot_types">Slot Types (categories)</span></label>
+
+          <div style="font-weight:900; color:#fff; margin:10px 0 8px;" data-i18n="inv.progression.title">Progression</div>
+          <label style="display:flex; align-items:center; gap:8px; padding:8px; border-radius:10px; background:rgba(255,255,255,0.05); margin-bottom:6px; cursor:pointer;"><input type="checkbox" id="inv-fn-leveling"> <span data-i18n="inv.progression.leveling">Leveling (XP → Level)</span></label>
+          <label style="display:flex; align-items:center; gap:8px; padding:8px; border-radius:10px; background:rgba(255,255,255,0.05); cursor:pointer;"><input type="checkbox" id="inv-ui-bars"> <span data-i18n="inv.progression.show_bars">Show Bars / Level / Stats</span></label>
+
+          <div id="uie-inv-rebirth-opt" style="margin-top:10px; display:none; border-top:1px solid rgba(255,255,255,0.15); padding-top:10px;">
+             <button id="uie-inv-trigger-rebirth" style="width:100%; height:36px; border-radius:10px; background:linear-gradient(90deg, #8e44ad, #9b59b6); border:none; color:#fff; font-weight:900; cursor:pointer;" data-i18n="inv.rebirth">Initiate Rebirth</button>
+          </div>
+          <div style="font-weight:900; color:#fff; margin:10px 0 8px;">Inventory Theme</div>
+          <div id="uie-inv-theme-row">
+            <button type="button" class="uie-inv-theme-chip" data-theme="auto" title="Auto" style="background:linear-gradient(135deg,#76d7ff,#f6c76a);"></button>
+            <button type="button" class="uie-inv-theme-chip" data-theme="fantasy" title="Bright Fantasy" style="background:linear-gradient(135deg,#d8f0ce,#6fb89a,#d9b45a);"></button>
+            <button type="button" class="uie-inv-theme-chip" data-theme="lifesim" title="Life Sim" style="background:linear-gradient(135deg,#8bd6c6,#93c5fd,#ff9b87);"></button>
+            <button type="button" class="uie-inv-theme-chip" data-theme="futuristic" title="Futuristic" style="background:linear-gradient(135deg,#00e5ff,#0a1430);"></button>
+            <button type="button" class="uie-inv-theme-chip" data-theme="academic" title="Academic" style="background:linear-gradient(135deg,#ffd166,#304166);"></button>
+            <button type="button" class="uie-inv-theme-chip" data-theme="cooking" title="Cooking" style="background:linear-gradient(135deg,#f5ca78,#597049);"></button>
+            <button type="button" class="uie-inv-theme-chip" data-theme="board" title="Board" style="background:linear-gradient(135deg,#d7a760,#3b2d21);"></button>
+            <button type="button" class="uie-inv-theme-chip" data-theme="factions" title="Factions" style="background:linear-gradient(135deg,#78c9de,#d9c28a);"></button>
+          </div>
+        </div>
+        <div class="uie-inv-icon" id="uie-inv-fullscreen-toggle" title="Toggle Fullscreen" data-i18n-title="inv.toggle_fullscreen"><i class="fa-solid fa-expand"></i></div>
+        <div class="uie-inv-close" id="uie-inv-close">X</div>
+      </div>
+    </div>
+
+    <div id="tabs">
+      <div class="tab-wrap active" data-tab="items" title="Items" data-i18n-title="inv.tab.items">
+        <div class="tab-pill"><i class="fa-solid fa-box-open"></i></div>
+        <div class="tab-name" data-i18n="inv.tab.items">Items</div>
+      </div>
+      <div class="tab-wrap" data-tab="skills" title="Skills" data-i18n-title="inv.tab.skills">
+        <div class="tab-pill"><i class="fa-solid fa-bolt"></i></div>
+        <div class="tab-name" data-i18n="inv.tab.skills">Skills</div>
+      </div>
+      <div class="tab-wrap" data-tab="assets" title="Assets" data-i18n-title="inv.tab.assets">
+        <div class="tab-pill"><i class="fa-solid fa-gem"></i></div>
+        <div class="tab-name" data-i18n="inv.tab.assets">Assets</div>
+      </div>
+      <div class="tab-wrap" data-tab="equipment" title="Equipment" data-i18n-title="inv.tab.equipment">
+        <div class="tab-pill"><i class="fa-solid fa-shield-halved"></i></div>
+        <div class="tab-name" data-i18n="inv.tab.equip">Equip</div>
+      </div>
+      <div class="tab-wrap" data-tab="life" title="Life" data-i18n-title="inv.tab.life">
+        <div class="tab-pill"><i class="fa-solid fa-heart-pulse"></i></div>
+        <div class="tab-name" data-i18n="inv.tab.life">Life</div>
+      </div>
+      <div class="tab-wrap" data-tab="create" title="Create" data-i18n-title="inv.tab.create">
+        <div class="tab-pill"><i class="fa-solid fa-hammer"></i></div>
+        <div class="tab-name" data-i18n="inv.tab.create">Create</div>
+      </div>
+
+    </div>
+
+    <div class="uie-inv-body" id="inv-main">
+      <div id="paper-doll">
+        <div class="uie-inv-side">
+          <div class="uie-inv-card">
+            <div class="label" data-i18n="inv.character">Character</div>
+            <div id="uie-inv-classline" style="opacity:0.9; font-weight:900; color:#cba35c;">Adventurer</div>
+          </div>
+          <div class="portrait" id="uie-inv-portrait" title="Portrait" data-i18n-title="inv.portrait"><img id="uie-inv-portrait-img" alt="" style="display:none;"></div>
+        </div>
+      </div>
+
+      <div id="bottom-stats">
+        <div id="uie-inv-mobile-ident" style="display:none;">
+          <div class="name" id="uie-inv-mobile-name">User</div>
+          <div class="meta" id="uie-inv-mobile-meta">Lv 1</div>
+        </div>
+        <div class="stat hp" data-stat="hp"><div class="k">HP</div><div class="bar"><div class="fill"></div></div><div class="v">0/0</div></div>
+        <div class="stat mp" data-stat="mp"><div class="k">MP</div><div class="bar"><div class="fill"></div></div><div class="v">0/0</div></div>
+        <div class="stat ap" data-stat="ap"><div class="k">AP</div><div class="bar"><div class="fill"></div></div><div class="v">0/0</div></div>
+        <div class="stat xp" data-stat="xp"><div class="k">XP</div><div class="bar"><div class="fill"></div></div><div class="v">0/0</div></div>
+        <div id="uie-inv-status-strip" style="display:none; gap:6px; flex-wrap:wrap; align-items:center; justify-content:center;"></div>
+      </div>
+
+      <div id="pane">
+        <div class="uie-inv-content">
+          <div id="uie-view-items" class="uie-view-pane" style="display:none;"></div>
+          <div id="uie-view-skills" class="uie-view-pane" style="display:none;"></div>
+          <div id="uie-view-assets" class="uie-view-pane" style="display:none;"></div>
+          <div id="uie-view-equip" class="uie-view-pane" style="display:none;"></div>
+          <div id="uie-view-life" class="uie-view-pane" style="display:none;"></div>
+          <div id="uie-view-create" class="uie-view-pane" style="display:none;"></div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <input type="file" id="uie-inv-file" accept="image/*" style="display:none;">
+
+  <div id="uie-inv-editor" style="display:none; position:fixed; inset:0; z-index:2147483647; align-items:center; justify-content:center; background:rgba(0,0,0,0.65);">
+    <div style="width:min(520px, 92vw); max-height:90vh; overflow:auto; border-radius:16px; border:1px solid rgba(225,193,122,0.35); background:rgba(15,10,8,0.92); padding:14px;">
+      <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
+        <div style="font-weight:900; letter-spacing:0.6px; color:#cba35c;" data-i18n="inv.editor.title">Item Editor</div>
+        <div style="margin-left:auto; cursor:pointer; padding:6px 10px; border-radius:10px; border:1px solid rgba(255,255,255,0.12); background:rgba(0,0,0,0.25);" id="uie-inv-editor-close" data-i18n="inv.common.close">Close</div>
+      </div>
+
+      <div style="display:flex; gap:10px; flex-wrap:wrap;">
+        <div style="flex:1; min-width:220px;">
+          <div style="font-weight:800; opacity:0.85; margin-bottom:6px;" data-i18n="inv.editor.name">Name</div>
+          <input id="uie-inv-edit-name" type="text" style="width:100%; height:38px; border-radius:10px; border:1px solid rgba(255,255,255,0.12); background:rgba(0,0,0,0.35); color:#f6e7c8; padding:0 12px; box-sizing:border-box;">
+        </div>
+        <div style="flex:1; min-width:220px;">
+          <div style="font-weight:800; opacity:0.85; margin-bottom:6px;" data-i18n="inv.editor.type">Type</div>
+          <input id="uie-inv-edit-type" type="text" style="width:100%; height:38px; border-radius:10px; border:1px solid rgba(255,255,255,0.12); background:rgba(0,0,0,0.35); color:#f6e7c8; padding:0 12px; box-sizing:border-box;">
+        </div>
+      </div>
+
+      <div style="margin-top:12px;">
+        <div style="font-weight:800; opacity:0.85; margin-bottom:6px;" data-i18n="inv.editor.description">Description</div>
+        <textarea id="uie-inv-edit-desc" style="width:100%; min-height:90px; border-radius:10px; border:1px solid rgba(255,255,255,0.12); background:rgba(0,0,0,0.35); color:#f6e7c8; padding:10px 12px; box-sizing:border-box; resize:vertical;"></textarea>
+      </div>
+
+      <div style="margin-top:12px;">
+        <div style="font-weight:900; letter-spacing:0.5px; color:rgba(255,255,255,0.85);" data-i18n="inv.editor.stat_mods">Stat Modifiers</div>
+        <div style="display:grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap:10px; margin-top:10px;">
+          <input id="uie-inv-edit-str" type="number" placeholder="STR" style="height:38px; border-radius:10px; border:1px solid rgba(255,255,255,0.12); background:rgba(0,0,0,0.35); color:#f6e7c8; padding:0 12px;">
+          <input id="uie-inv-edit-dex" type="number" placeholder="DEX" style="height:38px; border-radius:10px; border:1px solid rgba(255,255,255,0.12); background:rgba(0,0,0,0.35); color:#f6e7c8; padding:0 12px;">
+          <input id="uie-inv-edit-int" type="number" placeholder="INT" style="height:38px; border-radius:10px; border:1px solid rgba(255,255,255,0.12); background:rgba(0,0,0,0.35); color:#f6e7c8; padding:0 12px;">
+          <input id="uie-inv-edit-vit" type="number" placeholder="VIT" style="height:38px; border-radius:10px; border:1px solid rgba(255,255,255,0.12); background:rgba(0,0,0,0.35); color:#f6e7c8; padding:0 12px;">
+          <input id="uie-inv-edit-luk" type="number" placeholder="LUK" style="height:38px; border-radius:10px; border:1px solid rgba(255,255,255,0.12); background:rgba(0,0,0,0.35); color:#f6e7c8; padding:0 12px;">
+          <input id="uie-inv-edit-cha" type="number" placeholder="CHA" style="height:38px; border-radius:10px; border:1px solid rgba(255,255,255,0.12); background:rgba(0,0,0,0.35); color:#f6e7c8; padding:0 12px;">
+        </div>
+      </div>
+
+      <div style="margin-top:12px;">
+        <div style="font-weight:800; opacity:0.85; margin-bottom:6px;" data-i18n="inv.editor.status_effects">Status Effects (comma-separated)</div>
+        <input id="uie-inv-edit-status" type="text" style="width:100%; height:38px; border-radius:10px; border:1px solid rgba(255,255,255,0.12); background:rgba(0,0,0,0.35); color:#f6e7c8; padding:0 12px; box-sizing:border-box;">
+      </div>
+
+      <div style="display:flex; gap:10px; margin-top:14px; flex-wrap:wrap;">
+        <button id="uie-inv-edit-pickimg" style="flex:1; min-width:180px; height:40px; border-radius:12px; border:1px solid rgba(255,255,255,0.12); background:rgba(0,0,0,0.25); color:#fff; font-weight:900; cursor:pointer;" data-i18n="inv.editor.pick_image">Pick Image</button>
+        <button id="uie-inv-edit-save" style="flex:1; min-width:180px; height:40px; border-radius:12px; border:1px solid rgba(203, 163, 92,0.35); background:rgba(203, 163, 92,0.18); color:#cba35c; font-weight:900; cursor:pointer;" data-i18n="inv.common.save">Save</button>
+      </div>
+    </div>
+  </div>
+</div>
+<template id="uie-template-create-station-overlay">
+  <div id="uie-create-station-overlay" class="uie-overlay" style="display:none; position:fixed; inset:0; z-index:2147483640; background:rgba(0,0,0,0.65); backdrop-filter:blur(4px); align-items:center; justify-content:center;">
+    <div id="uie-create-station-shell" style="width:min(380px, 92vw); height:min(600px, 90vh); position:relative;"></div>
+  </div>
+</template>
+
+<template id="uie-template-rebirth-modal">
+  <div id="uie-rebirth-modal" style="position:fixed; inset:0; z-index:2147483647; background:rgba(0,0,0,0.6); backdrop-filter:blur(4px); display:flex; align-items:center; justify-content:center; padding:20px; box-sizing:border-box;">
+    <div style="width:min(640px,100%); max-height:90vh; overflow:auto; background:linear-gradient(145deg, rgba(30,22,35,0.98), rgba(20,15,25,0.98)); border:1px solid rgba(155,89,182,0.5); border-radius:16px; padding:24px; box-shadow:0 16px 48px rgba(0,0,0,0.5);">
+      <div style="font-weight:900; font-size:1.2em; color:#d2b4de; margin-bottom:8px;">Choose Your Rebirth Path</div>
+      <div style="font-size:0.9em; color:rgba(255,255,255,0.75); margin-bottom:16px;">Select a medallion. This cannot be undone.</div>
+      <div class="uie-rebirth-grid" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(160px, 1fr)); gap:12px;"></div>
+      <div style="margin-top:20px; display:flex; justify-content:flex-end;">
+        <button id="uie-rebirth-cancel" style="padding:10px 20px; border-radius:10px; border:1px solid rgba(255,255,255,0.2); background:rgba(255,255,255,0.08); color:#ccc; font-weight:bold; cursor:pointer;">Cancel</button>
+      </div>
+    </div>
+  </div>
+</template>
+<template id="uie-template-rebirth-card">
+  <div class="uie-medal-card" style="border:1px solid rgba(155,89,182,0.4); border-radius:12px; padding:12px; background:rgba(0,0,0,0.3); cursor:pointer; transition:transform 0.15s, box-shadow 0.15s;" data-id="">
+    <img class="uie-medal-img" alt="" style="width:64px; height:64px; object-fit:cover; border-radius:8px; display:block; margin:0 auto 8px;">
+    <div class="uie-medal-name" style="font-weight:900; color:#e8daef; font-size:0.9em; text-align:center; margin-bottom:6px;"></div>
+    <div class="uie-medal-desc" style="font-size:0.75em; color:rgba(255,255,255,0.7); line-height:1.3; overflow:hidden; display:-webkit-box; line-clamp:3; -webkit-line-clamp:3; -webkit-box-orient:vertical;"></div>
+  </div>
+</template>

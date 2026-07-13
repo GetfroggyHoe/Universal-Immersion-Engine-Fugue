@@ -1,0 +1,290 @@
+<style>
+  #uie-inventory-window .uie-skills-root {
+    height: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    padding: 12px !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
+  }
+  #uie-inventory-window .uie-skills-title { font-weight: 900; display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+  #uie-inventory-window .uie-skills-controls { display: flex !important; gap: 8px !important; align-items: center !important; justify-content: flex-end !important; margin-bottom: 8px !important; flex-wrap: wrap !important; }
+  #uie-inventory-window .uie-skills-controls input { flex: 1 !important; min-width: 190px !important; height: 32px !important; border-radius: 8px !important; border: 1px solid rgba(203, 163, 92, 0.22) !important; background: rgba(0, 0, 0, 0.24) !important; color: #fff !important; padding: 0 10px !important; outline: none !important; }
+  #uie-inventory-window .uie-skills-controls button { height: 32px !important; padding: 0 12px !important; border-radius: 8px !important; font-weight: 800 !important; cursor: pointer !important; }
+  #uie-skills-generate { border: 1px solid rgba(78, 205, 196, 0.35) !important; background: rgba(78, 205, 196, 0.12) !important; color: #8df0e8 !important; }
+  #uie-skills-add { border: 1px solid rgba(203, 163, 92, 0.35) !important; background: rgba(203, 163, 92, 0.12) !important; color: #cba35c !important; }
+  
+  /* Twinkling Starfield CSS Background */
+  .starfield-twinkle-1, .starfield-twinkle-2 {
+    position: absolute;
+    inset: 0;
+    background-image: 
+      radial-gradient(1px 1px at 20px 30px, #fff, rgba(0,0,0,0)),
+      radial-gradient(1px 1px at 40px 70px, #fff, rgba(0,0,0,0)),
+      radial-gradient(1px 1px at 50px 160px, #fff, rgba(0,0,0,0)),
+      radial-gradient(2px 2px at 80px 120px, rgba(255,255,255,0.7), rgba(0,0,0,0)),
+      radial-gradient(1px 1px at 110px 40px, #fff, rgba(0,0,0,0)),
+      radial-gradient(1px 1px at 130px 100px, rgba(255,255,255,0.5), rgba(0,0,0,0)),
+      radial-gradient(2px 2px at 170px 80px, #fff, rgba(0,0,0,0)),
+      radial-gradient(1px 1px at 200px 50px, rgba(255,255,255,0.3), rgba(0,0,0,0));
+    background-size: 240px 240px;
+  }
+  .starfield-twinkle-1 {
+    animation: uieStarTwinkle 8s linear infinite;
+    opacity: 0.6;
+  }
+  .starfield-twinkle-2 {
+    animation: uieStarTwinkle 14s linear infinite;
+    animation-delay: -3s;
+    opacity: 0.4;
+  }
+  @keyframes uieStarTwinkle {
+    0% { opacity: 0.2; }
+    50% { opacity: 0.7; }
+    100% { opacity: 0.2; }
+  }
+
+  /* Skyrim Star/Node Styles */
+  .uie-skill-star {
+    position: absolute;
+    width: 24px;
+    height: 24px;
+    margin-left: -12px;
+    margin-top: -12px;
+    border-radius: 50%;
+    cursor: pointer;
+    z-index: 3;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    background: transparent;
+  }
+  .uie-skill-star:hover {
+    transform: scale(1.3);
+  }
+  .uie-skill-star.active-drag {
+    cursor: grabbing !important;
+    transform: scale(1.4) !important;
+    z-index: 100 !important;
+  }
+  .uie-skill-star.selected {
+    transform: scale(1.3);
+  }
+  
+  .star-core {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 0 8px #fff;
+    transition: all 0.3s;
+    position: relative;
+  }
+  .star-ring {
+    position: absolute;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    border: 1px solid rgba(255,255,255,0.25);
+    box-shadow: inset 0 0 4px rgba(255,255,255,0.1);
+    transition: all 0.3s;
+  }
+  .star-label {
+    position: absolute;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    white-space: nowrap;
+    font-size: 10px;
+    font-weight: 800;
+    color: rgba(255, 255, 255, 0.7);
+    text-shadow: 0 2px 4px rgba(0,0,0,0.9);
+    pointer-events: none;
+    letter-spacing: 0.02em;
+    transition: all 0.3s;
+  }
+  
+  /* Status Colors */
+  /* Locked */
+  .uie-skill-star.locked .star-core { background: #475569; box-shadow: 0 0 4px #475569; }
+  .uie-skill-star.locked .star-ring { border-color: rgba(71,85,105,0.3); }
+  .uie-skill-star.locked .star-label { color: rgba(148, 163, 184, 0.5); }
+  
+  /* Unlocked (Not Purchased) */
+  .uie-skill-star.unlocked .star-core { background: #60a5fa; box-shadow: 0 0 10px #60a5fa, 0 0 20px rgba(96,165,250,0.5); }
+  .uie-skill-star.unlocked .star-ring { border-color: rgba(96,165,250,0.6); animation: uiePulseRing 3s ease-in-out infinite; }
+  .uie-skill-star.unlocked .star-label { color: #93c5fd; }
+  
+  /* Learned / Upgraded */
+  .uie-skill-star.learned .star-core { background: #cba35c; box-shadow: 0 0 12px #cba35c, 0 0 24px rgba(203,163,92,0.6); }
+  .uie-skill-star.learned .star-ring { border-color: rgba(203,163,92,0.8); }
+  .uie-skill-star.learned .star-label { color: #fff; font-weight: 900; }
+  
+  /* Maxed out */
+  .uie-skill-star.maxed .star-core { background: #fbbf24; box-shadow: 0 0 16px #fbbf24, 0 0 32px rgba(251,191,36,0.8); animation: uieSunburst 4s ease-in-out infinite; }
+  .uie-skill-star.maxed .star-ring { border-color: rgba(251,191,36,0.9); border-style: double; border-width: 2px; }
+  .uie-skill-star.maxed .star-label { color: #fde047; text-transform: uppercase; font-weight: 900; text-shadow: 0 0 8px rgba(251,191,36,0.5); }
+  
+  @keyframes uiePulseRing {
+    0% { transform: scale(0.9); opacity: 0.5; }
+    50% { transform: scale(1.2); opacity: 1; }
+    100% { transform: scale(0.9); opacity: 0.5; }
+  }
+  @keyframes uieSunburst {
+    0%, 100% { box-shadow: 0 0 12px #fbbf24, 0 0 24px rgba(251,191,36,0.5); }
+    50% { box-shadow: 0 0 24px #fbbf24, 0 0 48px rgba(251,191,36,0.9), 0 0 60px rgba(251,191,36,0.4); }
+  }
+  
+  /* Floating Detail Panel / Sidebar & Bottom sheet styling */
+  #uie-skill-details-panel {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    bottom: 12px;
+    width: 340px;
+    z-index: 100;
+    border-radius: 12px;
+    border: 1px solid rgba(203, 163, 92, 0.4);
+    background: linear-gradient(160deg, rgba(16, 22, 35, 0.96), rgba(6, 8, 12, 0.98));
+    box-shadow: -10px 0 40px rgba(0,0,0,0.8);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    padding: 16px;
+    box-sizing: border-box;
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s;
+    color: #f8efe1;
+  }
+  #uie-skill-details-panel.closed {
+    transform: translateX(380px);
+    opacity: 0;
+    pointer-events: none;
+  }
+  
+  .details-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin-bottom: 14px; }
+  .details-title { font-size: 18px; font-weight: 900; color: #fff; margin: 0; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
+  .details-branch-badge { font-size: 9px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.08em; padding: 2px 8px; border-radius: 99px; }
+  .details-desc { font-size: 12px; line-height: 1.5; color: rgba(248, 239, 225, 0.85); white-space: pre-wrap; margin-bottom: 14px; flex: 1; }
+  
+  .details-section { margin-bottom: 12px; padding: 8px 10px; border-radius: 8px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); }
+  .details-section-title { font-size: 10px; font-weight: 900; text-transform: uppercase; color: #cba35c; letter-spacing: 0.05em; margin-bottom: 6px; }
+  
+  .req-row { display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 4px; align-items: center; }
+  .req-row:last-child { margin-bottom: 0; }
+  .req-met { color: #2ecc71; }
+  .req-unmet { color: #e74c3c; }
+  
+  .details-actions { display: flex; flex-direction: column; gap: 8px; margin-top: auto; }
+  .details-btn { height: 36px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.05); color: #fff; font-weight: 800; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.2s; font-size: 12px; }
+  .details-btn:hover { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.25); }
+  .details-btn-primary { background: rgba(46,204,113,0.18); border-color: rgba(46,204,113,0.45); color: #a0f7bf; }
+  .details-btn-primary:hover { background: rgba(46,204,113,0.28); }
+  .details-btn-primary:disabled { opacity: 0.5; cursor: not-allowed; background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.1); color: #aaa; }
+  .details-btn-danger { background: rgba(231,76,60,0.12); border-color: rgba(231,76,60,0.35); color: #ff8e8e; }
+  .details-btn-danger:hover { background: rgba(231,76,60,0.22); }
+  
+  /* Mobile Layout - Media Query */
+  @media not all {
+    .uie-skills-root { padding: 8px; }
+    .uie-skills-controls { display: grid; grid-template-columns: 1fr; gap: 6px; }
+    .uie-skills-controls input, .uie-skills-controls button { width: 100%; height: 36px; min-width: 0; }
+    
+    #uie-skills-viewport { height: 420px; }
+    
+    /* On mobile, details panel is a bottom sheet */
+    #uie-skill-details-panel {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      top: auto;
+      width: 100%;
+      height: 380px;
+      border-radius: 20px 20px 0 0;
+      border: none;
+      border-top: 1px solid rgba(203, 163, 92, 0.4);
+      transform: translateY(100%);
+      box-shadow: 0 -10px 30px rgba(0,0,0,0.9);
+      background: linear-gradient(180deg, rgba(16, 22, 35, 0.98), rgba(6, 8, 12, 1));
+      padding: 20px;
+    }
+    #uie-skill-details-panel.closed {
+      transform: translateY(100%);
+      opacity: 0;
+    }
+  }
+</style>
+<div class="uie-skills-root">
+  <div class="uie-skills-title" style="display:flex; justify-content:space-between; align-items:center;">
+    <span>Skills <i class="fa-solid fa-circle-info" onclick="uie.phone.openBooksGuide('guide-inventory')" style="cursor:pointer; opacity:0.7;" title="Inventory Manual"></i></span>
+    <span id="uie-skills-stats-badge" style="font-size: 11px; padding: 2px 8px; border-radius: 12px; background: rgba(203, 163, 92, 0.15); border: 1px solid rgba(203, 163, 92, 0.4); color: #cba35c; font-weight: bold;">0 SP</span>
+  </div>
+  
+  <div id="uie-skills-stats" style="margin-bottom:8px; padding-bottom:8px; border-bottom:1px solid rgba(255,255,255,0.06);"></div>
+  
+  <div id="uie-skills-controls" class="uie-skills-controls" style="margin-bottom:8px;">
+    <input id="uie-skills-generate-prompt" type="text" placeholder="Generate skill with AI...">
+    <button id="uie-skills-generate"><i class="fa-solid fa-wand-magic-sparkles"></i> Generate Skill</button>
+    <button id="uie-skills-add">+ Add Skill</button>
+  </div>
+  
+  <!-- Outer Viewport -->
+  <div id="uie-skills-viewport" style="position:relative; flex:1; height:600px; border-radius:12px; border:1px solid rgba(203, 163, 92, 0.25); background:#06080d; overflow:hidden; user-select:none; cursor:grab;">
+    
+    <!-- Stars Background Layer -->
+    <div class="starfield-bg" style="position:absolute; inset:0; pointer-events:none; background:radial-gradient(circle at center, #0e1726 0%, #030508 100%);">
+      <div class="starfield-twinkle-1"></div>
+      <div class="starfield-twinkle-2"></div>
+    </div>
+    
+    <!-- Panning & Zooming Inner Canvas -->
+    <div id="uie-skills-canvas" style="position:absolute; width:1800px; height:1200px; transform-origin: 0 0; top:0; left:0; will-change: transform;">
+      
+      <!-- Nebulae background glow elements for each branch (dynamically injected or styled) -->
+      <div id="nebulae-layer" style="position:absolute; inset:0; pointer-events:none; z-index:0; filter: blur(80px); opacity: 0.35;"></div>
+      
+      <!-- SVG line overlay for connecting skills -->
+      <svg id="uie-skills-svg" style="position:absolute; inset:0; width:100%; height:100%; pointer-events:none; z-index:1; overflow:visible;">
+        <defs>
+          <filter id="glow-gold" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur in="SourceGraphic" stdDeviation="3" result="blur1" />
+            <feGaussianBlur in="SourceGraphic" stdDeviation="8" result="blur2" />
+            <feMerge>
+              <feMergeNode in="blur2" />
+              <feMergeNode in="blur1" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+          <filter id="glow-dim" x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur stdDeviation="1.5" result="blur" />
+            <feMerge>
+              <feMergeNode in="blur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+        </defs>
+      </svg>
+      
+      <!-- Skills layer (stars will be injected here) -->
+      <div id="uie-skills-stars-container" style="position:absolute; inset:0; z-index:2;"></div>
+      
+    </div>
+    
+    <!-- Floating Viewport Controls (Overlay) -->
+    <div class="uie-viewport-controls" style="position:absolute; bottom:16px; left:16px; display:flex; gap:6px; z-index:10; background:rgba(10,15,25,0.75); border:1px solid rgba(255,255,255,0.12); padding:4px; border-radius:8px; backdrop-filter:blur(6px);">
+      <button id="uie-zoom-in" title="Zoom In" style="width:32px; height:32px; border-radius:6px; border:1px solid rgba(255,255,255,0.15); background:rgba(255,255,255,0.06); color:#fff; cursor:pointer; font-weight:bold; display:flex; align-items:center; justify-content:center;"><i class="fa-solid fa-plus"></i></button>
+      <button id="uie-zoom-out" title="Zoom Out" style="width:32px; height:32px; border-radius:6px; border:1px solid rgba(255,255,255,0.15); background:rgba(255,255,255,0.06); color:#fff; cursor:pointer; font-weight:bold; display:flex; align-items:center; justify-content:center;"><i class="fa-solid fa-minus"></i></button>
+      <button id="uie-zoom-reset" title="Recenter Constellation" style="width:32px; height:32px; border-radius:6px; border:1px solid rgba(255,255,255,0.15); background:rgba(255,255,255,0.06); color:#fff; cursor:pointer; font-weight:bold; display:flex; align-items:center; justify-content:center;"><i class="fa-solid fa-crosshairs"></i></button>
+    </div>
+
+    <!-- Floating Search/Filter Control -->
+    <div class="uie-viewport-search" style="position:absolute; top:16px; left:16px; z-index:10; display:flex; gap:6px; background:rgba(10,15,25,0.75); border:1px solid rgba(255,255,255,0.12); padding:4px; border-radius:8px; backdrop-filter:blur(6px);">
+      <input id="uie-skills-search" type="text" placeholder="Search skills..." style="width:140px; height:28px; border:none; background:transparent; color:#fff; padding:0 8px; outline:none; font-size:12px;">
+      <button id="uie-skills-search-clear" style="border:none; background:transparent; color:#aaa; cursor:pointer; display:none;"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+  </div>
+  
+  <!-- Floating Detail Panel (Right Sidebar on Desktop, Slide-up Bottom Sheet on Mobile) -->
+  <div id="uie-skill-details-panel" class="closed"></div>
+</div>

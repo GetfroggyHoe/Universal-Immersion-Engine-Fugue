@@ -1,0 +1,18 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Large Weights (Download them via export.py)
+weights/
+
+# Exported Models
+onnx/
+onnx_models/
+
+# Generated Audio
+*.wav
+
+# Misc
+.DS_Store

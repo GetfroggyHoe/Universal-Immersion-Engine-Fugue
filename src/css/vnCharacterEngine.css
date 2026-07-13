@@ -1,0 +1,66 @@
+.vn-character {
+  position: relative;
+  width: min(42vh, 360px);
+  aspect-ratio: 2 / 3;
+  overflow: visible;
+  isolation: isolate;
+  pointer-events: none;
+}
+
+.vn-character .vn-layer,
+.vn-character .vn-clothing-container {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.vn-character img.vn-layer,
+.vn-character .cloth-shadow-map {
+  display: block;
+  object-fit: contain;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.vn-layer-hair-back {
+  z-index: 10;
+}
+
+.vn-layer-base {
+  z-index: 20;
+}
+
+.vn-layer-face {
+  z-index: 30;
+}
+
+.vn-clothing-container {
+  z-index: 40;
+}
+
+.vn-layer-hair-front {
+  z-index: 50;
+}
+
+.cloth-color-flat {
+  position: absolute;
+  inset: 0;
+  background: #ffffff;
+  mask-repeat: no-repeat;
+  mask-size: contain;
+  mask-position: center;
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-size: contain;
+  -webkit-mask-position: center;
+}
+
+.cloth-shadow-map {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  mix-blend-mode: multiply;
+  z-index: 2;
+  pointer-events: none;
+}

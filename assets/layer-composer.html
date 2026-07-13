@@ -1,0 +1,593 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Layer Composer</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #111318;
+      --panel: #1a1e25;
+      --panel-2: #222833;
+      --text: #f3f5f7;
+      --muted: #9ca8b7;
+      --line: #344050;
+      --accent: #28c2a0;
+      --accent-2: #e8b84b;
+      --danger: #e06c75;
+      --button: #2d3542;
+      --button-hover: #3a4658;
+      --canvas: #0c0f13;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    .app {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: minmax(220px, 280px) minmax(360px, 1fr) minmax(240px, 320px);
+      gap: 16px;
+      padding: 16px;
+    }
+
+    .panel,
+    .stage {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+
+    .panel {
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    .panel header {
+      padding: 14px 14px 10px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    h1,
+    h2 {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: 0;
+    }
+
+    .subtle {
+      margin: 6px 0 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    .controls {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding: 14px;
+      overflow: auto;
+    }
+
+    button,
+    .file-button {
+      width: 100%;
+      min-height: 38px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: var(--button);
+      color: var(--text);
+      font: inherit;
+      font-size: 13px;
+      font-weight: 650;
+      letter-spacing: 0;
+      cursor: pointer;
+      transition: background 120ms ease, border-color 120ms ease;
+    }
+
+    button:hover,
+    .file-button:hover {
+      background: var(--button-hover);
+      border-color: #4b5a70;
+    }
+
+    button.primary {
+      background: #166b5c;
+      border-color: #20977f;
+    }
+
+    button.primary:hover {
+      background: #1d806e;
+    }
+
+    button.warn {
+      color: #211706;
+      background: var(--accent-2);
+      border-color: #f3ca65;
+    }
+
+    button.danger {
+      background: #5c2931;
+      border-color: var(--danger);
+    }
+
+    input[type="file"] {
+      position: absolute;
+      inline-size: 1px;
+      block-size: 1px;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .file-button {
+      display: grid;
+      place-items: center;
+      padding: 8px 10px;
+      text-align: center;
+    }
+
+    .toggle {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-height: 34px;
+      color: var(--text);
+      font-size: 13px;
+    }
+
+    .toggle input {
+      width: 18px;
+      height: 18px;
+      accent-color: var(--accent);
+    }
+
+    .status {
+      min-height: 42px;
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: var(--panel-2);
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    .stage {
+      display: grid;
+      place-items: center;
+      min-width: 0;
+      padding: 16px;
+      overflow: auto;
+    }
+
+    .canvas-wrap {
+      width: min(100%, 78vh);
+      max-width: 1024px;
+      aspect-ratio: 1 / 1;
+      background-color: var(--canvas);
+      background-image:
+        linear-gradient(45deg, rgba(255, 255, 255, 0.06) 25%, transparent 25%),
+        linear-gradient(-45deg, rgba(255, 255, 255, 0.06) 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, rgba(255, 255, 255, 0.06) 75%),
+        linear-gradient(-45deg, transparent 75%, rgba(255, 255, 255, 0.06) 75%);
+      background-position: 0 0, 0 16px, 16px -16px, -16px 0;
+      background-size: 32px 32px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+      image-rendering: auto;
+    }
+
+    .layer-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding: 14px;
+      overflow: auto;
+    }
+
+    .layer-row {
+      display: grid;
+      grid-template-columns: 22px 1fr auto;
+      align-items: center;
+      gap: 8px;
+      min-height: 40px;
+      padding: 7px 8px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: var(--panel-2);
+    }
+
+    .layer-row input {
+      width: 18px;
+      height: 18px;
+      accent-color: var(--accent);
+    }
+
+    .layer-name {
+      min-width: 0;
+      overflow: hidden;
+      color: var(--text);
+      font-size: 13px;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .badge {
+      color: #172018;
+      background: var(--accent);
+      border-radius: 999px;
+      padding: 3px 7px;
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    .empty {
+      padding: 14px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    @media (max-width: 980px) {
+      .app {
+        grid-template-columns: 1fr;
+      }
+
+      .stage {
+        min-height: auto;
+      }
+
+      .canvas-wrap {
+        width: min(100%, 88vh);
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <section class="panel" aria-labelledby="tools-title">
+      <header>
+        <h1 id="tools-title">Layer Composer</h1>
+        <p class="subtle">Canvas: 1024 x 1024. Anchor guide: 512, 1000.</p>
+      </header>
+      <div class="controls">
+        <label class="file-button" for="layer-input">Load PNG Layers</label>
+        <input id="layer-input" type="file" accept="image/png,image/webp,image/jpeg" multiple>
+        <button class="primary" id="demo-full" type="button">Demo Full Stack</button>
+        <button id="demo-base" type="button">Demo Base Only</button>
+        <button id="demo-hair" type="button">Demo Base + Hair</button>
+        <button id="loaded-all" type="button">Loaded All Layers</button>
+        <label class="toggle">
+          <input id="guide-toggle" type="checkbox" checked>
+          Show Anchor Guide
+        </label>
+        <button class="warn" id="download" type="button">Download Composite</button>
+        <button class="danger" id="clear" type="button">Clear Loaded Layers</button>
+        <div class="status" id="status" role="status">Demo layers are ready.</div>
+      </div>
+    </section>
+
+    <section class="stage" aria-label="Canvas preview">
+      <div class="canvas-wrap">
+        <canvas id="canvas" width="1024" height="1024"></canvas>
+      </div>
+    </section>
+
+    <section class="panel" aria-labelledby="layers-title">
+      <header>
+        <h2 id="layers-title">Draw Order</h2>
+        <p class="subtle">Lower rows render on top of earlier rows.</p>
+      </header>
+      <div class="layer-list" id="layer-list"></div>
+    </section>
+  </main>
+
+  <script>
+    const CANVAS_SIZE = 1024;
+    const ANCHOR = { x: 512, y: 1000 };
+    const ORDER = ["back", "base", "body", "skin", "outfit", "clothes", "head", "hair", "face", "eyes", "accessory", "front"];
+
+    const canvas = document.querySelector("#canvas");
+    const ctx = canvas.getContext("2d");
+    const fileInput = document.querySelector("#layer-input");
+    const layerList = document.querySelector("#layer-list");
+    const status = document.querySelector("#status");
+    const guideToggle = document.querySelector("#guide-toggle");
+
+    let layers = [];
+    let loadedLayers = [];
+    let demoLayers = createDemoLayers();
+
+    function setStatus(message) {
+      status.textContent = message;
+    }
+
+    function classifyLayer(name) {
+      const lower = name.toLowerCase();
+      const found = ORDER.find((slot) => lower.includes(slot));
+      return found || "front";
+    }
+
+    function orderValue(layer) {
+      const index = ORDER.indexOf(layer.slot);
+      return index === -1 ? ORDER.length : index;
+    }
+
+    function sortLayers(list) {
+      return [...list].sort((a, b) => orderValue(a) - orderValue(b) || a.name.localeCompare(b.name));
+    }
+
+    function createLayer(name, slot, image, enabled = true) {
+      return {
+        id: `${slot}-${name}-${Math.random().toString(16).slice(2)}`,
+        name,
+        slot,
+        image,
+        enabled
+      };
+    }
+
+    function makeCanvasLayer(name, slot, draw) {
+      const offscreen = document.createElement("canvas");
+      offscreen.width = CANVAS_SIZE;
+      offscreen.height = CANVAS_SIZE;
+      const layerCtx = offscreen.getContext("2d");
+      draw(layerCtx);
+      return createLayer(name, slot, offscreen, true);
+    }
+
+    function createDemoLayers() {
+      const base = makeCanvasLayer("demo-base-body", "base", (g) => {
+        g.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
+        g.fillStyle = "#d8a98d";
+        g.beginPath();
+        g.ellipse(512, 390, 116, 145, 0, 0, Math.PI * 2);
+        g.fill();
+        g.fillStyle = "#c88e72";
+        g.fillRect(468, 510, 88, 76);
+        g.fillStyle = "#33445b";
+        g.beginPath();
+        g.moveTo(365, 1000);
+        g.bezierCurveTo(380, 660, 448, 566, 512, 566);
+        g.bezierCurveTo(590, 566, 650, 660, 662, 1000);
+        g.closePath();
+        g.fill();
+        g.fillStyle = "#f0c2a4";
+        g.beginPath();
+        g.arc(474, 388, 14, 0, Math.PI * 2);
+        g.arc(550, 388, 14, 0, Math.PI * 2);
+        g.fill();
+        g.strokeStyle = "rgba(255,255,255,0.35)";
+        g.lineWidth = 4;
+        g.beginPath();
+        g.moveTo(512, 170);
+        g.lineTo(512, 1000);
+        g.stroke();
+      });
+
+      const outfit = makeCanvasLayer("demo-outfit", "outfit", (g) => {
+        g.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
+        g.fillStyle = "#242832";
+        g.beginPath();
+        g.moveTo(348, 1000);
+        g.bezierCurveTo(376, 672, 454, 602, 512, 602);
+        g.bezierCurveTo(590, 602, 664, 672, 690, 1000);
+        g.closePath();
+        g.fill();
+        g.fillStyle = "#28c2a0";
+        g.beginPath();
+        g.moveTo(490, 610);
+        g.lineTo(534, 610);
+        g.lineTo(520, 1000);
+        g.lineTo(504, 1000);
+        g.closePath();
+        g.fill();
+      });
+
+      const hair = makeCanvasLayer("demo-long-ponytail-hair", "hair", (g) => {
+        g.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
+        g.fillStyle = "#1c1515";
+        g.beginPath();
+        g.ellipse(512, 314, 132, 122, 0, 0, Math.PI * 2);
+        g.fill();
+        g.beginPath();
+        g.ellipse(598, 392, 52, 126, -0.16, 0, Math.PI * 2);
+        g.fill();
+        g.beginPath();
+        g.moveTo(420, 312);
+        g.bezierCurveTo(205, 392, 198, 690, 320, 774);
+        g.bezierCurveTo(374, 642, 346, 448, 488, 396);
+        g.closePath();
+        g.fill();
+        g.fillStyle = "#302020";
+        g.beginPath();
+        g.ellipse(512, 306, 86, 72, 0, 0, Math.PI * 2);
+        g.fill();
+      });
+
+      return sortLayers([base, outfit, hair]);
+    }
+
+    function setLayers(nextLayers, message) {
+      layers = sortLayers(nextLayers);
+      renderLayerList();
+      draw();
+      setStatus(message);
+    }
+
+    function drawImageContain(image) {
+      if (image.width === CANVAS_SIZE && image.height === CANVAS_SIZE) {
+        ctx.drawImage(image, 0, 0);
+        return;
+      }
+      const scale = Math.min(CANVAS_SIZE / image.width, CANVAS_SIZE / image.height);
+      const width = image.width * scale;
+      const height = image.height * scale;
+      const x = (CANVAS_SIZE - width) / 2;
+      const y = CANVAS_SIZE - height - 24;
+      ctx.drawImage(image, x, y, width, height);
+    }
+
+    function drawGuides() {
+      if (!guideToggle.checked) {
+        return;
+      }
+      ctx.save();
+      ctx.strokeStyle = "rgba(40, 194, 160, 0.78)";
+      ctx.lineWidth = 2;
+      ctx.setLineDash([10, 8]);
+      ctx.beginPath();
+      ctx.moveTo(ANCHOR.x, 0);
+      ctx.lineTo(ANCHOR.x, CANVAS_SIZE);
+      ctx.moveTo(0, ANCHOR.y);
+      ctx.lineTo(CANVAS_SIZE, ANCHOR.y);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = "rgba(232, 184, 75, 0.92)";
+      ctx.beginPath();
+      ctx.arc(ANCHOR.x, ANCHOR.y, 7, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = "high";
+      layers.filter((layer) => layer.enabled).forEach((layer) => drawImageContain(layer.image));
+      drawGuides();
+    }
+
+    function renderLayerList() {
+      layerList.replaceChildren();
+      if (!layers.length) {
+        const empty = document.createElement("div");
+        empty.className = "empty";
+        empty.textContent = "No active layers.";
+        layerList.append(empty);
+        return;
+      }
+
+      layers.forEach((layer) => {
+        const row = document.createElement("label");
+        row.className = "layer-row";
+
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.checked = layer.enabled;
+        checkbox.addEventListener("change", () => {
+          layer.enabled = checkbox.checked;
+          draw();
+        });
+
+        const name = document.createElement("span");
+        name.className = "layer-name";
+        name.title = layer.name;
+        name.textContent = layer.name;
+
+        const badge = document.createElement("span");
+        badge.className = "badge";
+        badge.textContent = layer.slot;
+
+        row.append(checkbox, name, badge);
+        layerList.append(row);
+      });
+    }
+
+    function loadImageFromFile(file) {
+      return new Promise((resolve, reject) => {
+        const url = URL.createObjectURL(file);
+        const image = new Image();
+        image.onload = () => resolve({ image, url });
+        image.onerror = () => {
+          URL.revokeObjectURL(url);
+          reject(new Error(`Could not load ${file.name}`));
+        };
+        image.src = url;
+      });
+    }
+
+    fileInput.addEventListener("change", async () => {
+      const files = [...fileInput.files];
+      if (!files.length) {
+        return;
+      }
+
+      const next = [];
+      for (const file of files) {
+        try {
+          const { image } = await loadImageFromFile(file);
+          next.push(createLayer(file.name, classifyLayer(file.name), image, true));
+        } catch (error) {
+          setStatus(error.message);
+        }
+      }
+
+      loadedLayers = sortLayers(next);
+      setLayers(loadedLayers, `Loaded ${loadedLayers.length} layer(s).`);
+    });
+
+    guideToggle.addEventListener("change", draw);
+
+    document.querySelector("#demo-full").addEventListener("click", () => {
+      demoLayers = createDemoLayers();
+      setLayers(demoLayers, "Demo full stack enabled.");
+    });
+
+    document.querySelector("#demo-base").addEventListener("click", () => {
+      demoLayers = createDemoLayers();
+      setLayers(demoLayers.map((layer) => ({ ...layer, enabled: layer.slot === "base" })), "Demo base layer enabled.");
+    });
+
+    document.querySelector("#demo-hair").addEventListener("click", () => {
+      demoLayers = createDemoLayers();
+      setLayers(demoLayers.map((layer) => ({ ...layer, enabled: ["base", "hair"].includes(layer.slot) })), "Demo base and asymmetric hair enabled.");
+    });
+
+    document.querySelector("#loaded-all").addEventListener("click", () => {
+      if (!loadedLayers.length) {
+        setStatus("Load processed PNG layers first.");
+        return;
+      }
+      setLayers(loadedLayers.map((layer) => ({ ...layer, enabled: true })), "Loaded layers enabled.");
+    });
+
+    document.querySelector("#download").addEventListener("click", () => {
+      const link = document.createElement("a");
+      link.download = "layer-composite.png";
+      link.href = canvas.toDataURL("image/png");
+      link.click();
+    });
+
+    document.querySelector("#clear").addEventListener("click", () => {
+      loadedLayers = [];
+      fileInput.value = "";
+      setLayers(createDemoLayers(), "Loaded layers cleared.");
+    });
+
+    setLayers(demoLayers, "Demo layers are ready.");
+  </script>
+</body>
+</html>

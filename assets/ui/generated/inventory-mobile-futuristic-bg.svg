@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1920" viewBox="0 0 1080 1920">
+  <defs>
+    <linearGradient id="base" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#03121d"/>
+      <stop offset=".56" stop-color="#082334"/>
+      <stop offset="1" stop-color="#050813"/>
+    </linearGradient>
+    <radialGradient id="core" cx=".55" cy=".38" r=".7">
+      <stop offset="0" stop-color="#40dce9" stop-opacity=".28"/>
+      <stop offset=".52" stop-color="#0b3143" stop-opacity=".12"/>
+      <stop offset="1" stop-color="#000000" stop-opacity=".74"/>
+    </radialGradient>
+    <filter id="soft"><feGaussianBlur stdDeviation="3"/></filter>
+  </defs>
+  <rect width="1080" height="1920" fill="url(#base)"/>
+  <g opacity=".58" filter="url(#soft)">
+    <rect x="70" y="410" width="88" height="1240" fill="#061527"/>
+    <rect x="248" y="300" width="116" height="1410" fill="#061a2d"/>
+    <rect x="486" y="520" width="74" height="1120" fill="#07162a"/>
+    <rect x="680" y="360" width="136" height="1340" fill="#061b2f"/>
+    <rect x="910" y="470" width="86" height="1180" fill="#071525"/>
+  </g>
+  <g stroke="#43dcea" stroke-opacity=".42" stroke-width="4">
+    <path d="M0 420 1080 250M0 820 1080 650M0 1180 1080 1010M0 1510 1080 1360"/>
+  </g>
+  <g fill="#45e0ed" opacity=".55">
+    <rect x="92" y="545" width="44" height="20"/><rect x="274" y="650" width="66" height="18"/>
+    <rect x="704" y="580" width="78" height="20"/><rect x="928" y="900" width="44" height="18"/>
+    <rect x="506" y="1040" width="34" height="20"/><rect x="710" y="1210" width="70" height="18"/>
+  </g>
+  <path d="M0 1380c250-92 470-66 650 18 150 70 275 74 430 8v514H0z" fill="#070914" opacity=".72"/>
+  <rect width="1080" height="1920" fill="url(#core)"/>
+</svg>

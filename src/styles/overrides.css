@@ -1,0 +1,1243 @@
+/* REality Engine v4.1 - Tool & Menu Repair */
+/* Force native popups and menus to the very top */
+
+#wand_popup,
+#slash_popup,
+.slash-menu,
+.toast-notification,
+#toast-container,
+#tokenizer_info {
+    z-index: 2147483647 !important; /* Max Int */
+}
+
+/* Ensure autocomplete and other floating menus are visible */
+.autocomplete {
+    z-index: 2147483647 !important;
+}
+
+/* Fix for any potential "black screen" overlays */
+#re-bg {
+    z-index: 0;
+}
+
+#re-overlay {
+    z-index: 10;
+    pointer-events: none; /* Let clicks pass through empty areas */
+}
+
+#re-overlay > * {
+    pointer-events: auto; /* Re-enable clicks for child elements */
+}
+
+/* Fix for Stats and Activities window headers - ensure they're at top with normal size */
+/* CRITICAL FIX: Override any conflicting styles that put headers on the side */
+#uie-stats-window,
+#uie-activities-window {
+    /* display: flex !important; */
+    flex-direction: column !important;
+}
+
+#uie-stats-window .uie-rpg-header,
+#uie-activities-window .uie-sim-header,
+#uie-stats-window > .uie-rpg-header,
+#uie-activities-window > .uie-sim-header {
+    position: relative !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: auto !important;
+    bottom: auto !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: auto !important;
+    max-height: none !important;
+    flex-direction: row !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    order: 1 !important;
+    flex-shrink: 0 !important;
+    flex-grow: 0 !important;
+    margin: 0 !important;
+    padding: 10px 15px !important;
+    writing-mode: horizontal-tb !important;
+    text-orientation: mixed !important;
+    transform: none !important;
+    rotate: 0deg !important;
+}
+
+#uie-stats-window .uie-rpg-title,
+#uie-activities-window .uie-sim-title,
+#uie-stats-window .uie-rpg-header .uie-rpg-title,
+#uie-activities-window .uie-sim-header .uie-sim-title {
+    writing-mode: horizontal-tb !important;
+    text-orientation: mixed !important;
+    transform: none !important;
+    rotate: 0deg !important;
+    position: static !important;
+    font-size: 1em !important;
+    font-weight: 700 !important;
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 10px !important;
+    width: auto !important;
+    height: auto !important;
+    min-width: auto !important;
+    min-height: auto !important;
+    max-width: none !important;
+    max-height: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    line-height: normal !important;
+    letter-spacing: 1px !important;
+    text-transform: uppercase !important;
+}
+
+#uie-stats-window > .uie-rpg-content,
+#uie-activities-window > .uie-sim-content {
+    order: 2 !important;
+    flex: 1 !important;
+    overflow-y: visible !important;
+    width: 100% !important;
+}
+
+@media not all {
+    #uie-stats-window > .uie-rpg-content,
+    #uie-activities-window > .uie-sim-content {
+        overflow-y: auto !important;
+    }
+}
+
+/* Override any side panel styles */
+#uie-stats-window .uie-rpg-header *,
+#uie-activities-window .uie-sim-header * {
+    writing-mode: horizontal-tb !important;
+    text-orientation: mixed !important;
+    transform: none !important;
+    rotate: 0deg !important;
+}
+
+/* CRITICAL: Prevent any grid or side-by-side layouts */
+#uie-stats-window,
+#uie-activities-window {
+    grid-template-columns: none !important;
+    grid-template-rows: none !important;
+    grid-auto-flow: row !important;
+}
+
+/* Ensure no child elements create side panels */
+#uie-stats-window > *,
+#uie-activities-window > * {
+    grid-column: auto !important;
+    grid-row: auto !important;
+    width: 100% !important;
+    max-width: 100% !important;
+}
+
+/* Force header to be first child at top */
+#uie-stats-window > .uie-rpg-header:first-child,
+#uie-activities-window > .uie-sim-header:first-child {
+    order: -1 !important;
+}
+
+/* Force modals and windows to z-index 2147483600 so toasts at 2147483647 are always on top */
+#uie-settings-window,
+#uie-journal-window,
+#uie-card-manager,
+#uie-card-editor,
+.uie-window,
+.uie-modal,
+.uie-overlay,
+.uie-full-modal {
+    z-index: 2147483600 !important;
+}
+
+#toast-container,
+.toast-notification {
+    z-index: 2147483647 !important;
+}
+
+/* Shared notification lane: keep third-party toastr above the game but out of the side gutters. */
+#toast-container {
+    position: fixed !important;
+    top: max(12px, env(safe-area-inset-top, 0px)) !important;
+    right: auto !important;
+    bottom: auto !important;
+    left: 50% !important;
+    width: min(600px, calc(100vw - 24px)) !important;
+    margin: 0 !important;
+    transform: translateX(-50%) !important;
+    pointer-events: none !important;
+}
+
+#toast-container > div {
+    width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+    pointer-events: auto !important;
+}
+
+#user-input {
+    background: rgba(3, 7, 15, 0.94) !important;
+    color: #f8fafc !important;
+    border-color: rgba(148, 163, 184, 0.38) !important;
+    color-scheme: dark !important;
+}
+
+#user-input:focus {
+    background: rgba(0, 0, 0, 0.96) !important;
+    color: #ffffff !important;
+    border-color: rgba(83, 186, 242, 0.74) !important;
+    box-shadow: 0 0 0 3px rgba(83, 186, 242, 0.22) !important;
+    outline: none !important;
+}
+
+#user-input::placeholder {
+    color: rgba(226, 232, 240, 0.62) !important;
+    opacity: 1 !important;
+}
+
+/* Pale living-menu surfaces need dark text; white text is unreadable here. */
+#reply-menu-panel {
+    color: #2d1a14 !important;
+}
+
+#reply-menu-panel .reply-menu-title,
+#reply-menu-panel .reply-menu-section-title,
+#reply-menu-panel .reply-menu-item,
+#reply-menu-panel .reply-menu-tab-btn {
+    color: #2d1a14 !important;
+}
+
+/* Ensure reply menu icons are visible and solid brown when not hovered, and dark brown on hover */
+#reply-menu-panel .reply-menu-item i {
+    color: #2d1a14 !important;
+    text-shadow: none !important;
+}
+
+#reply-menu-panel .reply-menu-item:hover {
+    color: #1a0f0a !important;
+    background: rgba(203, 163, 92, 0.15) !important;
+    border-color: rgba(126, 81, 37, 0.4) !important;
+}
+
+#reply-menu-panel .reply-menu-item:hover i {
+    color: #1a0f0a !important;
+    text-shadow: none !important;
+}
+
+/* High-contrast text repair for pale modal/card surfaces. */
+#uie-card-editor,
+#uie-card-editor .modal-card,
+#uie-card-editor [style*="background:#fcf5eb"],
+#ce-pref-editor [style*="background:#fcf5eb"],
+#uie-factions-window,
+#uie-factions-window .uie-fac-workspace {
+    color: #17130f !important;
+}
+
+#uie-card-editor .ce-label,
+#uie-card-editor small,
+#uie-card-editor .help,
+#ce-pref-editor small,
+#ce-pref-editor .help,
+#uie-factions-window .uie-fac-note,
+#uie-factions-window .uie-fac-empty,
+#uie-factions-window .uie-fac-meta,
+#uie-factions-window .uie-fac-field label,
+#uie-factions-window .uie-fac-member-row small {
+    color: #2b2118 !important;
+    opacity: 1 !important;
+}
+
+#uie-journal-window .uie-quest-desc,
+#uie-journal-window .uie-codex-body,
+#uie-journal-window #uie-journal-counts,
+#uie-journal-window .uie-journal-brand small,
+#uie-diary-window .uie-sticker-tab,
+#uie-diary-window #uie-sticker-empty {
+    color: #d9e2ef !important;
+    opacity: 1 !important;
+}
+
+/* HUD life tracker text should match the rest of the side HUD: bright, not black. */
+#uie-mode-hud .uie-mode-bar,
+#uie-mode-hud .uie-mode-bar-head,
+#uie-mode-hud .uie-mode-bar-head span,
+#uie-mode-hud [data-stat],
+#hud #uie-mode-hud .uie-mode-bar,
+#hud #uie-mode-hud .uie-mode-bar-head,
+#hud #uie-mode-hud .uie-mode-bar-head span {
+    color: #fff !important;
+}
+
+#hud {
+    width: auto !important;
+    min-width: 195px !important;
+    max-width: min(315px, calc(100vw - 32px)) !important;
+    max-height: none !important;
+    overflow: visible !important;
+}
+
+#hud-custom-trackers {
+    max-width: min(350px, calc(100vw - 32px)) !important;
+    max-height: min(54dvh, calc(100dvh - 220px)) !important;
+    overflow-y: auto !important;
+    overflow-x: visible !important;
+    padding-right: 4px !important;
+    scrollbar-width: none !important;
+}
+
+#hud-custom-trackers::-webkit-scrollbar {
+    width: 0 !important;
+    height: 0 !important;
+}
+
+#hud .hud-item[data-hud="hp"], .hud-tracker {
+    width: 94% !important;
+    max-width: 94% !important;
+    box-sizing: border-box !important;
+}
+
+#hud .hud-item:not([data-hud="hp"]) {
+    width: 94% !important;
+    max-width: 94% !important;
+    box-sizing: border-box !important;
+}
+
+#vn-ui {
+    border-top: 2px solid rgba(221, 236, 255, 0.32) !important;
+    box-shadow: 0 -12px 28px rgba(0, 0, 0, 0.26) !important;
+}
+
+/* Mobile modals must fit both portrait and landscape viewports. */
+@media not all {
+    .modal-card,
+    .uie-modal,
+    .uie-full-modal,
+    .uie-overlay > *,
+    #uie-pet-menu-modal .modal-card,
+    #uie-social-overlay > *,
+    #uie-social-mem-overlay > *,
+    #uie-social-details-overlay > * {
+        max-width: calc(100vw - 20px) !important;
+        max-height: calc(100dvh - 20px) !important;
+        overflow: auto !important;
+        box-sizing: border-box !important;
+    }
+
+    .uie-window {
+        max-width: 100vw !important;
+        max-height: 100dvh !important;
+    }
+
+    .modal-card,
+    .uie-modal,
+    .uie-full-modal {
+        border-radius: 8px !important;
+        padding: clamp(10px, 2.6vw, 16px) !important;
+    }
+
+    .modal-card input,
+    .modal-card select,
+    .modal-card textarea,
+    .uie-window input,
+    .uie-window select,
+    .uie-window textarea {
+        min-height: 36px !important;
+        font-size: 14px !important;
+    }
+
+    .modal-card button,
+    .uie-window button {
+        min-height: 44px;
+    }
+}
+
+@media not all {
+    .modal-overlay,
+    .uie-org-dossier,
+    #uie-npc-management-modal {
+        align-items: flex-start !important;
+        justify-content: center !important;
+        padding: 8px !important;
+        overflow: auto !important;
+    }
+
+    .modal-card,
+    #persona-modal .persona-editor-shell,
+    #uie-settings-window,
+    #uie-card-editor,
+    #uie-npc-management-modal .uie-npc-panel,
+    #uie-npc-roster-modal .uie-npc-roster,
+    .uie-org-dossier-panel {
+        width: calc(100vw - 16px) !important;
+        height: auto !important;
+        max-height: calc(100dvh - 16px) !important;
+        overflow: auto !important;
+        transform: none !important;
+    }
+
+    #uie-settings-window,
+    #uie-card-editor {
+        top: 8px !important;
+        left: 8px !important;
+        right: 8px !important;
+        bottom: 8px !important;
+    }
+}
+
+@media not all {
+    #hud {
+        max-width: min(240px, 34vw) !important;
+        max-height: min(48dvh, 180px) !important;
+        overflow-y: auto !important;
+        overflow-x: hidden !important;
+        padding-right: 3px !important;
+        scrollbar-width: none !important;
+    }
+
+    #hud::-webkit-scrollbar {
+        width: 0 !important;
+        height: 0 !important;
+    }
+
+    #hud-custom-trackers {
+        max-height: 82px !important;
+        overflow-y: auto !important;
+        overflow-x: hidden !important;
+    }
+
+    #hud .hud-item,
+    #hud .hud-tracker {
+        max-width: 100% !important;
+        font-size: 11px !important;
+        line-height: 1.2 !important;
+        padding: 5px 8px !important;
+    }
+
+    #vn-ui {
+        max-height: min(55dvh, 320px) !important;
+        padding: 4px max(8px, env(safe-area-inset-right)) max(4px, calc(env(safe-area-inset-bottom) + 4px)) max(8px, env(safe-area-inset-left)) !important;
+        overflow: visible !important;
+    }
+
+    #input-row {
+        display: grid !important;
+        grid-template-columns: minmax(0, 1fr) 48px !important;
+        gap: 4px !important;
+        align-items: stretch !important;
+    }
+
+    #reply-tools,
+    .persona-target-scene-wrap {
+        grid-column: 1 / -1 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        overflow-x: auto !important;
+        overflow-y: hidden !important;
+        flex-wrap: nowrap !important;
+        scrollbar-width: none !important;
+    }
+
+    #reply-tools::-webkit-scrollbar,
+    .persona-target-scene-wrap::-webkit-scrollbar {
+        display: none !important;
+    }
+
+    #user-input-column {
+        min-width: 0 !important;
+        max-width: 100% !important;
+    }
+
+    #send-btn {
+        width: 48px !important;
+        min-width: 48px !important;
+        flex: 0 0 48px !important;
+    }
+
+    #user-input-column {
+        display: flex !important;
+        flex-direction: column !important;
+        grid-column: 1 / 2 !important;
+        min-height: 44px !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+    }
+
+    #user-input {
+        display: block !important;
+        min-height: 42px !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+    }
+
+    .modal-card,
+    #uie-pet-menu-modal .modal-card {
+        width: min(760px, calc(100vw - 16px)) !important;
+        height: auto !important;
+        max-height: calc(100dvh - 16px) !important;
+    }
+}
+
+/* Persona Studio is cramped on mobile. */
+#persona-modal {
+    align-items: center !important;
+    justify-content: center !important;
+    background: rgba(3, 7, 18, 0.72) !important;
+    backdrop-filter: blur(8px) !important;
+}
+
+#persona-modal .persona-editor-shell {
+    position: relative !important;
+    width: min(1080px, calc(100vw - 28px)) !important;
+    max-height: min(86dvh, 860px) !important;
+    overflow: hidden !important;
+    border: 1px solid rgba(203, 163, 92, 0.44) !important;
+    border-radius: 12px !important;
+    color: #f8f1df !important;
+    background:
+        linear-gradient(135deg, rgba(39, 27, 17, 0.98), rgba(12, 16, 26, 0.98)) !important;
+    box-shadow: 0 28px 80px rgba(0, 0, 0, 0.74), inset 0 1px rgba(255,255,255,0.08) !important;
+}
+
+#persona-x {
+    position: absolute !important;
+    top: 12px !important;
+    right: 12px !important;
+    width: 38px !important;
+    height: 38px !important;
+    display: grid !important;
+    place-items: center !important;
+    border-radius: 8px !important;
+    border: 1px solid rgba(203, 163, 92, 0.42) !important;
+    background: rgba(255, 248, 226, 0.1) !important;
+    color: #fff8e8 !important;
+    font-size: 18px !important;
+    font-weight: 900 !important;
+    cursor: pointer !important;
+    z-index: 3 !important;
+}
+
+#persona-modal .persona-editor-shell h3 {
+    color: #f8dfaa !important;
+    font-family: Georgia, "Times New Roman", serif !important;
+    letter-spacing: 0 !important;
+}
+
+#persona-modal .persona-editor-shell > div {
+    min-height: 0 !important;
+}
+
+#persona-list {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+    padding-right: 4px !important;
+}
+
+#persona-list > *,
+.uie-persona-card {
+    border-radius: 8px !important;
+    border: 1px solid rgba(203, 163, 92, 0.28) !important;
+    background:
+        radial-gradient(circle at 18% 10%, rgba(255,255,255,0.08), transparent 26%),
+        linear-gradient(160deg, rgba(72, 45, 24, 0.86), rgba(17, 24, 39, 0.92)) !important;
+    box-shadow: 0 12px 30px rgba(0,0,0,0.32), inset 0 1px rgba(255,255,255,0.08) !important;
+}
+
+#persona-image-preview-wrap {
+    width: 132px !important;
+    height: 178px !important;
+    border-radius: 8px !important;
+    border: 1px solid rgba(203, 163, 92, 0.42) !important;
+    background:
+        linear-gradient(180deg, rgba(255,255,255,0.06), transparent),
+        rgba(8, 13, 23, 0.72) !important;
+    box-shadow: 0 14px 34px rgba(0,0,0,0.38) !important;
+}
+
+#persona-modal .persona-tab-panel {
+    margin-top: 10px !important;
+    max-height: calc(86dvh - 230px) !important;
+    overflow: auto !important;
+    padding: 14px !important;
+    border: 1px solid rgba(203, 163, 92, 0.22) !important;
+    border-radius: 8px !important;
+    background: rgba(6, 10, 18, 0.46) !important;
+}
+
+#persona-modal .persona-editor-tab {
+    border-radius: 7px !important;
+}
+
+#persona-modal .modal-input,
+#persona-modal .modal-select,
+#persona-modal .modal-textarea {
+    border-color: rgba(203, 163, 92, 0.28) !important;
+    background: rgba(255, 248, 226, 0.08) !important;
+    color: #fff8e8 !important;
+}
+
+#persona-modal label,
+#persona-modal p {
+    color: rgba(255, 248, 226, 0.86) !important;
+}
+
+/* Parchment keeps the desktop landscape layout; its inner panels provide scrolling. */
+#uie-phone-window[data-device="scroll"],
+#uie-phone-window[data-codice="true"] {
+    width: min(800px, calc(100vw - 36px)) !important;
+    height: min(600px, calc(100dvh - 46px)) !important;
+    max-height: min(600px, calc(100dvh - 46px)) !important;
+    overflow: visible !important;
+    cursor: grab !important;
+}
+
+#uie-phone-window[data-device="scroll"]:active,
+#uie-phone-window[data-codice="true"]:active {
+    cursor: grabbing !important;
+}
+
+#uie-phone-window[data-device="scroll"]::before,
+#uie-phone-window[data-device="scroll"]::after,
+#uie-phone-window[data-codice="true"]::before,
+#uie-phone-window[data-codice="true"]::after {
+    left: -34px !important;
+    right: -34px !important;
+    height: 36px !important;
+    pointer-events: none !important;
+}
+
+#uie-phone-window[data-device="scroll"]::before,
+#uie-phone-window[data-codice="true"]::before {
+    top: -22px !important;
+}
+
+#uie-phone-window[data-device="scroll"]::after,
+#uie-phone-window[data-codice="true"]::after {
+    bottom: -22px !important;
+}
+
+#uie-phone-window[data-device="scroll"] .phone-screen,
+#uie-phone-window[data-device="scroll"] .phone-app-window,
+#uie-phone-window[data-codice="true"] .phone-screen,
+#uie-phone-window[data-codice="true"] .phone-app-window {
+    margin: 0 !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+    cursor: auto !important;
+}
+
+#uie-phone-window[data-device="scroll"] .phone-app-content,
+#uie-phone-window[data-device="scroll"] .p-msg-list,
+#uie-phone-window[data-device="scroll"] .phone-grid-scroll,
+#uie-phone-window[data-codice="true"] .phone-app-content,
+#uie-phone-window[data-codice="true"] .p-msg-list,
+#uie-phone-window[data-codice="true"] .phone-grid-scroll {
+    min-height: 0 !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-y !important;
+}
+
+#uie-phone-window[data-device="scroll"] .p-msg-list,
+#uie-phone-window[data-codice="true"] .p-msg-list {
+    padding: 18px 22px 0 !important;
+    gap: 18px !important;
+}
+
+#uie-phone-window[data-device="scroll"] .uie-letter-thread,
+#uie-phone-window[data-codice="true"] .uie-letter-thread {
+    gap: 22px !important;
+    padding: 18px 22px 28px !important;
+}
+
+#uie-phone-window[data-device="scroll"] .uie-letter-doc,
+#uie-phone-window[data-codice="true"] .uie-letter-doc {
+    width: min(100%, 560px) !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    padding: 20px 28px 22px !important;
+    border-left-width: 18px !important;
+    border-right-width: 18px !important;
+    font-size: 16px !important;
+}
+
+#uie-phone-window[data-device="scroll"] .uie-letter-body,
+#uie-phone-window[data-codice="true"] .uie-letter-body {
+    min-height: 120px !important;
+    font-size: 17px !important;
+    line-height: 1.72 !important;
+}
+
+#uie-phone-window[data-device="scroll"] .uie-letter-compose,
+#uie-phone-window[data-codice="true"] .uie-letter-compose {
+    margin: 0 46px 30px !important;
+    padding: 16px 20px !important;
+    border-left-width: 18px !important;
+    border-right-width: 18px !important;
+}
+
+#uie-phone-window[data-device="scroll"] .uie-letter-compose #msg-input,
+#uie-phone-window[data-codice="true"] .uie-letter-compose #msg-input {
+    min-height: 150px !important;
+    font-size: 16px !important;
+}
+
+#uie-phone-window[data-device="scroll"] .p-bubble,
+#uie-phone-window[data-codice="true"] .p-bubble {
+    max-width: min(560px, 92%) !important;
+    border-radius: 3px !important;
+    font-family: Georgia, "Times New Roman", serif !important;
+    font-size: 16px !important;
+    line-height: 1.62 !important;
+}
+
+@media not all {
+    #uie-persona-window,
+    #persona-studio,
+    .persona-studio,
+    [data-uie-window="persona"] {
+        font-size: 100% !important;
+    }
+}
+
+/* Keep Social character profile centered and visible. */
+#uie-social-overlay,
+#uie-social-mem-overlay,
+#uie-social-details-overlay {
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+#uie-social-overlay > *,
+#uie-social-mem-overlay > *,
+#uie-social-details-overlay > * {
+    position: relative !important;
+    left: auto !important;
+    right: auto !important;
+    top: auto !important;
+    transform: none !important;
+    width: min(720px, calc(100vw - 24px)) !important;
+    max-height: calc(100dvh - 24px) !important;
+}
+
+/* Party member popup should read like a character stat sheet, not a black shell. */
+#uie-party-member-modal {
+    background: transparent !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+}
+
+#uie-party-member-card {
+    inset: 18px !important;
+    border-radius: 8px !important;
+    border: 1px solid rgba(126, 81, 37, 0.32) !important;
+    background:
+        linear-gradient(180deg, #fffaf0, #f6e4c5) !important;
+    color: #2f1d12 !important;
+    box-shadow: 0 24px 70px rgba(47, 32, 19, 0.28) !important;
+}
+
+#uie-party-member-content {
+    color: #2f1d12 !important;
+    scrollbar-width: thin !important;
+}
+
+#uie-party-member-modal .uie-party-member-header {
+    padding: 14px 18px !important;
+    border-bottom: 1px solid rgba(126, 81, 37, 0.24) !important;
+    background: #efd3a5 !important;
+}
+
+#uie-party-member-modal #uie-party-member-title {
+    color: #3a2415 !important;
+    font-family: Georgia, "Times New Roman", serif !important;
+    letter-spacing: 0 !important;
+}
+
+#uie-party-member-modal input,
+#uie-party-member-modal select,
+#uie-party-member-modal textarea {
+    background: #fffdf7 !important;
+    border-color: rgba(126, 81, 37, 0.28) !important;
+    color: #2f1d12 !important;
+}
+
+#uie-party-member-modal .party-mm-tab {
+    background: #fff4df !important;
+    border: 1px solid rgba(126, 81, 37, 0.22) !important;
+    color: #54341e !important;
+}
+
+#uie-party-member-modal .party-mm-tab.active {
+    background: #c9853d !important;
+    color: #fffdf7 !important;
+}
+
+#uie-party-member-modal .vitals-section > div,
+#uie-party-member-modal .stats-grid > div,
+#uie-party-member-modal .status-fx-list,
+#uie-party-member-modal .party-member-trackers > * {
+    background: #fff7e8 !important;
+    border-color: rgba(126, 81, 37, 0.22) !important;
+    color: #2f1d12 !important;
+}
+
+#uie-party-member-modal .sheet-portrait-container {
+    border-radius: 8px !important;
+    background: #ead1a6 !important;
+    border-color: rgba(126, 81, 37, 0.32) !important;
+}
+
+#uie-party-member-modal #party-paperdoll-pick {
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+}
+
+#uie-party-member-modal #party-paperdoll-pick.has-image {
+    background: transparent !important;
+}
+
+#uie-party-member-modal .party-paperdoll-img {
+    display: block;
+    max-width: 100%;
+    max-height: 100%;
+    width: 100%;
+    height: 100%;
+    object-fit: contain !important;
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+}
+
+/* --- Mobile Parchment / Scroll Overhaul --- */
+@media not all {
+  .mobile-parchment,
+  #uie-phone-window[data-device="scroll"] .uie-letter-doc,
+  #uie-phone-window[data-device="scroll"] .uie-letter-compose {
+      background: #ede0bc !important;
+      color: #2c2214 !important;
+      margin: 10px 46px !important; /* Simulating side roller handles using deep margins */
+      padding: 16px !important;
+      border-radius: 4px !important;
+      /* Simulating the top/bottom wooden rollers on mobile scales */
+      border-top: 12px solid #b5986c !important;
+      border-bottom: 12px solid #b5986c !important;
+      border-left: none !important;
+      border-right: none !important;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.4) !important;
+      height: calc(100vh - 40px) !important;
+      display: flex !important;
+      flex-direction: column !important;
+  }
+
+  .mobile-letter-body,
+  #uie-phone-window[data-device="scroll"] .uie-letter-body,
+  #uie-phone-window[data-device="scroll"] #uie-app-msg-view .uie-letter-body,
+  #uie-phone-window[data-device="scroll"] .uie-letter-compose #msg-input {
+      flex-grow: 1 !important;
+      font-family: 'Georgia', serif !important;
+      background: transparent !important;
+      border: none !important;
+      resize: none !important;
+      line-height: 1.6 !important;
+      color: #382b19 !important;
+      min-height: 0 !important;
+      font-size: 18px !important;
+  }
+}
+
+/* Phone windows must remain device-shaped on mobile. Generic landscape rules can
+   fullscreen normal modals, but the phone itself should stay a contained object. */
+@media not all {
+  #uie-phone-window.uie-phone {
+      left: 50% !important;
+      right: auto !important;
+      bottom: auto !important;
+      box-sizing: border-box !important;
+      overflow: hidden !important;
+  }
+}
+
+@media not all {
+  #uie-phone-window.uie-phone {
+      top: max(10px, env(safe-area-inset-top)) !important;
+      transform: translateX(-50%) !important;
+      width: min(390px, calc(100vw - 22px)) !important;
+      height: min(700px, calc(100dvh - 22px - env(safe-area-inset-top) - env(safe-area-inset-bottom))) !important;
+      max-width: calc(100vw - 22px) !important;
+      max-height: calc(100dvh - 22px - env(safe-area-inset-top) - env(safe-area-inset-bottom)) !important;
+  }
+}
+
+@media not all {
+  #startup-modal {
+      align-items: center !important;
+      justify-content: center !important;
+      padding: 8px 18px !important;
+      overflow: hidden !important;
+  }
+
+  #startup-modal .modal-card {
+      width: min(760px, calc(100vw - 36px)) !important;
+      max-width: calc(100vw - 36px) !important;
+      max-height: calc(100dvh - 18px) !important;
+      min-height: 0 !important;
+      margin: 0 auto !important;
+      padding: 16px 20px !important;
+      justify-content: center !important;
+      overflow: auto !important;
+  }
+
+  #startup-modal .main-menu-logo-container {
+      margin-bottom: 8px !important;
+  }
+
+  #startup-modal .main-menu-logo-container h2,
+  #startup-modal .main-menu-logo {
+      margin: 0 0 4px !important;
+      font-size: clamp(1.45rem, 5vw, 2.15rem) !important;
+      line-height: 1.05 !important;
+  }
+
+  #startup-modal .main-menu-sub {
+      font-size: clamp(0.8rem, 2.6vw, 1rem) !important;
+      letter-spacing: 0.22em !important;
+  }
+
+  #startup-modal .modal-card > p {
+      max-width: 620px !important;
+      margin: 8px auto 12px !important;
+      font-size: 0.98rem !important;
+      line-height: 1.35 !important;
+  }
+
+  #startup-modal .main-menu-grid {
+      display: grid !important;
+      grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+      gap: 10px !important;
+      width: min(620px, 100%) !important;
+      max-width: 620px !important;
+      margin: 12px auto 0 !important;
+  }
+
+  #startup-modal .main-menu-grid .reply-tool-btn {
+      min-height: 48px !important;
+      padding: 0 14px !important;
+      font-size: 14px !important;
+      border-radius: 10px !important;
+  }
+
+  #uie-phone-window.uie-phone {
+      top: 50% !important;
+      transform: translate(-50%, -50%) !important;
+      width: min(340px, calc((100dvh - 18px) * 0.58), calc(100vw - 40px)) !important;
+      height: min(590px, calc(100dvh - 18px)) !important;
+      max-width: calc(100vw - 40px) !important;
+      max-height: calc(100dvh - 18px) !important;
+      border-radius: clamp(14px, 4vh, 24px) !important;
+  }
+
+  #uie-phone-window[data-device="scroll"],
+  #uie-phone-window[data-codice="true"] {
+      width: min(430px, calc(100vw - 40px)) !important;
+      height: min(690px, calc(100dvh - 18px)) !important;
+      max-width: calc(100vw - 40px) !important;
+      max-height: calc(100dvh - 18px) !important;
+  }
+}
+
+/* Mobile should render the game like a stable desktop canvas instead of folding
+   the HUD and bottom controls into narrow phone columns. */
+@media not all {
+  html,
+  body,
+  #game-root,
+  #game-container,
+  #app {
+      width: 100vw !important;
+      height: 100vh !important;
+      height: calc(var(--vh, 1vh) * 100) !important;
+      position: relative !important;
+      overflow: hidden !important;
+  }
+
+  #hud {
+      min-width: 240px !important;
+      max-width: 340px !important;
+      max-height: calc(100dvh - 40px) !important;
+      overflow-y: auto !important;
+      overflow-x: visible !important;
+  }
+
+  #hud .hud-item[data-hud="hp"], .hud-tracker {
+      width: 94% !important;
+      max-width: 94% !important;
+      box-sizing: border-box !important;
+  }
+
+  #hud .hud-item:not([data-hud="hp"]) {
+      width: 100% !important;
+      max-width: 100% !important;
+      box-sizing: border-box !important;
+  }
+
+  .hud-stat-row,
+  #hud .hud-item,
+  #hud .hud-item span,
+  .hud-tracker-head,
+  .hud-tracker-label {
+      white-space: nowrap !important;
+  }
+
+  #nav-row,
+  .bottom-left-buttons,
+  .bottom-ui-row {
+      position: relative !important;
+      bottom: auto !important;
+      left: auto !important;
+      display: flex !important;
+      flex-direction: row !important;
+      flex-wrap: wrap !important;
+      align-items: center !important;
+      justify-content: center !important;
+      gap: 8px !important;
+      width: 100% !important;
+      min-width: 0 !important;
+      max-width: 980px !important;
+      margin: 8px auto 0 !important;
+      overflow: visible !important;
+  }
+
+  #nav-row .nav-btn,
+  .bottom-left-buttons button,
+  .bottom-ui-row button {
+      width: auto !important;
+      height: auto !important;
+      min-width: 72px !important;
+      min-height: 40px !important;
+      flex: 0 0 auto !important;
+      flex-shrink: 0 !important;
+      border-radius: 12px !important;
+      padding: 8px 16px !important;
+  }
+
+  #nav-row .nav-btn span {
+      position: static !important;
+      top: auto !important;
+      left: auto !important;
+      transform: none !important;
+      display: inline !important;
+      width: auto !important;
+      max-width: none !important;
+      white-space: nowrap !important;
+      font-size: 11px !important;
+      line-height: inherit !important;
+      pointer-events: auto !important;
+  }
+
+  #reply-tools,
+  .persona-target-scene-wrap {
+      flex-wrap: nowrap !important;
+      max-width: none !important;
+      overflow: visible !important;
+      margin-left: 0 !important;
+  }
+
+  #reply-tools > .reply-tool-btn,
+  .persona-target-scene-wrap > .reply-tool-btn,
+  .reply-tool-btn {
+      width: 40px !important;
+      height: 40px !important;
+      min-width: 40px !important;
+      min-height: 40px !important;
+      flex: 0 0 40px !important;
+      padding: 0 !important;
+      font-size: 14px !important;
+      border-radius: 8px !important;
+  }
+
+  .reply-tool-btn,
+  .direction-btn,
+  #send-btn {
+      flex-shrink: 0 !important;
+  }
+
+  #uie-target-trigger-btn {
+      width: 168px !important;
+      min-width: 128px !important;
+      max-width: none !important;
+  }
+
+  #uie-target-custom-panel {
+      position: absolute !important;
+      bottom: calc(100% + 8px) !important;
+      left: 0 !important;
+      top: auto !important;
+      right: auto !important;
+      width: 260px !important;
+      max-width: 320px !important;
+      max-height: 360px !important;
+      z-index: 2147483645 !important;
+  }
+
+  #uie-inventory-window {
+      position: fixed !important;
+      inset: 0 !important;
+      width: 100vw !important;
+      height: 100dvh !important;
+      max-width: 100vw !important;
+      max-height: 100dvh !important;
+      transform: none !important;
+      z-index: 2147483642 !important;
+      pointer-events: auto !important;
+  }
+
+}
+
+@media not all {
+  #hud {
+      max-width: 340px !important;
+      max-height: calc(100dvh - 36px) !important;
+  }
+
+  #vn-ui {
+      max-height: min(52dvh, 420px) !important;
+      overflow: visible !important;
+  }
+
+  .modal-overlay {
+      align-items: center !important;
+      justify-content: center !important;
+      padding: max(6px, env(safe-area-inset-top)) 6px max(6px, env(safe-area-inset-bottom)) !important;
+      overflow: hidden !important;
+  }
+
+  .modal-overlay .modal-card,
+  .modal-overlay .uie-modal-card,
+  #persona-modal .persona-editor-shell,
+  #time-weather-modal .tw-modal-card {
+      width: min(980px, calc(100vw - 12px)) !important;
+      max-width: calc(100vw - 12px) !important;
+      height: auto !important;
+      max-height: calc(100dvh - 12px) !important;
+      margin: 0 auto !important;
+      overflow: auto !important;
+      border-radius: 10px !important;
+      box-sizing: border-box !important;
+  }
+
+  #persona-modal .persona-editor-layout {
+      display: grid !important;
+      grid-template-columns: minmax(220px, 280px) minmax(0, 1fr) !important;
+      gap: 16px !important;
+      align-items: stretch !important;
+  }
+
+  #persona-modal #persona-list {
+      display: grid !important;
+      grid-template-columns: 1fr !important;
+      max-height: none !important;
+      overflow: auto !important;
+  }
+
+  #uie-diary-window {
+      inset: auto !important;
+      top: 50% !important;
+      left: 50% !important;
+      transform: translate(-50%, -50%) !important;
+      width: min(980px, calc(100vw - 12px)) !important;
+      height: calc(100dvh - 12px) !important;
+      max-width: calc(100vw - 12px) !important;
+      max-height: calc(100dvh - 12px) !important;
+      border-radius: 0 !important;
+      overflow: hidden !important;
+  }
+
+  #uie-diary-window .uie-diary-cover {
+      display: flex !important;
+      flex-direction: row !important;
+      overflow: hidden !important;
+  }
+}
+
+/* Startup menu actions keep the visible gradient command style. */
+#startup-modal .main-menu-grid .reply-tool-btn {
+  background: linear-gradient(135deg, rgba(54,244,255,.34), rgba(255,79,216,.28) 52%, rgba(255,209,102,.22)) !important;
+  background-image: linear-gradient(135deg, rgba(54,244,255,.34), rgba(255,79,216,.28) 52%, rgba(255,209,102,.22)) !important;
+  border: 1px solid rgba(255,255,255,.30) !important;
+  border-radius: 14px !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.24), 0 14px 30px rgba(0,0,0,.28), 0 0 22px rgba(54,244,255,.16) !important;
+  color: #f8fdff !important;
+}
+
+#startup-modal .main-menu-grid .reply-tool-btn:hover {
+  background: linear-gradient(135deg, rgba(54,244,255,.48), rgba(255,79,216,.40) 52%, rgba(255,209,102,.32)) !important;
+  background-image: linear-gradient(135deg, rgba(54,244,255,.48), rgba(255,79,216,.40) 52%, rgba(255,209,102,.32)) !important;
+  border-color: rgba(255,255,255,.56) !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.32), 0 18px 38px rgba(0,0,0,.34), 0 0 24px rgba(54,244,255,.20) !important;
+}
+
+/* Persona editor desktop layout: list/portrait rail beside fields, not a giant
+   portrait section that squeezes the form. */
+#persona-modal .persona-editor-layout {
+  display: grid !important;
+  grid-template-columns: minmax(220px, 280px) minmax(0, 1fr) !important;
+  gap: 16px !important;
+  align-items: stretch !important;
+}
+
+#persona-modal .persona-list-panel {
+  width: auto !important;
+  max-width: none !important;
+  min-width: 0 !important;
+}
+
+#persona-modal .persona-editor-main {
+  min-width: 0 !important;
+}
+
+#persona-modal .persona-image-row {
+  display: grid !important;
+  grid-template-columns: 96px minmax(0, 1fr) !important;
+  gap: 12px !important;
+  align-items: center !important;
+}
+
+#persona-modal #persona-image-preview-wrap {
+  width: 96px !important;
+  height: 96px !important;
+  border-radius: 50% !important;
+}
+
+#persona-modal .uie-persona-list-item {
+  display: grid !important;
+  grid-template-columns: 42px minmax(0, 1fr) 34px !important;
+  align-items: center !important;
+  gap: 10px !important;
+  text-align: left !important;
+}
+
+#persona-modal .uie-persona-list-avatar {
+  width: 42px !important;
+  height: 42px !important;
+  border-radius: 50% !important;
+  overflow: hidden !important;
+  border: 1px solid rgba(203, 163, 92, 0.45) !important;
+  background: rgba(0,0,0,0.34) center/cover no-repeat !important;
+}
+
+#persona-modal .uie-persona-list-copy {
+  width: 32px !important;
+  height: 32px !important;
+  min-width: 32px !important;
+  min-height: 32px !important;
+  display: grid !important;
+  place-items: center !important;
+  border-radius: 8px !important;
+}

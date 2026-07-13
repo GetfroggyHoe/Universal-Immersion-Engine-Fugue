@@ -1,0 +1,45 @@
+/* Visual Feedback (Game Feel) */
+
+/* Move Transitions */
+.re-moving-forward {
+    transition: transform 0.3s ease-in, filter 0.3s ease-in;
+    transform: scale(1.1);
+    filter: brightness(0.35);
+}
+
+.re-moving-backward {
+    transition: transform 0.3s ease-in, filter 0.3s ease-in;
+    transform: scale(0.94);
+    filter: brightness(0.35);
+}
+
+.re-turning-left { animation: re-turn-left 0.25s ease-out; }
+.re-turning-right { animation: re-turn-right 0.25s ease-out; }
+
+@keyframes re-turn-left {
+    50% { transform: perspective(900px) rotateY(4deg) scale(1.015); filter: brightness(0.7); }
+}
+
+@keyframes re-turn-right {
+    50% { transform: perspective(900px) rotateY(-4deg) scale(1.015); filter: brightness(0.7); }
+}
+
+@keyframes re-screen-shake {
+    20% { transform: translateX(-7px); }
+    40% { transform: translateX(6px); }
+    60% { transform: translateX(-4px); }
+    80% { transform: translateX(3px); }
+}
+
+.anim-screen-shake { animation: re-screen-shake 0.38s ease-out; }
+
+/* Scavenge Sparkle Animation */
+@keyframes pulse-gold {
+    0% { transform: scale(0.8); opacity: 0.6; box-shadow: 0 0 5px #cba35c; }
+    50% { transform: scale(1.2); opacity: 1; box-shadow: 0 0 15px #cba35c; }
+    100% { transform: scale(0.8); opacity: 0.6; box-shadow: 0 0 5px #cba35c; }
+}
+
+.div-sparkle {
+    animation: pulse-gold 1.5s infinite;
+}

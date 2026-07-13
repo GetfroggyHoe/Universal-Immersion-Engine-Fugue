@@ -1,0 +1,13 @@
+torch
+onnx
+onnxruntime
+huggingface_hub
+beartype
+scipy
+soundfile
+sentencepiece
+safetensors
+transformers
+einops
+pydantic
+onnxscript

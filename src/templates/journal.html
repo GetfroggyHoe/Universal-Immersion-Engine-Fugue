@@ -1,0 +1,139 @@
+<style>
+  #uie-journal-window {
+    --journal-accent: #78a9ff;
+    --journal-text: #ffffff;
+    position: fixed;
+    inset: 5vh 5vw;
+    z-index: 2147483647;
+    display: none;
+    flex-direction: column;
+    overflow: hidden;
+    color: var(--journal-text);
+    border: 1px solid rgba(120, 169, 255, 0.38);
+    border-radius: 18px;
+    background: #111a28;
+    box-shadow: 0 28px 90px rgba(0,0,0,.75);
+    font-family: Inter, system-ui, sans-serif;
+    isolation: isolate;
+    pointer-events: auto !important;
+  }
+  #uie-journal-window * { pointer-events: auto; }
+  #uie-journal-window[data-theme="map"] {
+    --journal-accent: #d4af37;
+    --journal-text: #e2e8f0;
+    background: linear-gradient(rgba(212,175,55,.04) 1px, transparent 1px), linear-gradient(90deg, rgba(212,175,55,.04) 1px, transparent 1px), #1e1912;
+    background-size: 32px 32px;
+  }
+  #uie-journal-window[data-theme="datapad"] {
+    --journal-accent: #45dcff;
+    --journal-text: #ffffff;
+    background: linear-gradient(rgba(69,220,255,.06) 1px, transparent 1px), linear-gradient(90deg, rgba(69,220,255,.06) 1px, transparent 1px), #0f1d30;
+    background-size: 30px 30px;
+  }
+  #uie-journal-window[data-theme="board"] {
+    --journal-accent: #f59e0b;
+    --journal-text: #f3f4f6;
+    background: radial-gradient(circle at 20% 10%, rgba(255,255,255,.04), transparent 22%), #181c24;
+    border: 5px solid #111827;
+  }
+  #uie-journal-window .uie-header {
+    min-height: 62px !important;
+    padding: 10px 14px !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px;
+    color: var(--journal-text) !important;
+    background: color-mix(in srgb, #07101d 82%, transparent) !important;
+    border-bottom: 1px solid color-mix(in srgb, var(--journal-accent) 34%, transparent) !important;
+  }
+  #uie-journal-window[data-theme="map"] .uie-header { background: rgba(15, 12, 8, 0.85) !important; }
+  .uie-journal-brand { display:flex; align-items:center; gap:10px; min-width:170px; }
+  .uie-journal-brand i { width:38px; height:38px; display:grid; place-items:center; border-radius:10px; color:#fff; background:var(--journal-accent); }
+  .uie-journal-brand h2 { margin:0; color:var(--journal-text) !important; font-size:19px !important; background:none !important; -webkit-text-fill-color:initial !important; }
+  .uie-journal-brand small { display:block; opacity:.6; font-size:9px; font-weight:850; letter-spacing:.1em; text-transform:uppercase; }
+  .uie-search-wrap { position:relative; flex:1; max-width:430px; margin-left:auto; }
+  .uie-search-icon { position:absolute; left:12px; top:50%; transform:translateY(-50%); opacity:.55; pointer-events:none; }
+  .uie-search-input { width:100%; height:38px; box-sizing:border-box; padding:0 12px 0 34px; color:var(--journal-text); border:1px solid color-mix(in srgb, var(--journal-accent) 34%, transparent); border-radius:9px; background:rgba(0,0,0,.14); outline:none; }
+  .uie-journal-icon-btn { width:38px; height:38px; display:grid; place-items:center; color:var(--journal-text); border:1px solid color-mix(in srgb, var(--journal-accent) 36%, transparent); border-radius:9px; background:rgba(255,255,255,.06); cursor:pointer; }
+  .uie-journal-icon-btn:hover { color:#fff; background:var(--journal-accent); }
+  #uie-journal-menu { position:absolute; top:58px; right:56px; z-index:30; display:none; min-width:210px; padding:7px; border:1px solid rgba(255,255,255,.16); border-radius:10px; background:#101822; box-shadow:0 16px 40px rgba(0,0,0,.5); }
+  .uie-dd-item { padding:9px 10px; display:flex; align-items:center; gap:9px; border-radius:7px; color:#e5e7eb; cursor:pointer; font-size:12px; font-weight:800; }
+  .uie-dd-item:hover { background:rgba(120,169,255,.13); }
+  .uie-journal-body { display:grid; grid-template-columns:190px minmax(0,1fr); flex:1; min-height:0; overflow:hidden !important; }
+  .uie-journal-sidebar { padding:10px 8px; display:flex; flex-direction:column; gap:6px; border-right:1px solid color-mix(in srgb, var(--journal-accent) 28%, transparent); background:rgba(0,0,0,.1); }
+  .uie-journal-sidebar .uie-tab { padding:11px 12px; display:flex; align-items:center; gap:10px; border:1px solid transparent; border-radius:9px; color:var(--journal-text); opacity:.66; cursor:pointer; font-size:12px; font-weight:850; }
+  .uie-journal-sidebar .uie-tab:hover, .uie-journal-sidebar .uie-tab.active { opacity:1; border-color:color-mix(in srgb, var(--journal-accent) 38%, transparent); background:color-mix(in srgb, var(--journal-accent) 13%, transparent); }
+  .uie-content { display:flex; flex-direction:column; min-height:0; color:var(--journal-text) !important; background:transparent !important; }
+  .uie-journal-content-header { padding:13px 18px; display:flex; justify-content:space-between; gap:12px; border-bottom:1px solid color-mix(in srgb, var(--journal-accent) 25%, transparent); }
+  #uie-journal-tab-title { font-size:16px; font-weight:900; }
+  #uie-journal-counts { opacity:.56; font-size:11px; }
+  #uie-journal-list { flex:1; min-height:0; overflow:auto; padding:18px; display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); align-content:start; gap:14px; }
+  .uie-quest-entry, .uie-codex-entry { padding:16px; color:var(--journal-text); border:1px solid color-mix(in srgb, var(--journal-accent) 35%, transparent); border-radius:11px; background:color-mix(in srgb, #07101d 82%, transparent); box-shadow:0 10px 24px rgba(0,0,0,.2); }
+  #uie-journal-window[data-theme="map"] .uie-quest-entry, #uie-journal-window[data-theme="map"] .uie-codex-entry { background:#2d2417; border: 1px solid rgba(212,175,55,0.25); }
+  #uie-journal-window[data-theme="board"] .uie-quest-entry, #uie-journal-window[data-theme="board"] .uie-codex-entry { color:#f3f4f6; background:#1f2937; border:1px solid rgba(255,255,255,.08); border-radius:6px; transform:rotate(-.5deg); }
+  .uie-quest-title, .codex-title { color:inherit !important; font-size:15px; font-weight:900; }
+  .uie-quest-desc, .uie-codex-body { margin-top:9px; color:inherit; opacity:.75; font-size:13px; line-height:1.55; white-space:pre-wrap; }
+  .codex-meta, .codex-date { margin-top:5px; color:var(--journal-accent); font-size:10px; font-weight:900; text-transform:uppercase; }
+  .uie-quest-actions, .uie-codex-actions { margin-top:13px; display:flex; gap:7px; flex-wrap:wrap; }
+  .uie-quest-actions button, .uie-codex-actions button, #uie-journal-list > div > button { min-height:30px; padding:0 10px; border:1px solid rgba(255,255,255,.25); border-radius:7px; color:#fff; background:#1f3a52; cursor:pointer; font-weight:800; transition:all 0.2s; pointer-events:auto; }
+  .uie-quest-actions button:hover, .uie-codex-actions button:hover, #uie-journal-list > div > button:hover { background:#2a4a62; border-color:rgba(120,169,255,.4); }
+  .uie-btn-accept { background:#198754 !important; }.uie-btn-complete { background:#2369b6 !important; }.uie-btn-deny,.uie-btn-abandon,.uie-codex-del { background:#a33a3a !important; }
+  @media not all {
+    #uie-journal-window{inset:6px;border-radius:12px}
+    #uie-journal-window .uie-header{min-height:50px!important;padding:7px 8px!important;gap:7px}
+    .uie-journal-brand{min-width:0;gap:7px}
+    .uie-journal-brand i{width:32px;height:32px;border-radius:8px}
+    .uie-journal-brand h2{font-size:16px!important}
+    .uie-journal-icon-btn{width:34px;height:34px;border-radius:8px;flex:0 0 auto}
+    .uie-journal-body{grid-template-columns:1fr;grid-template-rows:auto minmax(0,1fr)}
+    .uie-journal-sidebar{display:flex;flex-direction:row;gap:6px;padding:6px;border-right:0;border-bottom:1px solid rgba(255,255,255,.12);overflow-x:auto;overflow-y:hidden;scrollbar-width:none}
+    .uie-journal-sidebar::-webkit-scrollbar{display:none}
+    .uie-journal-sidebar .uie-tab{flex:0 0 auto;min-width:68px;min-height:42px;padding:6px 8px;justify-content:center;flex-direction:column;gap:4px;text-align:center;font-size:11px;line-height:1.1;border-radius:8px}
+    .uie-journal-sidebar .uie-tab i{font-size:17px}
+    .uie-journal-brand small,.uie-search-wrap{display:none}
+    .uie-journal-content-header{padding:9px 10px}
+    #uie-journal-tab-title{font-size:14px}
+    #uie-journal-counts{font-size:10px}
+    #uie-journal-list{grid-template-columns:1fr;padding:10px;gap:10px}
+    .uie-quest-entry,.uie-codex-entry{padding:12px;border-radius:8px}
+  }
+
+  @media not all {
+    #uie-journal-window{inset:6px}
+    .uie-journal-body{grid-template-columns:168px minmax(0,1fr);grid-template-rows:1fr}
+    .uie-journal-sidebar{display:flex;flex-direction:column;overflow:auto;border-right:1px solid color-mix(in srgb,var(--journal-accent) 28%,transparent);border-bottom:0}
+    .uie-journal-sidebar .uie-tab{min-height:38px;flex-direction:row;justify-content:flex-start;font-size:11px;padding:8px}
+    #uie-journal-list{grid-template-columns:repeat(auto-fill,minmax(220px,1fr));padding:10px}
+  }
+</style>
+
+<div id="uie-journal-window" class="uie-window" data-theme="datapad" style="display:none;">
+  <div class="uie-header">
+    <div class="uie-journal-brand"><i class="fa-solid fa-book-open"></i><div><h2>Journal</h2><small>Quests, leads, and lore</small></div></div>
+    <div class="uie-search-wrap"><i class="fa-solid fa-magnifying-glass uie-search-icon"></i><input type="text" id="uie-journal-search" class="uie-search-input" placeholder="Search journal..." oninput="import('./src/modules/journal.js').then(m => m.renderJournal())"></div>
+    <button type="button" class="uie-journal-icon-btn" id="uie-journal-theme" title="Change journal theme"><i class="fa-solid fa-palette"></i></button>
+    <button type="button" class="uie-journal-icon-btn" id="uie-journal-sparkle" title="Journal actions"><i class="fa-solid fa-wand-magic-sparkles"></i></button>
+    <div class="uie-dropdown" id="uie-journal-menu">
+      <div class="uie-dd-item" id="uie-journal-act-new"><i class="fa-solid fa-plus"></i> New Quest</div>
+      <div class="uie-dd-item" id="uie-journal-act-gen"><i class="fa-solid fa-wand-magic-sparkles"></i> Generate Quests</div>
+      <div class="uie-dd-item" id="uie-journal-act-extract"><i class="fa-solid fa-file-import"></i> Extract From Chat</div>
+    </div>
+    <button type="button" class="uie-journal-icon-btn" id="uie-journal-close" aria-label="Close journal"><i class="fa-solid fa-xmark"></i></button>
+  </div>
+  <div class="uie-journal-body">
+    <nav class="uie-journal-sidebar">
+      <div class="uie-tab active" data-tab="active"><i class="fa-solid fa-location-dot"></i> Active</div>
+      <div class="uie-tab" data-tab="pending" title="Leads"><i class="fa-regular fa-compass"></i> Leads</div>
+      <div class="uie-tab" data-tab="codex"><i class="fa-solid fa-book"></i> Codex</div>
+      <div class="uie-tab" data-tab="battles" title="Battle History"><i class="fa-solid fa-shield-halved"></i> Battles</div>
+      <div class="uie-tab" data-tab="abandoned" title="Abandoned"><i class="fa-solid fa-ban"></i> Dropped</div>
+      <div class="uie-tab" data-tab="completed" title="Completed"><i class="fa-solid fa-flag-checkered"></i> Done</div>
+    </nav>
+    <main class="uie-content" id="uie-journal-content">
+      <div class="uie-journal-content-header"><div id="uie-journal-tab-title">Active</div><div id="uie-journal-counts"></div></div>
+      <div id="uie-journal-list"></div>
+    </main>
+  </div>
+  <template id="uie-template-codex-entry"><div class="uie-codex-entry"><div style="display:flex;gap:10px;align-items:center;"><div class="codex-title"></div><div class="codex-date"></div></div><div class="codex-meta"></div><div class="uie-codex-body" style="display:none;"></div><div class="uie-codex-actions" style="display:none;"><button class="uie-codex-edit">Edit</button><button class="uie-codex-del">Delete</button></div></div></template>
+  <template id="uie-template-quest-entry"><div class="uie-quest-entry"><div class="uie-quest-title"></div><div class="uie-quest-desc"></div><div class="uie-quest-actions" style="display:none;"></div></div></template>
+</div>

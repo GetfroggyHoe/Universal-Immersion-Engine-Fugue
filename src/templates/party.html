@@ -1,0 +1,1904 @@
+<style>
+  #uie-party-window {
+    --party-bg: #07090e;
+    --party-panel: rgba(12, 16, 28, 0.88);
+    --party-panel-2: rgba(22, 28, 48, 0.72);
+    --party-border: rgba(0, 229, 255, 0.22);
+    --party-border-glow: rgba(0, 229, 255, 0.08);
+    --party-text: #e2e8f0;
+    --party-muted: #64748b;
+    --party-gold: #d4a84a;
+    --party-gold-bright: #fbbf24;
+    --party-cyan: #00e5ff;
+    --party-magenta: #ff007f;
+    --party-green: #10b981;
+    --party-red: #ef4444;
+    --party-accent-glow: rgba(0, 229, 255, 0.06);
+    position: fixed !important;
+    inset: 0 !important;
+    display: none;
+    width: 100vw !important;
+    height: 100vh !important;
+    max-width: none !important;
+    max-height: none !important;
+    background:
+      radial-gradient(ellipse 80% 50% at 30% 20%, rgba(0, 229, 255, 0.07), transparent 60%),
+      radial-gradient(ellipse 60% 40% at 80% 80%, rgba(255, 0, 127, 0.05), transparent 50%),
+      linear-gradient(160deg, #05070c 0%, #0c101b 50%, #06080e 100%);
+    color: var(--party-text);
+    z-index: 2147483632 !important;
+    overflow: hidden;
+    border: 0 !important;
+    border-radius: 0 !important;
+    font-family: Outfit, Inter, system-ui, sans-serif;
+  }
+
+  #uie-party-window::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      repeating-linear-gradient(90deg, transparent, transparent 79px, rgba(0, 229, 255, 0.015) 79px, rgba(0, 229, 255, 0.015) 80px),
+      repeating-linear-gradient(0deg, transparent, transparent 79px, rgba(0, 229, 255, 0.012) 79px, rgba(0, 229, 255, 0.012) 80px);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  #uie-party-window * { box-sizing: border-box; }
+  #uie-party-window button,
+  #uie-party-window select,
+  #uie-party-window input,
+  #uie-party-window textarea {
+    font: inherit;
+  }
+
+  .party-shell {
+    height: 100%;
+    display: grid;
+    grid-template-columns: 260px minmax(0, 1fr) 96px;
+    grid-template-rows: minmax(0, 1fr) 44px;
+    min-width: 0;
+    position: relative;
+    z-index: 1;
+  }
+
+  .party-roster-rail,
+  .party-nav-rail {
+    background: rgba(4, 5, 8, 0.85);
+    border-color: rgba(0, 229, 255, 0.15);
+  }
+
+  .party-roster-rail {
+    grid-column: 1;
+    grid-row: 1;
+    border-right: 1px solid rgba(0, 229, 255, 0.15);
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+    box-shadow: 4px 0 20px rgba(0,0,0,0.5);
+  }
+
+  .party-roster-head {
+    padding: 14px;
+    border-bottom: 1px solid rgba(0, 229, 255, 0.15);
+    display: grid;
+    gap: 10px;
+    background: linear-gradient(180deg, rgba(0, 229, 255, 0.05), transparent);
+  }
+
+  .party-title {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.2;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--party-gold-bright);
+    font-weight: 900;
+    text-shadow: 0 0 10px rgba(251, 191, 36, 0.35);
+  }
+
+  .party-controls {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .party-icon-btn,
+  .party-action-btn,
+  .uie-party-tab,
+  .party-mini,
+  #uie-party-window .reply-tool-btn {
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    border-radius: 4px !important;
+    background: linear-gradient(135deg, rgba(20, 26, 44, 0.7), rgba(10, 12, 20, 0.95)) !important;
+    color: var(--party-text) !important;
+    cursor: pointer !important;
+    min-height: 34px;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .party-icon-btn {
+    width: 34px;
+    display: grid;
+    place-items: center;
+  }
+
+  .party-action-btn {
+    padding: 0 12px;
+    font-weight: 900;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  .party-icon-btn:hover,
+  .party-action-btn:hover,
+  .party-mini:hover,
+  #uie-party-window .reply-tool-btn:hover {
+    border-color: var(--party-cyan) !important;
+    background: linear-gradient(135deg, rgba(0, 229, 255, 0.15), rgba(10, 12, 20, 0.95)) !important;
+    color: #fff !important;
+    box-shadow: 0 0 12px rgba(0, 229, 255, 0.25);
+  }
+
+  #party-add-scene-select,
+  #uie-party-window select,
+  #uie-party-window input,
+  #uie-party-window textarea {
+    min-width: 0;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    border-radius: 4px !important;
+    background: rgba(6, 8, 14, 0.85) !important;
+    color: var(--party-text) !important;
+    padding: 8px 10px !important;
+    font-size: 12px;
+  }
+  #uie-party-window select:focus,
+  #uie-party-window input:focus,
+  #uie-party-window textarea:focus {
+    border-color: var(--party-cyan) !important;
+    outline: none;
+    box-shadow: 0 0 8px rgba(0, 229, 255, 0.25);
+  }
+
+  .party-roster-list {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 10px;
+    display: grid;
+    align-content: start;
+    gap: 8px;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0, 229, 255, 0.2) transparent;
+  }
+
+  .party-row {
+    display: grid;
+    grid-template-columns: 46px minmax(0, 1fr);
+    gap: 10px;
+    align-items: center;
+    min-height: 58px;
+    padding: 8px 10px;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    background: linear-gradient(135deg, rgba(16, 20, 32, 0.6) 0%, rgba(8, 10, 16, 0.8) 100%);
+    cursor: pointer;
+    position: relative;
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px));
+  }
+
+  .party-row::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: transparent;
+    transition: background 0.2s ease;
+  }
+
+  .party-row:hover {
+    border-color: rgba(0, 229, 255, 0.35);
+    background: linear-gradient(135deg, rgba(24, 30, 48, 0.7) 0%, rgba(12, 14, 24, 0.9) 100%);
+    transform: translateX(4px);
+  }
+
+  .party-row.active {
+    border-color: var(--party-cyan);
+    background: linear-gradient(135deg, rgba(0, 229, 255, 0.12) 0%, rgba(12, 14, 24, 0.9) 100%);
+    box-shadow: 0 0 15px rgba(0, 229, 255, 0.2);
+  }
+
+  .party-row.active::before {
+    background: linear-gradient(180deg, var(--party-cyan), var(--party-magenta));
+    box-shadow: 0 0 8px var(--party-cyan);
+  }
+
+  .party-row-img-container {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    overflow: hidden;
+    display: grid;
+    place-items: center;
+    background: rgba(4, 5, 8, 0.9);
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    transition: border-color 0.2s;
+  }
+
+  .party-row.active .party-row-img-container {
+    border-color: var(--party-cyan);
+    box-shadow: 0 0 8px rgba(0, 229, 255, 0.3);
+  }
+
+  .party-row-name,
+  .sheet-name,
+  .lane-title,
+  .tac-name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-weight: 900;
+    font-size: 13px;
+    color: var(--party-text);
+  }
+
+  .party-row-desc,
+  .sheet-details,
+  .tac-details,
+  .form-mem-details,
+  .inv-type {
+    color: var(--party-muted);
+    font-size: 11px;
+    font-weight: 600;
+  }
+
+  .party-row-vitals {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    margin-top: 5px;
+    width: 100%;
+  }
+  .party-row-vitals .mini-bar {
+    height: 3px;
+    background: rgba(0, 0, 0, 0.6);
+    border-radius: 1px;
+    overflow: hidden;
+    position: relative;
+  }
+  .party-row-vitals .mini-bar .fill {
+    height: 100%;
+    width: 0%;
+    transition: width 0.3s ease;
+  }
+  .party-row-vitals .mini-bar.hp .fill { background: linear-gradient(90deg, var(--party-red), #ff6b6b); }
+  .party-row-vitals .mini-bar.mp .fill { background: linear-gradient(90deg, var(--party-cyan), #73f2ff); }
+
+  .party-workspace {
+    grid-column: 2;
+    grid-row: 1;
+    min-width: 0;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 20px;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0, 229, 255, 0.2) transparent;
+  }
+
+  #uie-party-body {
+    min-width: 0;
+    min-height: 100%;
+  }
+
+  .party-nav-rail {
+    grid-column: 3;
+    grid-row: 1 / 3;
+    border-left: 1px solid rgba(0, 229, 255, 0.15);
+    padding: 20px 6px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+    background: linear-gradient(180deg, rgba(8, 10, 16, 0.95), rgba(4, 5, 8, 0.98));
+    box-shadow: -4px 0 20px rgba(0,0,0,0.5);
+  }
+
+  .uie-party-tab {
+    width: 82px;
+    height: 58px;
+    min-height: 58px;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    text-align: center;
+    font-weight: 900;
+    border-radius: 4px !important;
+    position: relative;
+    clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .uie-party-tab span {
+    display: block !important;
+  }
+
+  .uie-party-tab i {
+    font-size: 16px;
+  }
+
+  .uie-party-tab.active {
+    color: #05070c !important;
+    background: linear-gradient(135deg, var(--party-cyan), var(--party-magenta)) !important;
+    border-color: var(--party-cyan) !important;
+    box-shadow: 0 0 15px rgba(0, 229, 255, 0.4);
+  }
+
+  .uie-party-tab.active::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 3px;
+    height: 18px;
+    background: var(--party-magenta);
+    box-shadow: 0 0 8px var(--party-magenta);
+  }
+
+  .party-panel,
+  .party-inv-row,
+  .party-tracker-card,
+  .party-form-member,
+  .tactics-row,
+  .lane-card,
+  .stat-card,
+  .slot-card {
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 4px;
+    background: var(--party-panel);
+    position: relative;
+  }
+
+  .party-panel {
+    padding: 16px;
+    background: rgba(10, 15, 30, 0.85) !important;
+    backdrop-filter: blur(12px) saturate(1.2) !important;
+    border: 1px solid rgba(0, 229, 255, 0.22) !important;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6) !important;
+    clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px));
+  }
+
+  .party-panel::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(0, 229, 255, 0.25), transparent);
+  }
+
+  /* MMORPG Skill Tree Board & Branches */
+  #uie-party-skilltree-view .uie-skilltree-board {
+    position: relative;
+    min-height: 520px;
+    overflow: auto;
+    border: 1px solid rgba(0, 229, 255, 0.2);
+    border-radius: 8px;
+    background: 
+      radial-gradient(circle at center, rgba(16, 24, 48, 0.4) 0%, rgba(5, 7, 12, 0.95) 100%),
+      url('assets/ui/generated/party_bg.png') center/cover no-repeat;
+    background-blend-mode: multiply;
+    padding: 20px;
+    -webkit-overflow-scrolling: touch;
+  }
+  #uie-party-skilltree-view .uie-skilltree-branches {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    width: 100%;
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    pointer-events: none;
+  }
+  #uie-party-skilltree-view .uie-skilltree-branch-label {
+    padding: 6px 12px;
+    border-radius: 4px;
+    border: 1px solid rgba(212, 168, 74, 0.35);
+    background: rgba(10, 14, 26, 0.95);
+    color: var(--party-gold-bright);
+    font-size: 10px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    text-shadow: 0 0 8px rgba(251, 191, 36, 0.35);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+    pointer-events: auto;
+  }
+  #uie-party-skilltree-view .uie-skill-node {
+    width: 90px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
+    user-select: none;
+    z-index: 3;
+    transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  #uie-party-skilltree-view .uie-skill-node:hover {
+    transform: scale(1.1) translateY(-2px);
+  }
+  #uie-party-skilltree-view .node-medallion {
+    width: 58px;
+    height: 58px;
+    display: grid;
+    place-items: center;
+    border: 3px solid #334155;
+    background: linear-gradient(135deg, rgba(30, 41, 59, 0.95) 0%, rgba(15, 23, 42, 0.98) 100%);
+    color: #64748b;
+    font-size: 24px;
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.6);
+    position: relative;
+    border-radius: 10px;
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  
+  /* Node State Borders */
+  #uie-party-skilltree-view .is-locked .node-medallion {
+    border-color: #334155 !important;
+    color: #475569 !important;
+    filter: grayscale(1) brightness(0.6);
+  }
+  #uie-party-skilltree-view .is-ready .node-medallion {
+    border-color: #00e5ff !important;
+    color: #00e5ff !important;
+    box-shadow: 0 0 15px rgba(0, 229, 255, 0.45);
+    animation: skill-ready-glow 1.5s infinite alternate;
+  }
+  #uie-party-skilltree-view .is-unlocked .node-medallion {
+    border-color: #10b981 !important;
+    color: #10b981 !important;
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(6, 24, 16, 0.95) 100%) !important;
+    box-shadow: 0 0 12px rgba(16, 185, 129, 0.3);
+  }
+  
+  #uie-party-skilltree-view .is-locked {
+    opacity: 0.55;
+  }
+  #uie-party-skilltree-view .node-label {
+    margin-top: 6px;
+    text-align: center;
+    width: 110px;
+    pointer-events: none;
+  }
+  #uie-party-skilltree-view .node-name-lbl {
+    font-size: 11px;
+    font-weight: 850;
+    color: #fff;
+    line-height: 1.2;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.9);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  #uie-party-skilltree-view .node-cost-lbl {
+    font-size: 9px;
+    font-weight: 800;
+    color: var(--party-gold-bright);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-top: 1px;
+  }
+  #uie-party-skilltree-view .node-meta {
+    font-size: 9px;
+    color: var(--party-muted);
+    margin-top: 1px;
+  }
+  #uie-party-skilltree-view .node-edit-btn {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    width: 22px;
+    height: 22px;
+    border-radius: 6px;
+    border: 1px solid rgba(0, 229, 255, 0.4) !important;
+    background: rgba(4, 5, 8, 0.95) !important;
+    color: var(--party-cyan) !important;
+    display: grid;
+    place-items: center;
+    font-size: 9px;
+    cursor: pointer;
+    padding: 0 !important;
+    z-index: 5;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  #uie-party-skilltree-view .uie-skill-node:hover .node-edit-btn {
+    opacity: 1;
+  }
+  @media not all {
+    #uie-party-skilltree-view { padding: 10px; }
+    #uie-party-skilltree-view .uie-skilltree-head { align-items: flex-start !important; }
+    #uie-party-skilltree-view .uie-skilltree-board { max-height: 58vh; }
+    #uie-party-skilltree-view .uie-skill-node { width: 150px; min-height: 82px; }
+  }
+
+  .sheet-grid,
+  .stats-grid,
+  .gear-grid,
+  .party-inv-list,
+  .tactics-list,
+  .formation-lanes {
+    display: grid;
+    gap: 12px;
+  }
+
+  /* Stacked Stats + Trackers Right Column, full doll Left Column Layout */
+  .sheet-grid {
+    grid-template-columns: minmax(200px, 2fr) 3fr;
+    gap: 20px;
+    align-items: stretch;
+    min-height: calc(100vh - 140px);
+  }
+
+  .sheet-left {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-height: 0;
+    position: relative;
+  }
+
+  .sheet-portrait-frame {
+    width: 100%;
+    flex: 1 1 auto;
+    min-height: 300px;
+    max-height: none;
+    border: none;
+    background: transparent;
+    box-shadow: none;
+    clip-path: none;
+    position: relative;
+    overflow: visible;
+    display: flex;
+    align-items: stretch;
+    justify-content: center;
+  }
+
+  .sheet-portrait {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: stretch;
+    justify-content: center;
+  }
+
+  .sheet-portrait img,
+  .sheet-portrait .party-avatar-safe {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: contain !important;
+    object-position: center bottom;
+  }
+
+  .sheet-portrait-zoom {
+    position: absolute;
+    bottom: 12px;
+    right: 12px;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 1px solid rgba(255,255,255,0.2) !important;
+    background: rgba(0,0,0,0.6) !important;
+    color: #fff !important;
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    z-index: 10;
+  }
+  .sheet-portrait-zoom:hover {
+    transform: scale(1.1);
+    color: var(--party-cyan) !important;
+    border-color: var(--party-cyan) !important;
+    box-shadow: 0 0 10px rgba(0, 229, 255, 0.4);
+  }
+
+  .sheet-right {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    max-height: calc(100vh - 100px);
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0, 229, 255, 0.2) transparent;
+    padding-right: 8px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .sheet-right::-webkit-scrollbar {
+    width: 6px;
+  }
+  .sheet-right::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .sheet-right::-webkit-scrollbar-thumb {
+    background: rgba(0, 229, 255, 0.25);
+    border-radius: 3px;
+  }
+  .sheet-right::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 229, 255, 0.45);
+  }
+
+  .sheet-header-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    background: linear-gradient(135deg, rgba(20, 24, 40, 0.9) 0%, rgba(8, 10, 16, 0.95) 100%);
+    border: 1px solid rgba(0, 229, 255, 0.2);
+    clip-path: polygon(0 0, calc(100% - 15px) 0, 100% 15px, 100% 100%, 15px 100%, 0 calc(100% - 15px));
+  }
+
+  .sheet-name {
+    font-size: 22px;
+    font-weight: 900;
+    color: #fff;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    text-shadow: 0 0 10px rgba(0, 229, 255, 0.2);
+  }
+
+  .sheet-details {
+    font-size: 11px;
+    color: var(--party-muted);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-top: 4px;
+  }
+
+  .sheet-vitals-compact {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    flex: 1;
+    justify-content: flex-end;
+    max-width: 480px;
+  }
+
+  .sheet-vital-bar {
+    width: 100px;
+    flex: 0 0 100px;
+    padding: 6px;
+    border-radius: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    background: rgba(0, 0, 0, 0.3);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .sheet-vital-bar .bar-lbl {
+    font-size: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--party-muted);
+    font-weight: 900;
+  }
+
+  .sheet-vital-bar .bar-text {
+    font-size: 11px;
+    margin-top: 1px;
+    font-weight: 900;
+    color: #fff;
+  }
+
+  .sheet-vital-bar .bar-track {
+    height: 4px;
+    margin-top: 4px;
+    border-radius: 1px;
+    background: rgba(0, 0, 0, 0.6);
+  }
+
+  .sheet-stats-card,
+  .sheet-trackers-card,
+  .sheet-bio-card {
+    padding: 16px;
+    background: linear-gradient(135deg, rgba(12, 15, 26, 0.9) 0%, rgba(6, 8, 12, 0.95) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px));
+  }
+
+  .panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 12px;
+    font-weight: 900;
+    color: var(--party-gold);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    padding-bottom: 8px;
+    margin-bottom: 12px;
+  }
+
+  .vitals-section,
+  .stats-grid {
+    grid-template-columns: repeat(auto-fit, minmax(92px, 1fr));
+  }
+
+  .stat-card,
+  .vital-card {
+    padding: 8px 10px;
+    background: rgba(0, 0, 0, 0.25);
+    border: 1px solid rgba(255, 255, 255, 0.04);
+    border-radius: 4px;
+    position: relative;
+  }
+
+  .stat-lbl,
+  .bar-lbl {
+    color: var(--party-muted);
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 850;
+  }
+
+  .stat-val,
+  .bar-text {
+    display: block;
+    margin-top: 3px;
+    font-weight: 900;
+    color: var(--party-cyan);
+    font-size: 14px;
+  }
+
+  .bar-track,
+  .party-tracker-track {
+    height: 6px;
+    overflow: hidden;
+    border-radius: 3px;
+    background: rgba(0, 0, 0, 0.6);
+    margin-top: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    transform: skewX(-12deg);
+  }
+
+  .bar-fill,
+  .party-tracker-fill {
+    height: 100%;
+    width: 0%;
+    border-radius: 2px;
+    box-shadow: 0 0 8px currentColor;
+    transition: width 0.3s ease;
+  }
+
+  .sheet-trackers-card .party-member-trackers {
+    padding-right: 6px;
+    display: grid;
+    gap: 8px;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  .sheet-stats-card .stats-grid {
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  #party-paperdoll-pick {
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    max-width: none !important;
+    aspect-ratio: auto !important;
+  }
+
+  #party-paperdoll-pick.has-image {
+    background: transparent !important;
+  }
+
+  .party-paperdoll-img {
+    display: block;
+    width: 100% !important;
+    height: 100% !important;
+    max-width: 100% !important;
+    max-height: 100% !important;
+    object-fit: contain !important;
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+
+  .gear-grid {
+    grid-template-columns: repeat(3, minmax(110px, 1fr));
+    align-items: stretch;
+  }
+
+  .slot-card {
+    min-height: 110px;
+    padding: 12px;
+    display: grid;
+    gap: 6px;
+    place-items: center;
+    text-align: center;
+    cursor: pointer;
+    background: rgba(5, 7, 12, 0.88) !important;
+    border: 1px solid rgba(255, 255, 255, 0.12) !important;
+    clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px));
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .slot-card:hover {
+    border-color: var(--party-cyan) !important;
+    background: rgba(10, 16, 32, 0.95) !important;
+    box-shadow: 0 0 15px rgba(0, 229, 255, 0.25) !important;
+    transform: translateY(-2px);
+  }
+
+  .slot-icon-container {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    overflow: hidden;
+    display: grid;
+    place-items: center;
+    background: rgba(0, 0, 0, 0.5);
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    transition: border-color 0.2s;
+  }
+  .slot-card:hover .slot-icon-container {
+    border-color: var(--party-cyan);
+  }
+
+  .slot-label {
+    color: var(--party-muted);
+    font-size: 10px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .slot-card:hover .slot-label {
+    color: #fff;
+  }
+
+  .party-inv-list {
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  }
+
+  .party-inv-row {
+    min-height: 90px;
+    padding: 14px;
+    display: grid;
+    gap: 8px;
+    background: linear-gradient(135deg, rgba(16, 20, 32, 0.7) 0%, rgba(8, 10, 16, 0.85) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px));
+  }
+
+  .inv-name {
+    font-weight: 900;
+    color: var(--party-text);
+  }
+
+  .inv-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .formation-lanes {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .lane-card {
+    padding: 16px;
+    min-width: 0;
+    background: linear-gradient(135deg, rgba(12, 16, 28, 0.9) 0%, rgba(6, 8, 14, 0.95) 100%);
+    border: 1px solid rgba(0, 229, 255, 0.12);
+    clip-path: polygon(0 0, calc(100% - 15px) 0, 100% 15px, 100% 100%, 15px 100%, 0 calc(100% - 15px));
+    position: relative;
+  }
+  .lane-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: 
+      linear-gradient(rgba(0, 229, 255, 0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0, 229, 255, 0.03) 1px, transparent 1px);
+    background-size: 20px 20px;
+    pointer-events: none;
+  }
+
+  .lane-title {
+    color: var(--party-gold-bright);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 10px;
+    font-weight: 900;
+    text-shadow: 0 0 6px rgba(251, 191, 36, 0.25);
+  }
+
+  .lane-list {
+    display: grid;
+    gap: 8px;
+    margin-top: 10px;
+    min-height: 80px;
+  }
+
+  .party-form-member {
+    padding: 10px;
+    display: grid;
+    gap: 8px;
+    background: rgba(0,0,0,0.3);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
+  }
+
+  .party-form-token {
+    min-height: 44px;
+    padding: 8px;
+    display: grid;
+    place-items: center;
+    border: 1px solid rgba(0, 229, 255, 0.25);
+    background: linear-gradient(135deg, rgba(0, 229, 255, 0.08), rgba(8, 10, 16, 0.5));
+    color: var(--party-text);
+    font-weight: 900;
+    text-align: center;
+    clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
+  }
+
+  .party-empty {
+    padding: 20px;
+    border: 1px dashed rgba(255, 255, 255, 0.12);
+    border-radius: 4px;
+    color: var(--party-muted);
+    text-align: center;
+    font-size: 12px;
+    font-weight: 700;
+  }
+
+  #uie-party-member-modal {
+    display: none;
+  }
+
+  .party-tracker-card {
+    padding: 12px;
+    background: rgba(0, 0, 0, 0.25);
+    border: 1px solid rgba(255, 255, 255, 0.04);
+    border-radius: 4px;
+  }
+
+  .party-tracker-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    box-shadow: 0 0 6px currentColor;
+  }
+
+  /* Bottom status strip */
+  .party-status-strip {
+    grid-column: 1 / 3;
+    grid-row: 2;
+    background: linear-gradient(90deg, rgba(0, 229, 255, 0.08) 0%, rgba(255, 0, 127, 0.04) 50%, rgba(4, 5, 8, 0.95) 100%);
+    border-top: 1px solid rgba(0, 229, 255, 0.15);
+    padding: 0 16px;
+    display: flex;
+    align-items: center;
+    box-shadow: 0 -4px 15px rgba(0,0,0,0.4);
+  }
+
+  @media not all {
+    #uie-party-window {
+      height: 100dvh !important;
+      max-height: 100dvh !important;
+      overflow: hidden;
+    }
+
+    .party-shell {
+      min-height: 0;
+      height: 100%;
+      grid-template-columns: 1fr;
+      grid-template-rows: auto auto minmax(0, 1fr) 44px;
+      overflow: hidden;
+    }
+
+    .party-roster-rail {
+      grid-column: 1;
+      grid-row: 1;
+      border-right: 0;
+      border-bottom: 1px solid rgba(0, 229, 255, 0.15);
+      min-height: 0;
+    }
+
+    .party-roster-head {
+      padding: 8px 10px;
+    }
+
+    .party-roster-list {
+      display: flex;
+      overflow-x: auto;
+      overflow-y: hidden;
+      padding: 6px 8px;
+      gap: 6px;
+      scrollbar-width: none;
+    }
+    .party-roster-list::-webkit-scrollbar { display: none; }
+
+    .party-row {
+      flex: 0 0 150px;
+      min-height: 48px;
+      grid-template-columns: 36px minmax(0, 1fr);
+      gap: 6px;
+      padding: 6px;
+    }
+
+    .party-row-img-container {
+      width: 36px;
+      height: 36px;
+    }
+
+    .party-nav-rail {
+      grid-column: 1;
+      grid-row: 2;
+      border-left: 0;
+      border-bottom: 1px solid rgba(0, 229, 255, 0.15);
+      display: flex;
+      flex-direction: row;
+      overflow-x: auto;
+      overflow-y: hidden;
+      padding: 6px 10px;
+      gap: 8px;
+      scrollbar-width: none;
+      height: 60px;
+    }
+    .party-nav-rail::-webkit-scrollbar { display: none; }
+
+    .uie-party-tab {
+      flex: 0 0 auto;
+      width: 52px;
+      height: 44px;
+      min-height: 44px;
+      padding: 0;
+    }
+
+    .party-workspace {
+      grid-column: 1;
+      grid-row: 3;
+      width: 100%;
+      padding: 10px;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .sheet-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .sheet-portrait-frame {
+      height: auto;
+      width: 100%;
+      max-width: 100%;
+      margin: 0 auto;
+      min-height: 200px;
+    }
+
+    .sheet-right {
+      max-height: none;
+      overflow-y: visible;
+    }
+
+    .gear-grid,
+    .party-inv-list {
+      grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+    }
+
+    .party-status-strip {
+      grid-column: 1;
+      grid-row: 4;
+    }
+  }
+
+  /* --- NEW MMORPG & FORMATION UPGRADES --- */
+  
+  /* Rarity Borders & Glows */
+  .slot-card.rarity-common { border-color: rgba(255, 255, 255, 0.15) !important; }
+  .slot-card.rarity-uncommon { border-color: #10b981 !important; box-shadow: inset 0 0 8px rgba(16, 185, 129, 0.15) !important; }
+  .slot-card.rarity-rare { border-color: #3b82f6 !important; box-shadow: inset 0 0 8px rgba(59, 130, 246, 0.2) !important; }
+  .slot-card.rarity-epic { border-color: #a855f7 !important; box-shadow: inset 0 0 10px rgba(168, 85, 247, 0.25) !important; }
+  .slot-card.rarity-legendary { border-color: #f59e0b !important; box-shadow: inset 0 0 12px rgba(245, 158, 11, 0.35) !important; animation: legendary-glow 2s infinite alternate !important; }
+
+  @keyframes legendary-glow {
+    0% { box-shadow: 0 0 4px rgba(245, 158, 11, 0.2), inset 0 0 8px rgba(245, 158, 11, 0.2); }
+    100% { box-shadow: 0 0 12px rgba(245, 158, 11, 0.4), inset 0 0 16px rgba(245, 158, 11, 0.4); }
+  }
+
+  #uie-party-skilltree-view .node-rank-badge {
+    position: absolute;
+    bottom: -4px;
+    right: -4px;
+    background: #0f172a;
+    border: 1.5px solid #10b981;
+    color: #10b981;
+    font-size: 9px;
+    font-weight: 900;
+    padding: 0 4px;
+    border-radius: 4px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+    z-index: 4;
+  }
+  #uie-party-skilltree-view .is-locked .node-rank-badge {
+    border-color: #475569;
+    color: #64748b;
+  }
+  #uie-party-skilltree-view .is-ready .node-rank-badge {
+    border-color: #00e5ff;
+    color: #00e5ff;
+  }
+  
+  @keyframes skill-ready-glow {
+    0% { box-shadow: 0 0 4px rgba(0, 229, 255, 0.2); }
+    100% { box-shadow: 0 0 15px rgba(0, 229, 255, 0.6); }
+  }
+
+  /* RPG Hover Tooltip */
+  .uie-skill-tooltip {
+    position: absolute;
+    z-index: 2147483647;
+    width: 260px;
+    background: linear-gradient(180deg, rgba(15, 23, 42, 0.98), rgba(9, 12, 22, 0.99));
+    border: 1.5px solid var(--party-gold);
+    border-radius: 8px;
+    padding: 12px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.8), 0 0 15px rgba(212, 168, 74, 0.15);
+    color: #e2e8f0;
+    font-family: Outfit, Inter, sans-serif;
+    pointer-events: none;
+    display: none;
+    font-size: 12px;
+    line-height: 1.45;
+  }
+  .uie-skill-tooltip .tooltip-name {
+    font-weight: 900;
+    font-size: 14px;
+    color: #fff;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding-bottom: 4px;
+  }
+  .uie-skill-tooltip .tooltip-meta {
+    display: flex;
+    justify-content: space-between;
+    font-weight: 700;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+  }
+  .uie-skill-tooltip .tooltip-meta .type-active { color: #ff6b6b; }
+  .uie-skill-tooltip .tooltip-meta .type-passive { color: #10b981; }
+  .uie-skill-tooltip .tooltip-desc {
+    color: #94a3b8;
+    margin-bottom: 8px;
+    font-style: italic;
+  }
+  .uie-skill-tooltip .tooltip-stats {
+    font-weight: bold;
+    color: #38bdf8;
+    margin-bottom: 6px;
+    background: rgba(56, 189, 248, 0.08);
+    padding: 4px 6px;
+    border-radius: 4px;
+    border-left: 2px solid #38bdf8;
+  }
+  .uie-skill-tooltip .tooltip-reqs {
+    font-size: 10px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    padding-top: 6px;
+    margin-top: 6px;
+  }
+  .uie-skill-tooltip .req-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-weight: 600;
+  }
+  .uie-skill-tooltip .req-item.met { color: #10b981; }
+  .uie-skill-tooltip .req-item.unmet { color: #ef4444; }
+
+  /* Formation Board Layout & Columns */
+  .formation-board-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 20px;
+    width: 100%;
+  }
+  
+  .formation-lane-column {
+    background: rgba(10, 15, 30, 0.8) !important;
+    backdrop-filter: blur(12px) saturate(1.2) !important;
+    border: 1.5px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    min-height: 320px;
+    transition: border-color 0.3s, box-shadow 0.3s;
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .formation-lane-column::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+  }
+  
+  .lane-vanguard { border-color: rgba(239, 68, 68, 0.25) !important; }
+  .lane-vanguard::before { background: linear-gradient(90deg, #ef4444, #f97316); }
+  .lane-vanguard:hover { border-color: rgba(239, 68, 68, 0.5) !important; box-shadow: 0 0 15px rgba(239, 68, 68, 0.15); }
+  
+  .lane-assault { border-color: rgba(245, 158, 11, 0.25) !important; }
+  .lane-assault::before { background: linear-gradient(90deg, #f59e0b, #eab308); }
+  .lane-assault:hover { border-color: rgba(245, 158, 11, 0.5) !important; box-shadow: 0 0 15px rgba(245, 158, 11, 0.15); }
+  
+  .lane-rearguard { border-color: rgba(59, 130, 246, 0.25) !important; }
+  .lane-rearguard::before { background: linear-gradient(90deg, #3b82f6, #6366f1); }
+  .lane-rearguard:hover { border-color: rgba(59, 130, 246, 0.5) !important; box-shadow: 0 0 15px rgba(59, 130, 246, 0.15); }
+  
+  .lane-reserve {
+    background: rgba(10, 15, 30, 0.8) !important;
+    backdrop-filter: blur(12px) saturate(1.2) !important;
+    border: 1.5px solid rgba(16, 185, 129, 0.25) !important;
+    border-radius: 12px;
+    padding: 16px;
+    width: 100%;
+    margin-top: 16px;
+    position: relative;
+    overflow: hidden;
+  }
+  .lane-reserve::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #10b981, #34d399);
+  }
+  .lane-reserve:hover {
+    border-color: rgba(16, 185, 129, 0.5) !important;
+    box-shadow: 0 0 15px rgba(16, 185, 129, 0.15);
+  }
+
+  .lane-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    padding-bottom: 8px;
+  }
+  .lane-header i { font-size: 16px; }
+  .lane-vanguard .lane-header i { color: #ef4444; }
+  .lane-assault .lane-header i { color: #f59e0b; }
+  .lane-rearguard .lane-header i { color: #3b82f6; }
+  .lane-reserve .lane-header i { color: #10b981; }
+
+  .lane-header-title {
+    font-weight: 900;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #fff;
+  }
+  
+  .lane-buff-tag {
+    font-size: 10px;
+    color: var(--party-muted);
+    font-weight: 700;
+    margin-bottom: 10px;
+    background: rgba(255, 255, 255, 0.03);
+    padding: 4px 8px;
+    border-radius: 6px;
+    border-left: 2.5px solid transparent;
+  }
+  .lane-vanguard .lane-buff-tag { border-left-color: #ef4444; color: #fca5a5; }
+  .lane-assault .lane-buff-tag { border-left-color: #f59e0b; color: #fde047; }
+  .lane-rearguard .lane-buff-tag { border-left-color: #3b82f6; color: #93c5fd; }
+  .lane-reserve .lane-buff-tag { border-left-color: #10b981; color: #6ee7b7; }
+  
+  .lane-member-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    flex: 1;
+  }
+  
+  .lane-reserve .lane-member-list {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .formation-member-card {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 10px;
+    padding: 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    position: relative;
+    transition: background 0.2s, border-color 0.2s;
+  }
+  .formation-member-card:hover {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.12);
+  }
+  .formation-member-card .card-avatar {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 1.5px solid rgba(255, 255, 255, 0.2);
+  }
+  .formation-member-card .card-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .formation-member-card .card-name {
+    font-weight: 800;
+    font-size: 12px;
+    color: #fff;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .formation-member-card .card-info {
+    font-size: 10px;
+    color: var(--party-muted);
+  }
+  .formation-member-card .card-role {
+    font-size: 9px;
+    background: rgba(0, 229, 255, 0.1);
+    color: var(--party-cyan);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-weight: 800;
+    display: inline-block;
+    margin-top: 3px;
+  }
+  .formation-member-card .card-actions {
+    margin-left: auto;
+    display: flex;
+    gap: 4px;
+  }
+  .formation-member-card .action-arrow-btn {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.08);
+    color: #e2e8f0;
+    width: 24px;
+    height: 24px;
+    border-radius: 4px;
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+    font-size: 10px;
+    transition: all 0.2s;
+  }
+  .formation-member-card .action-arrow-btn:hover {
+    background: var(--party-cyan);
+    border-color: var(--party-cyan);
+    color: #07111f;
+    box-shadow: 0 0 8px rgba(0, 229, 255, 0.3);
+  }
+  .lane-reserve .formation-member-card {
+    width: calc(33.333% - 7px);
+    min-width: 220px;
+  }
+</style>
+
+
+
+<div id="uie-party-window" class="uie-window" style="display:none;">
+  <div class="party-shell">
+    <aside class="party-roster-rail" aria-label="Party roster">
+      <div class="party-roster-head">
+        <div class="party-controls">
+          <h2 class="party-title">Party Ledger</h2>
+          <button type="button" id="uie-party-export" class="party-icon-btn" title="Export"><i class="fa-solid fa-file-export"></i></button>
+          <button type="button" id="uie-party-import" class="party-icon-btn" title="Import"><i class="fa-solid fa-file-import"></i></button>
+          <button type="button" id="uie-party-close" class="party-icon-btn" title="Close"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <select id="party-add-scene-select" title="Characters currently in the target scene"></select>
+        <div class="party-controls">
+          <button type="button" id="party-add" class="party-action-btn"><i class="fa-solid fa-plus"></i> Add</button>
+          <button type="button" id="party-import-card" class="party-action-btn"><i class="fa-solid fa-id-card"></i> Card</button>
+          <button type="button" id="party-scan-chat" class="party-action-btn"><i class="fa-solid fa-wand-magic-sparkles"></i> Scan</button>
+        </div>
+      </div>
+      <div id="uie-party-roster-list" class="party-roster-list"></div>
+    </aside>
+
+    <main class="party-workspace" aria-label="Active party member">
+      <div id="uie-party-body"></div>
+    </main>
+
+    <nav id="uie-party-tabs" class="party-nav-rail" aria-label="Party views">
+      <button type="button" class="uie-party-tab" data-tab="stats" title="Stats and trackers"><i class="fa-solid fa-chart-line"></i><span>Stats</span></button>
+      <button type="button" class="uie-party-tab" data-tab="equipment" title="Equipment doll"><i class="fa-solid fa-shirt"></i><span>Equip</span></button>
+      <button type="button" class="uie-party-tab" data-tab="bag" title="Personal bag"><i class="fa-solid fa-bag-shopping"></i><span>Bag</span></button>
+      <button type="button" class="uie-party-tab" data-tab="skills" title="Skills and class tree"><i class="fa-solid fa-diagram-project"></i><span>Skills</span></button>
+      <button type="button" class="uie-party-tab" data-tab="position" title="Tactical positioning"><i class="fa-solid fa-chess-board"></i><span>Position</span></button>
+    </nav>
+
+    <footer class="party-status-strip" aria-label="Party status strip">
+      <div id="uie-party-status-content" style="width: 100%;"></div>
+    </footer>
+
+  </div>
+
+  <div id="uie-party-tracker-modal" class="life-modal" style="display:none;">
+    <div class="box" id="party-track-modal-box">
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+        <h3 id="party-track-modal-title" style="margin:0; font-size:14px;">Tracker</h3>
+        <button class="life-btn" id="party-track-modal-close" title="Close">x</button>
+      </div>
+      <div class="grid">
+        <input type="text" id="party-track-modal-name" placeholder="Name">
+        <input type="color" id="party-track-modal-color" value="#89b4fa">
+        <input type="number" id="party-track-modal-current" placeholder="Current" value="0">
+        <input type="number" id="party-track-modal-max" placeholder="Max" value="100" min="1">
+        <textarea id="party-track-modal-notes" placeholder="Notes"></textarea>
+      </div>
+      <div class="row">
+        <button class="life-btn danger" id="party-track-modal-delete" style="display:none;">Delete</button>
+        <button class="life-btn" id="party-track-modal-cancel">Cancel</button>
+        <button class="life-btn" id="party-track-modal-save">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Full Screen Paper Doll Viewer Popup -->
+  <div id="uie-party-doll-popup" class="modal-overlay" style="display:none; position:fixed; inset:0; align-items:center; justify-content:center; padding:20px; background:rgba(4,5,10,0.88); backdrop-filter:blur(15px); z-index:2147483647;">
+    <div class="doll-popup-content" style="position:relative; max-width:90vw; max-height:90vh; display:flex; flex-direction:column; align-items:center; justify-content:center;">
+      <button type="button" id="uie-party-doll-popup-close" class="reply-tool-btn" style="position:absolute; top:-20px; right:-20px; width:38px; height:38px; border-radius:50%; z-index:10; display:grid; place-items:center; font-size:16px; border:1px solid rgba(255,255,255,0.2); background:rgba(0,0,0,0.6); color:#fff; cursor:pointer;" title="Close"><i class="fa-solid fa-xmark"></i></button>
+      <img id="uie-party-doll-popup-img" src="" alt="Full Body Paper Doll" style="max-width:100%; max-height:85vh; object-fit:contain; border:2px solid var(--party-gold); box-shadow:0 0 40px rgba(0, 229, 255, 0.35); clip-path: polygon(0 0, calc(100% - 15px) 0, 100% 15px, 100% 100%, 15px 100%, 0 calc(100% - 15px));">
+      <div id="uie-party-doll-popup-name" style="margin-top:12px; font-weight:900; font-size:16px; color:var(--party-gold); text-shadow:0 0 10px rgba(212, 168, 74, 0.4); text-transform:uppercase; letter-spacing:0.12em;"></div>
+    </div>
+  </div>
+
+  <!-- Equipment Picker Modal -->
+  <div id="uie-party-equip-picker-modal" class="modal-overlay" style="display:none; position:fixed; inset:0; align-items:center; justify-content:center; padding:16px; background:rgba(3,7,18,0.72); backdrop-filter:blur(8px); z-index:2147483645;">
+    <div class="modal-card" style="width:min(440px,96vw); max-height:80vh; display:flex; flex-direction:column; background:linear-gradient(180deg, rgba(12, 16, 28, 0.95), rgba(6, 8, 12, 0.98)); border:1.5px solid var(--party-cyan); box-shadow:0 0 30px rgba(0, 229, 255, 0.25); clip-path: polygon(0 0, calc(100% - 15px) 0, 100% 15px, 100% 100%, 15px 100%, 0 calc(100% - 15px)); padding:16px;">
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:12px; border-bottom:1px solid rgba(255,255,255,0.08); padding-bottom:8px;">
+        <h3 id="uie-party-equip-picker-title" style="margin:0; font-size:14px; text-transform:uppercase; letter-spacing:0.08em; color:var(--party-gold);">Equip Slot</h3>
+        <button type="button" id="uie-party-equip-picker-close" class="reply-tool-btn" style="width:32px; height:32px; padding:0; display:grid; place-items:center;" title="Close"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div id="uie-party-equip-picker-grid" class="party-inv-list" style="flex:1; overflow-y:auto; display:grid; grid-template-columns:1fr; gap:8px; max-height:50vh; padding-right:4px;"></div>
+      <div style="display:flex; justify-content:space-between; gap:10px; margin-top:12px; border-top:1px solid rgba(255,255,255,0.08); padding-top:8px;">
+        <button type="button" id="uie-party-equip-picker-unequip" class="reply-tool-btn danger" style="width:auto; padding:0 14px;">Unequip</button>
+        <button type="button" id="uie-party-equip-picker-create" class="reply-tool-btn" style="width:auto; padding:0 14px; background:rgba(0, 229, 255, 0.1); border-color:rgba(0, 229, 255, 0.3); color:#fff; font-weight:800;" title="Create custom slot equipment"><i class="fa-solid fa-plus"></i> Create</button>
+        <button type="button" id="uie-party-equip-picker-cancel" class="reply-tool-btn" style="width:auto; padding:0 14px;">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="uie-party-equipment-create-modal" class="modal-overlay" style="display:none; position:fixed; inset:0; align-items:center; justify-content:center; padding:16px; background:rgba(3,7,18,0.72); backdrop-filter:blur(8px); z-index:2147483646;">
+    <div class="modal-card" style="width:min(440px,96vw); max-height:90vh; display:flex; flex-direction:column; background:linear-gradient(180deg, rgba(12, 16, 28, 0.95), rgba(6, 8, 12, 0.98)); border:1.5px solid var(--party-cyan); box-shadow:0 0 30px rgba(0, 229, 255, 0.25); clip-path: polygon(0 0, calc(100% - 15px) 0, 100% 15px, 100% 100%, 15px 100%, 0 calc(100% - 15px)); padding:16px; overflow-y:auto;">
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:12px; border-bottom:1px solid rgba(255,255,255,0.08); padding-bottom:8px;">
+        <h3 style="margin:0; font-size:14px; text-transform:uppercase; letter-spacing:0.08em; color:var(--party-gold);">Create Slot Equipment</h3>
+        <button type="button" id="uie-party-equipment-create-close" class="reply-tool-btn" style="width:32px; height:32px; padding:0; display:grid; place-items:center;" title="Close"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:10px; flex:1;">
+        <!-- Dropdown select for Slot -->
+        <div id="uie-party-equip-slot-row" style="display:flex; flex-direction:column; gap:4px;">
+            <label style="font-size:11px; font-weight:700; color:var(--party-muted); text-transform:uppercase;">Select Equipment Slot</label>
+            <select id="uie-party-equip-slot-select" class="modal-select" style="width:100%; padding:6px; font-size:12px; background:rgba(0,0,0,0.4); border:1px solid rgba(0,229,255,0.25); color:#e0f2fe; border-radius:4px;"></select>
+        </div>
+        
+        <!-- Tabs for Manual / AI -->
+        <div style="display:flex; gap:6px; margin-bottom:6px;">
+            <button type="button" id="uie-party-equip-tab-manual" class="reply-tool-btn active" style="flex:1;">Manual</button>
+            <button type="button" id="uie-party-equip-tab-ai" class="reply-tool-btn" style="flex:1;">AI Prompt</button>
+        </div>
+        
+        <!-- Manual Form -->
+        <div id="uie-party-equip-form-manual" style="display:flex; flex-direction:column; gap:10px;">
+            <div style="display:flex; flex-direction:column; gap:4px;">
+                <label style="font-size:11px; font-weight:700; color:var(--party-muted); text-transform:uppercase;">Equipment Name</label>
+                <input type="text" id="uie-party-equip-name" class="modal-input" placeholder="e.g. Mithril Vest" style="width:100%; padding:6px; font-size:12px; background:rgba(0,0,0,0.4); border:1px solid rgba(0,229,255,0.25); color:#e0f2fe; border-radius:4px;">
+            </div>
+            
+            <div style="display:flex; flex-direction:column; gap:4px;">
+                <label style="font-size:11px; font-weight:700; color:var(--party-muted); text-transform:uppercase;">Description</label>
+                <textarea id="uie-party-equip-desc" class="modal-textarea" placeholder="e.g. A lightweight vest offering superior protection." rows="2" style="width:100%; padding:6px; font-size:12px; background:rgba(0,0,0,0.4); border:1px solid rgba(0,229,255,0.25); color:#e0f2fe; border-radius:4px; resize:vertical;"></textarea>
+            </div>
+            
+            <div style="display:flex; flex-direction:column; gap:4px;">
+                <label style="font-size:11px; font-weight:700; color:var(--party-muted); text-transform:uppercase;">Rarity</label>
+                <select id="uie-party-equip-rarity" class="modal-select" style="width:100%; padding:6px; font-size:12px; background:rgba(0,0,0,0.4); border:1px solid rgba(0,229,255,0.25); color:#e0f2fe; border-radius:4px;">
+                    <option value="common">Common</option>
+                    <option value="uncommon">Uncommon</option>
+                    <option value="rare">Rare</option>
+                    <option value="epic">Epic</option>
+                    <option value="legendary">Legendary</option>
+                </select>
+            </div>
+            
+            <div style="display:flex; flex-direction:column; gap:4px;">
+                <label style="font-size:11px; font-weight:700; color:var(--party-muted); text-transform:uppercase;">Image URL</label>
+                <input type="text" id="uie-party-equip-image" class="modal-input" placeholder="e.g. assets/items/vest.png" style="width:100%; padding:6px; font-size:12px; background:rgba(0,0,0,0.4); border:1px solid rgba(0,229,255,0.25); color:#e0f2fe; border-radius:4px;">
+            </div>
+            
+            <div style="display:grid; grid-template-columns:repeat(5, 1fr); gap:6px;">
+                <div>
+                    <label style="font-size:9px; font-weight:700; color:var(--party-muted); display:block; text-align:center;">STR</label>
+                    <input type="number" id="uie-party-equip-str" class="modal-input" value="0" style="width:100%; text-align:center; padding:4px; font-size:12px; background:rgba(0,0,0,0.4); border:1px solid rgba(0,229,255,0.25); color:#e0f2fe; border-radius:4px;">
+                </div>
+                <div>
+                    <label style="font-size:9px; font-weight:700; color:var(--party-muted); display:block; text-align:center;">DEX</label>
+                    <input type="number" id="uie-party-equip-dex" class="modal-input" value="0" style="width:100%; text-align:center; padding:4px; font-size:12px; background:rgba(0,0,0,0.4); border:1px solid rgba(0,229,255,0.25); color:#e0f2fe; border-radius:4px;">
+                </div>
+                <div>
+                    <label style="font-size:9px; font-weight:700; color:var(--party-muted); display:block; text-align:center;">INT</label>
+                    <input type="number" id="uie-party-equip-int" class="modal-input" value="0" style="width:100%; text-align:center; padding:4px; font-size:12px; background:rgba(0,0,0,0.4); border:1px solid rgba(0,229,255,0.25); color:#e0f2fe; border-radius:4px;">
+                </div>
+                <div>
+                    <label style="font-size:9px; font-weight:700; color:var(--party-muted); display:block; text-align:center;">VIT</label>
+                    <input type="number" id="uie-party-equip-vit" class="modal-input" value="0" style="width:100%; text-align:center; padding:4px; font-size:12px; background:rgba(0,0,0,0.4); border:1px solid rgba(0,229,255,0.25); color:#e0f2fe; border-radius:4px;">
+                </div>
+                <div>
+                    <label style="font-size:9px; font-weight:700; color:var(--party-muted); display:block; text-align:center;">CHA</label>
+                    <input type="number" id="uie-party-equip-cha" class="modal-input" value="0" style="width:100%; text-align:center; padding:4px; font-size:12px; background:rgba(0,0,0,0.4); border:1px solid rgba(0,229,255,0.25); color:#e0f2fe; border-radius:4px;">
+                </div>
+            </div>
+        </div>
+        
+        <!-- AI Prompt Form -->
+        <div id="uie-party-equip-form-ai" style="display:none; flex-direction:column; gap:10px;">
+            <div style="display:flex; flex-direction:column; gap:4px;">
+                <label style="font-size:11px; font-weight:700; color:var(--party-muted); text-transform:uppercase;">Describe the equipment</label>
+                <textarea id="uie-party-equip-ai-prompt" class="modal-textarea" placeholder="e.g. A cursed sword that feeds on the life of its wielder to deal massive damage." rows="4" style="width:100%; padding:6px; font-size:12px; background:rgba(0,0,0,0.4); border:1px solid rgba(0,229,255,0.25); color:#e0f2fe; border-radius:4px; resize:vertical;"></textarea>
+            </div>
+            <button type="button" id="uie-party-equip-ai-gen" class="reply-tool-btn" style="background:rgba(16,185,129,0.15); border-color:rgba(16,185,129,0.3); color:#fff; font-weight:800; padding:8px 0;"><i class="fa-solid fa-wand-magic-sparkles"></i> Generate with AI</button>
+        </div>
+      </div>
+      <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:16px; border-top:1px solid rgba(255,255,255,0.08); padding-top:10px;">
+        <button type="button" id="uie-party-equipment-create-save" class="reply-tool-btn success" style="width:auto; padding:0 18px; background:var(--party-green); color:#07111f; font-weight:900;">Equip</button>
+        <button type="button" id="uie-party-equipment-create-cancel" class="reply-tool-btn" style="width:auto; padding:0 14px;">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <input type="file" id="uie-party-file" accept="image/*,application/json,.json,.png" style="display:none;">
+</div>
+
+<template id="uie-party-roster-item">
+  <div class="party-row">
+    <div class="party-row-img-container"></div>
+    <div style="min-width:0; flex:1;">
+      <div class="party-row-name"></div>
+      <div class="party-row-desc"></div>
+      <div class="party-row-vitals">
+        <div class="mini-bar hp"><div class="fill"></div></div>
+        <div class="mini-bar mp"><div class="fill"></div></div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<template id="uie-party-sheet-view">
+  <div class="sheet-grid">
+    <div class="sheet-left">
+      <div class="sheet-portrait-frame">
+        <div class="sheet-portrait"></div>
+      </div>
+    </div>
+    <div class="sheet-right">
+      <div class="sheet-header-card party-panel">
+        <div>
+          <div class="sheet-name"></div>
+          <div class="sheet-details"></div>
+        </div>
+        <div class="sheet-vitals-compact"></div>
+      </div>
+      <div class="sheet-stats-card party-panel">
+        <div class="panel-header"><i class="fa-solid fa-chart-line"></i> Attributes</div>
+        <div class="stats-grid"></div>
+      </div>
+      <div class="sheet-trackers-card party-panel">
+        <div class="panel-header">
+          <span><i class="fa-solid fa-heart-pulse"></i> Life Trackers</span>
+          <button type="button" id="party-track-add" class="party-action-btn"><i class="fa-solid fa-plus"></i> Tracker</button>
+        </div>
+        <div class="party-member-trackers"></div>
+      </div>
+      <div class="sheet-bio-card party-panel">
+        <div class="panel-header"><i class="fa-solid fa-book-open"></i> Biography</div>
+        <div class="bio-text" style="white-space:pre-wrap; margin-top:6px; font-size:12px;"></div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<template id="uie-party-stat-row">
+  <div class="stat-card">
+    <span class="stat-lbl"></span>
+    <span class="stat-val"></span>
+  </div>
+</template>
+
+<template id="uie-party-modal-bar">
+  <div class="vital-card party-panel">
+    <span class="bar-lbl"></span>
+    <span class="bar-text"></span>
+    <div class="bar-track"><div class="bar-fill"></div></div>
+  </div>
+</template>
+
+<template id="uie-party-tracker-row">
+  <div class="party-tracker-card" style="padding:10px;">
+    <div style="display:flex; align-items:center; gap:8px;">
+      <span class="party-tracker-dot" style="width:10px;height:10px;border-radius:50%;"></span>
+      <strong class="party-tracker-name" style="min-width:0; overflow:hidden; text-overflow:ellipsis;"></strong>
+      <span class="party-tracker-meta" style="margin-left:auto;color:var(--party-muted);"></span>
+    </div>
+    <div class="party-tracker-track"><div class="party-tracker-fill"></div></div>
+    <div class="party-tracker-notes" style="display:none; margin-top:6px; color:var(--party-muted); font-size:12px;"></div>
+    <div style="display:flex; gap:6px; margin-top:8px;">
+      <button type="button" class="party-track-btn party-mini" data-act="minus">-</button>
+      <button type="button" class="party-track-btn party-mini" data-act="plus">+</button>
+      <button type="button" class="party-track-edit party-mini" style="display:none;">Edit</button>
+      <button type="button" class="party-track-del party-mini" style="display:none;">Delete</button>
+    </div>
+  </div>
+</template>
+
+<template id="uie-party-gear-view">
+  <section class="party-panel">
+    <div class="gear-grid"></div>
+  </section>
+</template>
+
+<template id="uie-party-gear-slot">
+  <div class="party-slot slot-card">
+    <div class="slot-icon-container"></div>
+    <div class="slot-label"></div>
+  </div>
+</template>
+
+<template id="uie-party-inventory-view">
+  <section class="party-panel">
+    <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:12px;">
+      <strong class="party-inv-title">Personal Bag</strong>
+      <button type="button" class="party-inv-add party-action-btn"><i class="fa-solid fa-plus"></i> Item</button>
+    </div>
+    <select id="party-inv-target" style="display:none;"></select>
+    <div class="party-inv-list"></div>
+    <div class="party-inv-empty party-empty" style="display:none;">No items here.</div>
+  </section>
+</template>
+
+<template id="uie-party-inventory-item">
+  <div class="party-inv-row">
+    <div>
+      <div class="inv-name"></div>
+      <div class="inv-type"></div>
+    </div>
+    <div class="inv-actions">
+      <button type="button" class="party-inv-del reply-tool-btn">Delete</button>
+      <button type="button" class="party-inv-gift reply-tool-btn">Gift</button>
+    </div>
+  </div>
+</template>
+
+<template id="uie-party-tactics-view">
+  <section class="party-panel">
+    <div style="display:grid; gap:10px; margin-bottom:12px;">
+      <select class="party-tac-preset"></select>
+      <label><input type="checkbox" class="party-tac-conserve"> Conserve MP</label>
+      <label><input type="checkbox" class="party-tac-protect-leader"> Protect leader</label>
+    </div>
+    <div class="tactics-list"></div>
+    <div class="tactics-empty party-empty" style="display:none;">No active members.</div>
+  </section>
+</template>
+
+<template id="uie-party-tactics-row">
+  <div class="tactics-row" style="padding:12px; display:grid; gap:10px;">
+    <div>
+      <div class="tac-name"></div>
+      <div class="tac-details"></div>
+    </div>
+    <label><input type="checkbox" class="member-tac-mana"> Conserve MP</label>
+    <select class="member-tac-preset"></select>
+    <select class="member-tac-focus"></select>
+    <select class="member-tac-protect"></select>
+  </div>
+</template>
+
+<template id="uie-party-formation-view">
+  <section class="formation-lanes"></section>
+</template>
+
+<template id="uie-party-formation-lane">
+  <div class="lane-card">
+    <div class="lane-title"></div>
+    <div style="display:flex; gap:8px;">
+      <select class="form-add-select" style="min-width:0; flex:1;"></select>
+      <button type="button" class="form-add-btn party-icon-btn" title="Add"><i class="fa-solid fa-plus"></i></button>
+    </div>
+    <div class="lane-list"></div>
+    <div class="lane-empty party-empty" style="display:none;">Empty lane.</div>
+  </div>
+</template>
+
+<template id="uie-party-formation-member">
+  <div class="party-form-member">
+    <div class="party-form-token"><span class="form-mem-name"></span></div>
+    <div class="form-mem-details"></div>
+    <select class="form-role"></select>
+    <div style="display:flex; gap:6px;">
+      <button type="button" class="form-mv-up party-mini">Up</button>
+      <button type="button" class="form-mv-down party-mini">Down</button>
+      <button type="button" class="form-rm party-mini">Remove</button>
+    </div>
+  </div>
+</template>
+
+<template id="uie-party-modal-skill-edit-row">
+  <div class="skill-edit-row" style="padding:10px; border:1px solid rgba(255,255,255,0.12); border-radius:8px; background:rgba(0,0,0,0.15); margin-bottom:8px;">
+    <div style="display:grid; gap:6px;">
+      <input type="text" class="skill-name-in" placeholder="Skill name" style="width:100%; padding:6px; border-radius:6px; border:1px solid rgba(255,255,255,0.15); background:rgba(0,0,0,0.25); color:#fff;">
+      <textarea class="skill-desc-in" placeholder="Description" rows="2" style="width:100%; padding:6px; border-radius:6px; border:1px solid rgba(255,255,255,0.15); background:rgba(0,0,0,0.25); color:#fff; resize:vertical;"></textarea>
+      <div style="display:flex; gap:6px; align-items:center;">
+        <select class="skill-type-in" style="flex:1; padding:6px; border-radius:6px; border:1px solid rgba(255,255,255,0.15); background:rgba(0,0,0,0.25); color:#fff;">
+          <option value="active">Active</option>
+          <option value="passive">Passive</option>
+        </select>
+        <input type="text" class="skill-tracker-in" placeholder="Life tracker (optional)" style="flex:1; padding:6px; border-radius:6px; border:1px solid rgba(255,255,255,0.15); background:rgba(0,0,0,0.25); color:#fff;" title="Attach a life tracker to this skill">
+        <button type="button" class="party-mm-skill-del party-mini" style="width:32px; height:32px; min-width:32px; padding:0; background:rgba(239,68,68,0.2); border:1px solid rgba(239,68,68,0.4); color:#ef4444;" title="Delete skill"><i class="fa-solid fa-trash"></i></button>
+      </div>
+    </div>
+  </div>
+</template>
+
+<template id="uie-party-modal-skill-view-row">
+  <div class="party-skill" style="padding:10px; border:1px solid rgba(255,255,255,0.12); border-radius:8px; background:rgba(0,0,0,0.15); margin-bottom:6px; cursor:pointer;">
+    <div style="display:flex; gap:8px; align-items:flex-start;">
+      <span class="skill-src" style="font-size:10px; font-weight:900; padding:2px 6px; border-radius:4px; background:rgba(203,163,92,0.2); color:rgba(203,163,92,0.85);"></span>
+      <div style="flex:1; min-width:0;">
+        <div class="skill-name" style="font-weight:900; margin-bottom:4px;"></div>
+        <div class="skill-desc" style="font-size:12px; color:var(--party-muted); line-height:1.4;"></div>
+        <div class="skill-tracker-badge" style="display:none; margin-top:6px; font-size:10px; padding:2px 6px; border-radius:4px; background:rgba(111,211,255,0.15); color:rgba(111,211,255,0.9);"></div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<template id="uie-party-modal-skilltree-pane">
+  <section id="uie-party-skilltree-view" class="party-panel">
+    <div class="uie-skilltree-head" style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:12px; flex-wrap:wrap;">
+      <div>
+        <strong>Class Skill Tree</strong>
+        <div id="uie-skilltree-class-lbl" style="color:var(--party-muted); font-size:12px;"></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+        <div id="uie-skilltree-points-val" style="font-weight:900; color:var(--party-green);"></div>
+        <button type="button" id="uie-skilltree-ai-generate" class="party-mini" title="Generate class skills"><i class="fa-solid fa-wand-magic-sparkles"></i> Generate</button>
+        <button type="button" id="uie-skilltree-add-node" class="party-mini" title="Add skill"><i class="fa-solid fa-plus"></i> Skill</button>
+      </div>
+    </div>
+    <div class="uie-skilltree-board">
+      <svg id="uie-party-skilltree-connections" width="700" height="420" style="position:absolute; inset:0; pointer-events:none;"></svg>
+      <div id="uie-skilltree-nodes-container" style="position:relative; width:700px; height:420px;"></div>
+    </div>
+  </section>
+</template>
+
+<template id="uie-party-modal-layout">
+  <div class="party-mm-layout" style="display:flex; flex-direction:column; height:100%;">
+    <div class="party-mm-tabs" style="display:flex; gap:8px; padding:12px; border-bottom:1px solid rgba(255,255,255,0.08);">
+      <button type="button" class="party-mm-tab" data-tab="sheet" style="flex:1; padding:8px 12px; border:1px solid rgba(255,255,255,0.1); border-radius:4px; background:rgba(0,0,0,0.2); color:var(--party-text); cursor:pointer;">Sheet</button>
+      <button type="button" class="party-mm-tab" data-tab="equip" style="flex:1; padding:8px 12px; border:1px solid rgba(255,255,255,0.1); border-radius:4px; background:rgba(0,0,0,0.2); color:var(--party-text); cursor:pointer;">Equip</button>
+    </div>
+    <div class="party-mm-content" style="flex:1; overflow-y:auto; padding:12px;">
+      <div id="party-mm-pane-sheet" style="display:none;"></div>
+      <div id="party-mm-pane-equip" style="display:none;"></div>
+    </div>
+  </div>
+</template>
+
+<template id="uie-party-modal-sheet-pane">
+  <div class="sheet-pane">
+    <div class="sheet-portrait-container" style="width:120px; height:120px; border-radius:8px; overflow:hidden; margin-bottom:12px;"></div>
+    <div style="display:grid; gap:8px; margin-bottom:12px;">
+      <label style="display:flex; flex-direction:column; gap:4px;">
+        <span style="font-size:11px; font-weight:700; text-transform:uppercase; color:var(--party-muted);">Name</span>
+        <input type="text" id="party-mm-name" style="padding:8px; border:1px solid rgba(255,255,255,0.1); border-radius:4px; background:rgba(0,0,0,0.2); color:var(--party-text);">
+      </label>
+      <label style="display:flex; flex-direction:column; gap:4px;">
+        <span style="font-size:11px; font-weight:700; text-transform:uppercase; color:var(--party-muted);">Class</span>
+        <input type="text" id="party-mm-class" style="padding:8px; border:1px solid rgba(255,255,255,0.1); border-radius:4px; background:rgba(0,0,0,0.2); color:var(--party-text);">
+      </label>
+      <label style="display:flex; flex-direction:column; gap:4px;">
+        <span style="font-size:11px; font-weight:700; text-transform:uppercase; color:var(--party-muted);">Level</span>
+        <input type="number" id="party-mm-level" min="1" style="padding:8px; border:1px solid rgba(255,255,255,0.1); border-radius:4px; background:rgba(0,0,0,0.2); color:var(--party-text);">
+      </label>
+      <label style="display:flex; flex-direction:column; gap:4px;">
+        <span style="font-size:11px; font-weight:700; text-transform:uppercase; color:var(--party-muted);">Role</span>
+        <select id="party-mm-role" style="padding:8px; border:1px solid rgba(255,255,255,0.1); border-radius:4px; background:rgba(0,0,0,0.2); color:var(--party-text);"></select>
+      </label>
+    </div>
+    <div class="stats-section" style="margin-bottom:12px;">
+      <div style="font-size:12px; font-weight:900; text-transform:uppercase; color:var(--party-gold); margin-bottom:8px;">Stats</div>
+      <div class="stats-grid" style="display:grid; grid-template-columns:repeat(2, 1fr); gap:8px;"></div>
+    </div>
+    <div class="trackers-section" style="margin-bottom:12px;">
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+        <div style="font-size:12px; font-weight:900; text-transform:uppercase; color:var(--party-gold);">Life Trackers</div>
+        <button type="button" id="party-mm-track-add" class="party-mini" style="padding:4px 8px; font-size:10px;"><i class="fa-solid fa-plus"></i></button>
+      </div>
+      <div class="party-member-trackers"></div>
+    </div>
+    <div class="status-fx-section">
+      <div style="font-size:12px; font-weight:900; text-transform:uppercase; color:var(--party-gold); margin-bottom:8px;">Status Effects</div>
+      <div class="status-fx-list" style="display:flex; flex-wrap:wrap; gap:6px;"></div>
+    </div>
+  </div>
+</template>
+
+<template id="uie-party-modal-equip-pane">
+  <div class="equip-pane">
+    <div id="party-paperdoll-pick" style="width:100%; max-width:100%; margin:0 auto 16px; min-height:320px; display:grid; place-items:center; cursor:pointer; border:none; background:transparent;">
+      <div style="color:var(--party-muted); font-size:12px; text-align:center;">Click to set paperdoll image</div>
+    </div>
+    <div class="equip-grid" style="display:grid; grid-template-columns:repeat(2, 1fr); gap:8px;">
+      <div class="equip-left"></div>
+      <div class="equip-right"></div>
+    </div>
+  </div>
+</template>
+
+<template id="uie-party-modal-equip-row">
+  <div class="equip-row" style="display:flex; align-items:center; gap:8px; padding:8px; border:1px solid rgba(255,255,255,0.08); border-radius:4px; background:rgba(0,0,0,0.15);">
+    <div class="party-mm-equip-icon" style="width:32px; height:32px; border-radius:4px; background:rgba(0,0,0,0.3); display:grid; place-items:center; overflow:hidden;"></div>
+    <div style="flex:1; min-width:0;">
+      <div class="eq-lbl" style="font-size:10px; font-weight:700; text-transform:uppercase; color:var(--party-muted);"></div>
+      <input type="text" class="eq-val" readonly style="width:100%; padding:4px; border:none; background:transparent; color:var(--party-text); font-size:11px;" title="">
+    </div>
+  </div>
+</template>
+
+<template id="uie-party-modal-stat-input">
+  <div class="stat-input-row" style="display:flex; align-items:center; gap:8px; padding:6px 8px; border:1px solid rgba(255,255,255,0.06); border-radius:4px; background:rgba(0,0,0,0.15);">
+    <span class="stat-lbl" style="font-size:10px; font-weight:700; text-transform:uppercase; color:var(--party-muted); min-width:40px;"></span>
+    <input type="number" class="stat-val" style="flex:1; padding:4px; border:1px solid rgba(255,255,255,0.1); border-radius:3px; background:rgba(0,0,0,0.2); color:var(--party-cyan); font-weight:900; text-align:center;">
+  </div>
+</template>

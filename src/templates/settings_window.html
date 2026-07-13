@@ -1,0 +1,1349 @@
+<div id="uie-settings-window" class="uie-window" style="display:none;">
+    <style>
+        #uie-settings-window {
+            position: fixed;
+            top: 5vh;
+            left: 50%;
+            transform: translateX(-50%);
+            width: min(980px, 94vw);
+            height: min(820px, 88vh);
+            max-height: 88vh;
+            display: flex;
+            flex-direction: column !important;
+            background: linear-gradient(155deg, rgba(12,18,30,.98), rgba(8,11,20,.99)) !important;
+            border: 1px solid rgba(224, 136, 56, 0.38);
+            border-radius: 12px;
+            box-shadow: 0 24px 72px rgba(0,0,0,0.72);
+            z-index: 2147483647;
+            font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            color: #f7efe4;
+            overflow: hidden;
+        }
+        #uie-settings-window * { box-sizing: border-box; }
+        #uie-settings-window .uie-header {
+            flex: 0 0 auto;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 16px 18px;
+            border-bottom: 1px solid rgba(255,255,255,0.11);
+            background: rgba(0,0,0,0.24);
+        }
+        #uie-settings-window .uie-header h2 { margin:0; font-size: 22px; color:#fff7ed; font-weight:900; letter-spacing:0; }
+        #uie-settings-window .uie-header small { display:block; margin-top:2px; color:#b8c0cc; font-size:12px; font-weight:650; }
+        #uie-settings-window .uie-close-btn { cursor:pointer; font-size:22px; color:#f4b16e; opacity:0.9; }
+        #uie-settings-window .uie-close-btn:hover { opacity:1; color:#ffdfb6; }
+        .uie-settings-layout { flex:1; min-height:0; display:grid; grid-template-columns: 220px minmax(0, 1fr); }
+        #uie-sw-tabs-wrap { min-height:0; overflow:auto; border-right:1px solid rgba(255,255,255,0.1); background:rgba(0,0,0,0.20); }
+        #uie-sw-tabs { display:flex; flex-direction:column; gap:6px; padding:12px; }
+        #uie-sw-tabs .uie-set-tab {
+            min-height: 44px;
+            padding: 10px 12px;
+            border: 1px solid transparent;
+            border-radius: 8px;
+            color: #b7c0ce;
+            background: transparent;
+            cursor: pointer;
+            font-weight: 850;
+            font-size: 13px;
+            display:flex;
+            align-items:center;
+            gap:10px;
+        }
+        #uie-sw-tabs .uie-set-tab i { width:18px; color:#cc7a2e; text-align:center; }
+        #uie-sw-tabs .uie-set-tab:hover { color:#fff; background:rgba(224,136,56,0.09); }
+        #uie-sw-tabs .uie-set-tab.active {
+            color:#fff;
+            border-color:rgba(224,136,56,0.42);
+            background:linear-gradient(180deg, rgba(159,82,24,.35), rgba(80,42,18,.24));
+        }
+        #uie-settings-window .uie-content {
+            min-height:0;
+            overflow:auto;
+            padding:18px;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(224,136,56,0.5) rgba(0,0,0,0.2);
+        }
+        .uie-settings-section { display:none; }
+        .uie-settings-section:first-child { display:block; }
+        .uie-rpg-card {
+            background: rgba(20,27,42,0.74);
+            border: 1px solid rgba(255,255,255,0.10);
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 14px;
+        }
+        .uie-rpg-card-title {
+            display:flex;
+            align-items:center;
+            gap:9px;
+            margin-bottom: 14px;
+            color:#f0a45a;
+            font-weight:900;
+            font-size: 15px;
+        }
+        .uie-rpg-grid-2 { display:grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap:12px; }
+        .uie-rpg-grid-3 { display:grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap:12px; }
+        .uie-rpg-field { display:flex; flex-direction:column; gap:6px; min-width:0; }
+        .uie-rpg-field label { font-size:12px; color:#b8c0cc; font-weight:800; }
+        .uie-rpg-field input, .uie-rpg-field select, .uie-rpg-field textarea,
+        #uie-settings-window input, #uie-settings-window select, #uie-settings-window textarea {
+            width:100%;
+            min-height:40px;
+            background:rgba(3,7,15,0.72);
+            border:1px solid rgba(255,255,255,0.16);
+            color:#f8fafc;
+            padding:8px 10px;
+            border-radius:8px;
+            font-size:14px;
+        }
+        #uie-settings-window textarea { min-height:84px; resize:vertical; line-height:1.45; }
+        #uie-settings-window input[type="checkbox"] { width:auto; min-height:auto; accent-color:#c76323; }
+        #uie-settings-window input[type="color"] { padding:3px; min-height:40px; }
+        #uie-settings-window option { color:#111827; background:#fff; }
+        .uie-help-text { font-size:12px; line-height:1.45; color:#9aa6b8; margin:8px 0 0; }
+        .uie-rpg-btn {
+            min-height:40px;
+            padding:0 14px;
+            border-radius:8px;
+            border:1px solid rgba(255,255,255,0.14);
+            background:rgba(255,255,255,0.08);
+            color:#fff;
+            font-weight:850;
+            cursor:pointer;
+            display:inline-flex;
+            align-items:center;
+            justify-content:center;
+            gap:7px;
+        }
+        .uie-rpg-btn-primary { background:rgba(255,255,255,0.08); border-color:rgba(255,255,255,0.14); color:#fff; }
+        .uie-rpg-btn-success { background:rgba(46,204,113,0.16); border-color:rgba(46,204,113,0.45); color:#7dffb1; }
+        .uie-rpg-btn-info { background:rgba(52,152,219,0.16); border-color:rgba(52,152,219,0.45); color:#8fd3ff; }
+        .uie-rpg-btn-danger { background:rgba(231,76,60,0.16); border-color:rgba(231,76,60,0.45); color:#ff9a90; }
+        .uie-row-actions { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+        .uie-check-row { display:flex; gap:10px; align-items:center; color:#dce5f2; font-weight:750; }
+        .uie-switch-label { display:flex; justify-content:space-between; align-items:center; gap:12px; }
+        .uie-switch { position:relative; display:inline-block; width:46px; height:24px; flex:0 0 46px; }
+        .uie-switch input { opacity:0; width:0; height:0; }
+        .uie-slider { position:absolute; inset:0; cursor:pointer; background:#334155; transition:.2s; border-radius:999px; }
+        .uie-slider:before { content:""; position:absolute; width:18px; height:18px; left:3px; bottom:3px; background:#fff; border-radius:50%; transition:.2s; }
+        .uie-switch input:checked + .uie-slider { background:#b75b25; }
+        .uie-switch input:checked + .uie-slider:before { transform:translateX(22px); }
+        .cfg-image-subpanel { display:none; margin-top:10px; }
+        .cfg-image-subpanel.active { display:block; }
+        .cfg-text-advanced, .cfg-horde-advanced, .cfg-tts-panel { display:none; }
+        .cfg-text-advanced.active, .cfg-horde-advanced.active, .cfg-tts-panel.active { display:block; }
+        .uie-voice-progress { display:none; margin-top:10px; }
+        .uie-voice-progress.active { display:block; }
+        .uie-voice-progress-track { height:8px; border-radius:999px; background:rgba(255,255,255,0.12); overflow:hidden; }
+        .uie-voice-progress-fill { width:0%; height:100%; border-radius:999px; background:linear-gradient(90deg,#f0a45a,#7dffb1); transition:width .25s ease; }
+        .uie-voice-progress-label { margin-top:6px; font-size:12px; color:#b8c0cc; font-weight:750; }
+        @media not all {
+            #uie-settings-window { top:0; left:0; right:0; bottom:0; width:100vw; height:100dvh; max-width:100vw; max-height:100dvh; border-radius:0; transform:none; }
+            #uie-settings-window .uie-header { min-height:58px; padding:10px 12px; }
+            #uie-settings-window .uie-header h2 { font-size:18px; }
+            #uie-settings-window .uie-header small { display:none; }
+            .uie-settings-layout { grid-template-columns:1fr; grid-template-rows:auto minmax(0,1fr); }
+            #uie-sw-tabs-wrap { border-right:0; border-bottom:1px solid rgba(255,255,255,0.1); overflow-x:auto; overflow-y:hidden; scrollbar-width:none; }
+            #uie-sw-tabs-wrap::-webkit-scrollbar { display:none; }
+            #uie-sw-tabs { flex-direction:row; overflow-x:visible; gap:8px; padding:10px; }
+            #uie-sw-tabs .uie-set-tab { flex:0 0 auto; min-height:44px; max-width:none; padding:10px 12px; white-space:nowrap; }
+            #uie-settings-window .uie-content { padding:12px; }
+            .uie-rpg-grid-2, .uie-rpg-grid-3 { grid-template-columns:1fr; }
+            .uie-rpg-card { padding:12px; border-radius:8px; }
+            .uie-rpg-card-title { font-size:14px; line-height:1.25; }
+            .uie-rpg-field label,
+            .uie-check-row,
+            .uie-switch-label,
+            .uie-help-text { overflow-wrap:anywhere; line-height:1.35; }
+            .uie-check-row { align-items:flex-start; min-height:44px; padding:8px 0; }
+            .uie-switch-label { align-items:flex-start; flex-wrap:wrap; }
+            .uie-row-actions { display:grid; grid-template-columns:1fr; gap:8px; }
+            .uie-rpg-btn { width:100%; min-height:44px; padding:8px 12px; white-space:normal; line-height:1.2; }
+            #uie-settings-window input,
+            #uie-settings-window select,
+            #uie-settings-window textarea { min-height:44px; font-size:16px; }
+            #uie-settings-window input[type="checkbox"] { flex:0 0 auto; min-width:20px; width:20px; height:20px; margin-top:2px; }
+            #uie-settings-window input[type="color"] { width:54px; min-width:54px; }
+        }
+    </style>
+
+    <div class="uie-header">
+        <div class="uie-info">
+            <h2>Settings</h2>
+            <small>API, image, audio, RPG rules, system presets, and saves</small>
+        </div>
+        <div style="margin-left:auto; display:flex; gap:12px; align-items:center;">
+            <i class="fa-solid fa-circle-question" onclick="uie.phone.openBooksGuide('guide-settings')" title="Help / Guide" style="cursor:pointer; color:#f0a45a; font-size:20px;"></i>
+            <i class="fa-solid fa-xmark uie-close-btn" id="uie-settings-close" title="Close"></i>
+        </div>
+    </div>
+
+    <div class="uie-settings-layout">
+        <div id="uie-sw-tabs-wrap">
+            <div id="uie-sw-tabs">
+                <div class="uie-set-tab active" data-tab="ai"><i class="fa-solid fa-server"></i> Main API</div>
+                <div class="uie-set-tab" data-tab="turbo"><i class="fa-solid fa-gauge-high"></i> Turbo API</div>
+                <div class="uie-set-tab" data-tab="media"><i class="fa-solid fa-image"></i> Image Generation</div>
+                <div class="uie-set-tab" data-tab="audio"><i class="fa-solid fa-volume-high"></i> Audio & TTS</div>
+                <div class="uie-set-tab" data-tab="prompts"><i class="fa-solid fa-book"></i> Prompts & Filters</div>
+                <div class="uie-set-tab" data-tab="rpg"><i class="fa-solid fa-gamepad"></i> RPG & Economy</div>
+                <div class="uie-set-tab" data-tab="ui-edit"><i class="fa-solid fa-sliders"></i> Edit UI</div>
+            </div>
+        </div>
+
+        <div class="uie-content">
+            <!-- Tab 1: Main API -->
+            <div id="uie-sw-ai" class="uie-settings-section" style="display:block;">
+                <div class="uie-rpg-card">
+                    <div class="uie-rpg-card-title"><i class="fa-solid fa-plug"></i> Main API Chat/Text Profiles</div>
+                    <p style="font-size:12px; opacity:0.85; margin:0 0 12px; line-height:1.4;">Add and connect API profiles for chat and dialogue generation.</p>
+                    
+                    <div style="margin-bottom:12px;">
+                        <label style="display:block; font-size:12px; color:#b8c0cc; margin-bottom:5px; font-weight:800;">Saved Profiles</label>
+                        <select id="cfg-main-profile-select" class="modal-select"></select>
+                        <input type="hidden" id="cfg-main-profile-id" value="">
+                    </div>
+
+                    <div class="uie-rpg-grid-2">
+                        <div class="uie-rpg-field"><label>Profile Name</label><input id="cfg-main-profile-name" placeholder="OpenRouter Free RP"></div>
+                        <div class="uie-rpg-field">
+                            <label>Route Type</label>
+                            <select id="cfg-main-route-family" class="modal-select">
+                                <option value="chat">Chat completion / messages</option>
+                                <option value="text">Text completion / instruct</option>
+                                <option value="local">Local model server</option>
+                                <option value="aihorde">AI Horde</option>
+                            </select>
+                        </div>
+                        <div class="uie-rpg-field">
+                            <label>Provider</label>
+                            <select id="cfg-main-provider" class="modal-select">
+                                <option value="openrouter">OpenRouter</option>
+                                <option value="openai">OpenAI</option>
+                                <option value="anthropic">Anthropic</option>
+                                <option value="google">Google Gemini</option>
+                                <option value="deepseek">DeepSeek</option>
+                                <option value="groq">Groq</option>
+                                <option value="together">Together AI</option>
+                                <option value="fireworks">Fireworks AI</option>
+                                <option value="cohere">Cohere</option>
+                                <option value="mistral">Mistral</option>
+                                <option value="xai">xAI</option>
+                                <option value="perplexity">Perplexity</option>
+                                <option value="nvidia">NVIDIA NIM</option>
+                                <option value="nanogpt">NanoGPT</option>
+                                <option value="huggingface">Hugging Face Inference</option>
+                                <option value="replicate">Replicate</option>
+                                <option value="anyscale">Anyscale Endpoints</option>
+                                <option value="cloudflare">Cloudflare Workers AI</option>
+                                <option value="cerebras">Cerebras</option>
+                                <option value="sambanova">SambaNova</option>
+                                <option value="aihorde">AI Horde (text)</option>
+                                <option value="azure_openai">Azure OpenAI</option>
+                                <option value="aws_bedrock">AWS Bedrock (gateway)</option>
+                                <option value="vertex_ai">Vertex AI (gateway)</option>
+                                <option value="openai_compatible">OpenAI-compatible (generic)</option>
+                                <option value="ollama">Local: Ollama</option>
+                                <option value="lmstudio">Local: LM Studio</option>
+                                <option value="koboldcpp">Local: KoboldCpp</option>
+                                <option value="textgen_webui">Local: Text Generation WebUI</option>
+                                <option value="vllm">Local: vLLM OpenAI server</option>
+                                <option value="localai">Local: LocalAI</option>
+                                <option value="llamacpp">Local: llama.cpp server</option>
+                                <option value="jan">Local: Jan API</option>
+                                <option value="custom">Custom</option>
+                            </select>
+                        </div>
+                        <div class="uie-rpg-field" style="grid-column: 1 / -1;"><label>Main API URL</label><input id="cfg-main-url" placeholder="https://openrouter.ai/api/v1"></div>
+                        <div class="uie-rpg-field" style="grid-column: 1 / -1;"><label>Main API Key</label><input id="cfg-main-key" type="password" placeholder="Paste provider key or token"></div>
+                        <div class="uie-rpg-field" style="grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; margin-top: 4px;">
+                            <input id="cfg-auto-switch-keys" type="checkbox" style="width: 16px; height: 16px; margin: 0; cursor: pointer;">
+                            <label for="cfg-auto-switch-keys" style="margin: 0; font-size: 12px; cursor: pointer; color: #b8c0cc; font-weight: bold;">Auto-switch API key if current key fails (401/403)</label>
+                        </div>
+                    </div>
+
+                    <div style="margin-top:12px;">
+                        <label style="display:block; font-size:12px; color:#b8c0cc; margin-bottom:5px; font-weight:800;">Model (preset)</label>
+                        <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:8px;">
+                            <select id="cfg-main-model-select" style="flex:1; min-width:200px;"><option value="">Custom - use field below</option></select>
+                            <button type="button" id="cfg-main-model-refresh" class="uie-rpg-btn" style="flex-shrink:0;"><i class="fa-solid fa-rotate"></i> Refresh models</button>
+                        </div>
+                        <label style="display:block; font-size:12px; color:#b8c0cc; margin-bottom:4px; font-weight:800;">Model ID</label>
+                        <input id="cfg-main-model" placeholder="meta-llama/llama-3.1-8b-instruct:free">
+                    </div>
+
+                    <div class="uie-rpg-grid-2" style="margin-top:12px;">
+                        <div class="uie-rpg-field" style="grid-column: 1 / -1;"><label>Prompt Preset (optional)</label><input id="cfg-main-prompt-preset" placeholder="Concise roleplay prose, grounded actions."></div>
+                        <div class="uie-rpg-field"><label>Temperature</label><input id="cfg-main-temp" type="number" step="0.1" min="0" max="2" placeholder="0.7"></div>
+                        <div class="uie-rpg-field"><label>Top P</label><input id="cfg-main-topp" type="number" step="0.01" min="0" max="1" placeholder="1.0"></div>
+                        <div class="uie-rpg-field"><label>Top K</label><input id="cfg-main-topk" type="number" step="1" min="0" placeholder="0"></div>
+                        <div class="uie-rpg-field"><label>Top A</label><input id="cfg-main-top-a" type="number" step="0.01" min="0" max="1" placeholder="0"></div>
+                        <div class="uie-rpg-field"><label>Output Token Limit</label><input id="cfg-main-max" type="number" placeholder="4096"></div>
+                        <div class="uie-rpg-field"><label>Context Token Limit</label><input id="cfg-main-context" type="number" placeholder="24000"></div>
+                        <div class="uie-rpg-field"><label>History Window (messages)</label><input id="cfg-main-history" type="number" placeholder="8"></div>
+                    </div>
+
+                    <div style="margin-top:14px; border:1px solid rgba(255,255,255,0.12); border-radius:8px; padding:12px;">
+                        <div style="font-weight:700; margin-bottom:8px; color:#f0a45a;">Provider Advanced Settings</div>
+                        <div class="uie-rpg-grid-2">
+                            <div class="uie-rpg-field">
+                                <label>Endpoint Shape</label>
+                                <select id="cfg-main-endpoint-shape" class="modal-select">
+                                    <option value="auto">Auto-detect</option>
+                                    <option value="openai_chat">Chat Completions</option>
+                                    <option value="openai_completions">Text Completions</option>
+                                    <option value="openai_responses">OpenAI Responses</option>
+                                    <option value="anthropic_messages">Anthropic Messages</option>
+                                    <option value="custom">Custom/OpenAI-compatible</option>
+                                </select>
+                            </div>
+                            <div class="uie-rpg-field">
+                                <label>Reasoning Effort</label>
+                                <select id="cfg-main-reasoning-effort" class="modal-select">
+                                    <option value="">Default</option>
+                                    <option value="minimal">Minimal</option>
+                                    <option value="low">Low</option>
+                                    <option value="medium">Medium</option>
+                                    <option value="high">High</option>
+                                </select>
+                            </div>
+                            <div class="uie-rpg-field"><label>Reasoning Token Budget</label><input id="cfg-main-reasoning-tokens" type="number" placeholder="0"></div>
+                            <div class="uie-rpg-field"><label>Seed</label><input id="cfg-main-seed" type="number" placeholder="0"></div>
+                            <div class="uie-rpg-field"><label>Frequency Penalty</label><input id="cfg-main-frequency-penalty" type="number" step="0.01" min="-2" max="2" placeholder="0"></div>
+                            <div class="uie-rpg-field"><label>Presence Penalty</label><input id="cfg-main-presence-penalty" type="number" step="0.01" min="-2" max="2" placeholder="0"></div>
+                        </div>
+                        <div class="uie-rpg-field" style="margin-top:10px;"><label>Stop Sequences (one per line)</label><textarea id="cfg-main-stop-sequences" placeholder="### END"></textarea></div>
+                        <div class="uie-rpg-field" style="margin-top:10px;"><label>Custom Headers (JSON object)</label><textarea id="cfg-main-custom-headers" placeholder='{"x-foo":"bar"}'></textarea></div>
+                    </div>
+
+                    <div class="cfg-text-advanced" id="cfg-main-text-advanced" style="margin-top:14px; border:1px solid rgba(255,255,255,0.12); border-radius:8px; padding:12px;">
+                        <div style="font-weight:700; margin-bottom:8px; color:#f0a45a;">Text Completion Samplers</div>
+                        <div class="uie-rpg-grid-3">
+                            <div class="uie-rpg-field"><label>Min P</label><input id="cfg-main-min-p" type="number" step="0.001" min="0" max="1" placeholder="0"></div>
+                            <div class="uie-rpg-field"><label>Typical P</label><input id="cfg-main-typical-p" type="number" step="0.01" min="0" max="1" placeholder="1"></div>
+                            <div class="uie-rpg-field"><label>Tail Free Sampling</label><input id="cfg-main-tfs" type="number" step="0.01" min="0" max="1" placeholder="1"></div>
+                            <div class="uie-rpg-field"><label>Repetition Penalty</label><input id="cfg-main-rep-pen" type="number" step="0.01" min="1" max="3" placeholder="1.1"></div>
+                            <div class="uie-rpg-field"><label>Rep Pen Range</label><input id="cfg-main-rep-pen-range" type="number" step="1" min="0" max="4096" placeholder="0"></div>
+                            <div class="uie-rpg-field"><label>Rep Pen Slope</label><input id="cfg-main-rep-pen-slope" type="number" step="0.01" min="0" max="10" placeholder="0"></div>
+                            <div class="uie-rpg-field"><label>Smoothing Factor</label><input id="cfg-main-smoothing-factor" type="number" step="0.01" min="0" max="10" placeholder="0"></div>
+                            <div class="uie-rpg-field"><label>Dynamic Temp Range</label><input id="cfg-main-dynatemp-range" type="number" step="0.01" min="0" max="5" placeholder="0"></div>
+                            <div class="uie-rpg-field"><label>Dynamic Temp Exponent</label><input id="cfg-main-dynatemp-exponent" type="number" step="0.01" min="0" max="5" placeholder="1"></div>
+                            <div class="uie-rpg-field"><label>Mirostat Mode</label><input id="cfg-main-mirostat-mode" type="number" step="1" min="0" max="2" placeholder="0"></div>
+                            <div class="uie-rpg-field"><label>Mirostat Tau</label><input id="cfg-main-mirostat-tau" type="number" step="0.1" min="0" placeholder="5"></div>
+                            <div class="uie-rpg-field"><label>Mirostat Eta</label><input id="cfg-main-mirostat-eta" type="number" step="0.01" min="0" placeholder="0.1"></div>
+                            <div class="uie-rpg-field"><label>Epsilon Cutoff</label><input id="cfg-main-epsilon-cutoff" type="number" step="0.1" min="0" placeholder="0"></div>
+                            <div class="uie-rpg-field"><label>Eta Cutoff</label><input id="cfg-main-eta-cutoff" type="number" step="0.1" min="0" placeholder="0"></div>
+                        </div>
+                        <div class="uie-rpg-field" style="margin-top:10px;"><label>Grammar / JSON Schema</label><textarea id="cfg-main-grammar" placeholder="GBNF grammar or JSON schema for text-completion backends"></textarea></div>
+                        <div class="uie-rpg-grid-3" style="margin-top:10px;">
+                            <label class="uie-check-row"><input type="checkbox" id="cfg-main-singleline"> Single line</label>
+                            <label class="uie-check-row"><input type="checkbox" id="cfg-main-trim-incomplete"> Trim incomplete sentence</label>
+                            <label class="uie-check-row"><input type="checkbox" id="cfg-main-remove-special"> Remove special chars</label>
+                        </div>
+                    </div>
+
+                    <div class="cfg-horde-advanced" id="cfg-main-horde-advanced" style="margin-top:14px; border:1px solid rgba(255,255,255,0.12); border-radius:8px; padding:12px;">
+                        <div style="font-weight:700; margin-bottom:8px; color:#f0a45a;">AI Horde Text Options</div>
+                        <div class="uie-rpg-grid-2">
+                            <div class="uie-rpg-field"><label>Sampler Order</label><input id="cfg-main-horde-sampler-order" placeholder="6,0,1,3,4,2,5"></div>
+                            <div class="uie-rpg-field"><label>Workers</label><input id="cfg-main-horde-workers" placeholder="worker name, another worker"></div>
+                            <div class="uie-rpg-field"><label>Soft Prompt</label><input id="cfg-main-horde-softprompt" placeholder="Optional AI Horde softprompt"></div>
+                            <label class="uie-check-row"><input type="checkbox" id="cfg-main-horde-trusted-workers"> Trusted workers only</label>
+                            <label class="uie-check-row"><input type="checkbox" id="cfg-main-horde-slow-workers" checked> Allow slow workers</label>
+                            <label class="uie-check-row"><input type="checkbox" id="cfg-main-horde-worker-blacklist" checked> Treat workers list as blacklist</label>
+                            <label class="uie-check-row"><input type="checkbox" id="cfg-main-horde-censor-nsfw"> Censor NSFW</label>
+                            <label class="uie-check-row"><input type="checkbox" id="cfg-main-horde-dry-run"> Dry run / estimate only</label>
+                            <label class="uie-check-row"><input type="checkbox" id="cfg-main-horde-disable-batching"> Disable batching</label>
+                        </div>
+                    </div>
+
+                    <div class="uie-row-actions" style="margin-top:14px; gap:8px;">
+                        <button type="button" id="cfg-main-new" class="uie-rpg-btn uie-rpg-btn-info">Add profile</button>
+                        <button type="button" id="cfg-main-save" class="uie-rpg-btn uie-rpg-btn-primary">Save profile</button>
+                        <button type="button" id="cfg-main-apply" class="uie-rpg-btn uie-rpg-btn-success">Connect &amp; apply</button>
+                        <button type="button" id="cfg-main-test" class="uie-rpg-btn">Test connection</button>
+                        <button type="button" id="cfg-main-delete" class="uie-rpg-btn uie-rpg-btn-danger">Delete</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab 2: Turbo API -->
+            <div id="uie-sw-turbo" class="uie-settings-section" style="display:none;">
+                <div class="uie-rpg-card">
+                    <div class="uie-rpg-card-title"><i class="fa-solid fa-gauge-high"></i> Turbo API Quick Route</div>
+                    <p style="font-size:12px; opacity:0.85; margin:0 0 12px; line-height:1.4;">Turbo provides rapid secondary routes for UI, mapping, and sub-systems.</p>
+                    
+                    <div style="margin-bottom:12px;">
+                        <label class="uie-check-row">
+                            <input type="checkbox" id="cfg-turbo-enabled" checked>
+                            <span>Use Turbo when configured</span>
+                        </label>
+                    </div>
+
+                    <div class="uie-rpg-grid-2">
+                        <div class="uie-rpg-field" style="grid-column: 1 / -1;">
+                            <label>Turbo Route Type</label>
+                            <select id="cfg-turbo-route-family" class="modal-select">
+                                <option value="chat">Chat completion / messages</option>
+                                <option value="text">Text completion / instruct</option>
+                                <option value="local">Local model server</option>
+                                <option value="aihorde">AI Horde</option>
+                            </select>
+                        </div>
+                        <div class="uie-rpg-field" style="grid-column: 1 / -1;">
+                            <label>Provider Preset</label>
+                            <div style="display:grid; grid-template-columns: 1fr auto; gap:8px; align-items:end;">
+                                <select id="cfg-turbo-preset" class="modal-select">
+                                    <option value="">Choose...</option>
+                                    <option value="openrouter">OpenRouter</option>
+                                    <option value="openai">OpenAI</option>
+                                    <option value="anthropic">Anthropic</option>
+                                    <option value="google">Google Gemini</option>
+                                    <option value="deepseek">DeepSeek</option>
+                                    <option value="groq">Groq</option>
+                                    <option value="together">Together AI</option>
+                                    <option value="fireworks">Fireworks AI</option>
+                                    <option value="cohere">Cohere</option>
+                                    <option value="mistral">Mistral</option>
+                                    <option value="xai">xAI</option>
+                                    <option value="perplexity">Perplexity</option>
+                                    <option value="nvidia">NVIDIA NIM</option>
+                                    <option value="nanogpt">NanoGPT</option>
+                                    <option value="huggingface">Hugging Face Inference</option>
+                                    <option value="replicate">Replicate</option>
+                                    <option value="anyscale">Anyscale Endpoints</option>
+                                    <option value="cloudflare">Cloudflare Workers AI</option>
+                                    <option value="cerebras">Cerebras</option>
+                                    <option value="sambanova">SambaNova</option>
+                                    <option value="aihorde">AI Horde (text)</option>
+                                    <option value="azure_openai">Azure OpenAI</option>
+                                    <option value="aws_bedrock">AWS Bedrock (gateway)</option>
+                                    <option value="vertex_ai">Vertex AI (gateway)</option>
+                                    <option value="openai_compatible">OpenAI-compatible (generic)</option>
+                                    <option value="ollama">Ollama (local)</option>
+                                    <option value="lmstudio">LM Studio</option>
+                                    <option value="koboldcpp">KoboldCpp</option>
+                                    <option value="textgen_webui">Text Generation WebUI</option>
+                                    <option value="vllm">vLLM OpenAI server</option>
+                                    <option value="localai">LocalAI</option>
+                                    <option value="llamacpp">llama.cpp server</option>
+                                    <option value="jan">Jan API</option>
+                                    <option value="custom">Custom</option>
+                                </select>
+                                <button type="button" id="cfg-turbo-preset-apply" class="uie-rpg-btn">Apply</button>
+                            </div>
+                        </div>
+                        <div class="uie-rpg-field" style="grid-column: 1 / -1;"><label>Turbo URL</label><input id="cfg-turbo-url" placeholder="https://openrouter.ai/api/v1"></div>
+                        <div class="uie-rpg-field" style="grid-column: 1 / -1;"><label>Turbo API Key</label><input id="cfg-turbo-key" type="password" placeholder="Paste provider key or token"></div>
+                    </div>
+
+                    <div style="margin-top:12px;">
+                        <label style="display:block; font-size:12px; color:#b8c0cc; margin-bottom:5px; font-weight:800;">Model (preset)</label>
+                        <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:8px;">
+                            <select id="cfg-turbo-model-select" class="modal-select" style="flex:1; min-width:200px;"><option value="">Refresh to load models</option></select>
+                            <button type="button" id="cfg-turbo-model-refresh" class="uie-rpg-btn" title="Refresh model list"><i class="fa-solid fa-rotate"></i></button>
+                        </div>
+                        <label style="display:block; font-size:12px; color:#b8c0cc; margin-bottom:4px; font-weight:800;">Model ID</label>
+                        <input id="cfg-turbo-model" placeholder="google/gemini-2.0-flash-exp">
+                    </div>
+
+                    <div style="margin-top:12px;">
+                        <label class="uie-check-row">
+                            <input type="checkbox" id="cfg-turbo-apply-text" checked>
+                            <span>Route text generations through Turbo when ready</span>
+                        </label>
+                    </div>
+                    
+                    <!-- Hidden input to keep UIE settings handler happy without display -->
+                    <input type="hidden" id="cfg-living-html-ms" value="0">
+
+                    <div class="uie-rpg-grid-2" style="margin-top:12px;">
+                        <div class="uie-rpg-field"><label>Temperature</label><input id="cfg-turbo-temp" type="number" step="0.1" min="0" max="2" placeholder="0.7"></div>
+                        <div class="uie-rpg-field"><label>Top P</label><input id="cfg-turbo-topp" type="number" step="0.01" min="0" max="1" placeholder="1.0"></div>
+                        <div class="uie-rpg-field"><label>Top K</label><input id="cfg-turbo-topk" type="number" step="1" min="0" placeholder="0"></div>
+                        <div class="uie-rpg-field"><label>Top A</label><input id="cfg-turbo-top-a" type="number" step="0.01" min="0" max="1" placeholder="0"></div>
+                        <div class="uie-rpg-field"><label>Context Token Limit</label><input id="cfg-context-token-limit" type="number" min="1024" max="1000000" placeholder="24000"></div>
+                    </div>
+
+                    <div style="margin-top:12px;">
+                        <label style="display:block; font-size:12px; color:#b8c0cc; margin-bottom:4px;">Output token limit: <span id="cfg-token-limit-view">4096</span></label>
+                        <input id="cfg-token-limit" type="range" min="128" max="32768" step="128" style="padding:0; width:100%; accent-color:#cc7a2e;">
+                    </div>
+
+                    <div style="margin-top:12px;">
+                        <label style="display:block; font-size:12px; color:#b8c0cc; margin-bottom:4px;">History window (messages): <span id="cfg-history-limit-view">8</span></label>
+                        <input id="cfg-history-limit" type="range" min="1" max="40" step="1" style="padding:0; width:100%; accent-color:#cc7a2e;">
+                    </div>
+
+                    <div style="margin-top:14px; border:1px solid rgba(255,255,255,0.12); border-radius:8px; padding:12px;">
+                        <div style="font-weight:700; margin-bottom:8px; color:#f0a45a;">Turbo Advanced Settings</div>
+                        <div class="uie-rpg-grid-2">
+                            <div class="uie-rpg-field">
+                                <label>Endpoint Shape</label>
+                                <select id="cfg-turbo-endpoint-shape" class="modal-select">
+                                    <option value="auto">Auto-detect</option>
+                                    <option value="openai_chat">Chat Completions</option>
+                                    <option value="openai_completions">Text Completions</option>
+                                    <option value="openai_responses">OpenAI Responses</option>
+                                    <option value="anthropic_messages">Anthropic Messages</option>
+                                </select>
+                            </div>
+                            <div class="uie-rpg-field">
+                                <label>Reasoning Effort</label>
+                                <select id="cfg-turbo-reasoning-effort" class="modal-select">
+                                    <option value="">Default</option>
+                                    <option value="minimal">Minimal</option>
+                                    <option value="low">Low</option>
+                                    <option value="medium">Medium</option>
+                                    <option value="high">High</option>
+                                </select>
+                            </div>
+                            <div class="uie-rpg-field"><label>Reasoning Token Budget</label><input id="cfg-turbo-reasoning-tokens" type="number" placeholder="0"></div>
+                            <div class="uie-rpg-field"><label>Seed</label><input id="cfg-turbo-seed" type="number" placeholder="0"></div>
+                            <div class="uie-rpg-field"><label>Frequency Penalty</label><input id="cfg-turbo-frequency-penalty" type="number" step="0.01" min="-2" max="2" placeholder="0"></div>
+                            <div class="uie-rpg-field"><label>Presence Penalty</label><input id="cfg-turbo-presence-penalty" type="number" step="0.01" min="-2" max="2" placeholder="0"></div>
+                        </div>
+                        <div class="uie-rpg-field" style="margin-top:10px;"><label>Stop Sequences (one per line)</label><textarea id="cfg-turbo-stop-sequences" placeholder="### END"></textarea></div>
+                        <div class="uie-rpg-field" style="margin-top:10px;"><label>Custom Headers (JSON object)</label><textarea id="cfg-turbo-custom-headers" placeholder='{"x-foo":"bar"}'></textarea></div>
+                    </div>
+
+                    <div class="cfg-text-advanced" id="cfg-turbo-text-advanced" style="margin-top:14px; border:1px solid rgba(255,255,255,0.12); border-radius:8px; padding:12px;">
+                        <div style="font-weight:700; margin-bottom:8px; color:#f0a45a;">Turbo Text Completion Samplers</div>
+                        <div class="uie-rpg-grid-3">
+                            <div class="uie-rpg-field"><label>Min P</label><input id="cfg-turbo-min-p" type="number" step="0.001" min="0" max="1" placeholder="0"></div>
+                            <div class="uie-rpg-field"><label>Typical P</label><input id="cfg-turbo-typical-p" type="number" step="0.01" min="0" max="1" placeholder="1"></div>
+                            <div class="uie-rpg-field"><label>Tail Free Sampling</label><input id="cfg-turbo-tfs" type="number" step="0.01" min="0" max="1" placeholder="1"></div>
+                            <div class="uie-rpg-field"><label>Repetition Penalty</label><input id="cfg-turbo-rep-pen" type="number" step="0.01" min="1" max="3" placeholder="1.1"></div>
+                            <div class="uie-rpg-field"><label>Rep Pen Range</label><input id="cfg-turbo-rep-pen-range" type="number" step="1" min="0" max="4096" placeholder="0"></div>
+                            <div class="uie-rpg-field"><label>Rep Pen Slope</label><input id="cfg-turbo-rep-pen-slope" type="number" step="0.01" min="0" max="10" placeholder="0"></div>
+                            <div class="uie-rpg-field"><label>Smoothing Factor</label><input id="cfg-turbo-smoothing-factor" type="number" step="0.01" min="0" max="10" placeholder="0"></div>
+                            <div class="uie-rpg-field"><label>Dynamic Temp Range</label><input id="cfg-turbo-dynatemp-range" type="number" step="0.01" min="0" max="5" placeholder="0"></div>
+                            <div class="uie-rpg-field"><label>Dynamic Temp Exponent</label><input id="cfg-turbo-dynatemp-exponent" type="number" step="0.01" min="0" max="5" placeholder="1"></div>
+                            <div class="uie-rpg-field"><label>Mirostat Mode</label><input id="cfg-turbo-mirostat-mode" type="number" step="1" min="0" max="2" placeholder="0"></div>
+                            <div class="uie-rpg-field"><label>Mirostat Tau</label><input id="cfg-turbo-mirostat-tau" type="number" step="0.1" min="0" placeholder="5"></div>
+                            <div class="uie-rpg-field"><label>Mirostat Eta</label><input id="cfg-turbo-mirostat-eta" type="number" step="0.01" min="0" placeholder="0.1"></div>
+                            <div class="uie-rpg-field"><label>Epsilon Cutoff</label><input id="cfg-turbo-epsilon-cutoff" type="number" step="0.1" min="0" placeholder="0"></div>
+                            <div class="uie-rpg-field"><label>Eta Cutoff</label><input id="cfg-turbo-eta-cutoff" type="number" step="0.1" min="0" placeholder="0"></div>
+                        </div>
+                        <div class="uie-rpg-field" style="margin-top:10px;"><label>Grammar / JSON Schema</label><textarea id="cfg-turbo-grammar" placeholder="GBNF grammar or JSON schema for text-completion backends"></textarea></div>
+                        <div class="uie-rpg-grid-3" style="margin-top:10px;">
+                            <label class="uie-check-row"><input type="checkbox" id="cfg-turbo-singleline"> Single line</label>
+                            <label class="uie-check-row"><input type="checkbox" id="cfg-turbo-trim-incomplete"> Trim incomplete sentence</label>
+                            <label class="uie-check-row"><input type="checkbox" id="cfg-turbo-remove-special"> Remove special chars</label>
+                        </div>
+                    </div>
+
+                    <div class="cfg-horde-advanced" id="cfg-turbo-horde-advanced" style="margin-top:14px; border:1px solid rgba(255,255,255,0.12); border-radius:8px; padding:12px;">
+                        <div style="font-weight:700; margin-bottom:8px; color:#f0a45a;">Turbo AI Horde Text Options</div>
+                        <div class="uie-rpg-grid-2">
+                            <div class="uie-rpg-field"><label>Sampler Order</label><input id="cfg-turbo-horde-sampler-order" placeholder="6,0,1,3,4,2,5"></div>
+                            <div class="uie-rpg-field"><label>Workers</label><input id="cfg-turbo-horde-workers" placeholder="worker name, another worker"></div>
+                            <div class="uie-rpg-field"><label>Soft Prompt</label><input id="cfg-turbo-horde-softprompt" placeholder="Optional AI Horde softprompt"></div>
+                            <label class="uie-check-row"><input type="checkbox" id="cfg-turbo-horde-trusted-workers"> Trusted workers only</label>
+                            <label class="uie-check-row"><input type="checkbox" id="cfg-turbo-horde-slow-workers" checked> Allow slow workers</label>
+                            <label class="uie-check-row"><input type="checkbox" id="cfg-turbo-horde-worker-blacklist" checked> Treat workers list as blacklist</label>
+                            <label class="uie-check-row"><input type="checkbox" id="cfg-turbo-horde-censor-nsfw"> Censor NSFW</label>
+                            <label class="uie-check-row"><input type="checkbox" id="cfg-turbo-horde-dry-run"> Dry run / estimate only</label>
+                            <label class="uie-check-row"><input type="checkbox" id="cfg-turbo-horde-disable-batching"> Disable batching</label>
+                        </div>
+                    </div>
+
+                    <div class="uie-row-actions" style="margin-top:14px;">
+                        <button type="button" id="cfg-turbo-test" class="uie-rpg-btn uie-rpg-btn-primary">Test Turbo connection</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab 3: Image & Audio -->
+            <div id="uie-sw-media" class="uie-settings-section" style="display:none;">
+                <div class="uie-rpg-card">
+                    <div class="uie-rpg-card-title"><i class="fa-solid fa-image"></i> Image Generation Service</div>
+                    
+                    <div class="uie-rpg-grid-2">
+                        <div class="uie-rpg-field">
+                            <label>Image Provider</label>
+                            <select id="cfg-image-provider" class="modal-select">
+                                <optgroup label="Optional Local Download">
+                                    <option value="koji">Koji (Local - Optional ~2.5 GB Download)</option>
+                                </optgroup>
+                                <optgroup label="Cloud APIs">
+                                    <option value="openai">OpenAI (DALL·E / Images API)</option>
+                                    <option value="stability">Stability AI (v2beta generate)</option>
+                                    <option value="bfl">Black Forest Labs / FLUX</option>
+                                    <option value="google">Google Imagen / Gemini Image</option>
+                                    <option value="pollinations">Pollinations (Free Tier Available)</option>
+                                    <option value="imagerouter">ImageRouter.io</option>
+                                    <option value="lmrouter">LMRouter Images</option>
+                                    <option value="arouter">AI/ARouter Images</option>
+                                    <option value="nanogpt">NanoGPT Image API</option>
+                                    <option value="openrouter">OpenRouter</option>
+                                    <option value="together">Together AI</option>
+                                    <option value="fal">FAL.AI</option>
+                                    <option value="huggingface">Hugging Face</option>
+                                </optgroup>
+                                <optgroup label="Local Services">
+                                    <option value="comfyui">ComfyUI</option>
+                                    <option value="automatic1111">AUTOMATIC1111 / SD WebUI</option>
+                                    <option value="sdnext">SD.Next</option>
+                                    <option value="horde">Stable Horde (Distributed)</option>
+                                </optgroup>
+                                <optgroup label="Other">
+                                    <option value="custom">Custom (OpenAI-style POST)</option>
+                                </optgroup>
+                            </select>
+                        </div>
+                        <div class="uie-rpg-field"><label>Default Image Accent</label><input id="uie-sw-image-accent" type="color" value="#c76323"></div>
+                    </div>
+                    <p id="cfg-image-provider-hint" style="font-size:11px; opacity:0.8; margin:6px 0 10px;">Select a provider to filter config settings below.</p>
+
+                    <!-- Subpanel: Generic (OpenAI style) -->
+                    <div id="cfg-image-panel-generic" class="cfg-image-subpanel active">
+                        <div class="uie-rpg-field" style="margin-bottom:8px;"><label>API Base URL</label><input id="cfg-image-url" placeholder="https://api.openai.com/v1/images/generations"></div>
+                        <div class="uie-rpg-field" style="margin-bottom:8px;"><label>API Key</label><input id="cfg-image-key" type="password" placeholder="Paste provider key or token"></div>
+                        
+                        <label style="display:block; font-size:12px; color:#b8c0cc; margin-bottom:4px; font-weight:800;">Model Selection</label>
+                        <div style="display:grid; grid-template-columns: minmax(0,1fr) auto; gap:8px; align-items:center; margin-bottom:8px;">
+                            <select id="cfg-image-model-select" class="modal-select"><option value="">Select a provider to load models</option></select>
+                            <button type="button" id="cfg-image-model-refresh" class="uie-rpg-btn"><i class="fa-solid fa-rotate"></i> Refresh</button>
+                        </div>
+                        <div class="uie-rpg-field"><label>Model ID Override</label><input id="cfg-image-model" placeholder="Custom / exact model ID"></div>
+                    </div>
+
+                    <!-- Subpanel: Stability AI -->
+                    <div id="cfg-image-panel-stability" class="cfg-image-subpanel">
+                        <div class="uie-rpg-field" style="margin-bottom:8px;"><label>Stability API Key</label><input id="cfg-image-stability-key" type="password" placeholder="Paste Stability API key"></div>
+                        <div class="uie-rpg-grid-2">
+                            <div class="uie-rpg-field">
+                                <label>Endpoint / Model</label>
+                                <select id="cfg-image-stability-engine" class="modal-select">
+                                    <option value="core">Core (stable-image/generate/core)</option>
+                                    <option value="sd3">SD3 (stable-image/generate/sd3)</option>
+                                    <option value="ultra">Ultra (stable-image/generate/ultra)</option>
+                                </select>
+                            </div>
+                            <div class="uie-rpg-field">
+                                <label>Aspect Ratio</label>
+                                <select id="cfg-image-stability-aspect" class="modal-select">
+                                    <option value="1:1">1:1</option>
+                                    <option value="16:9">16:9</option>
+                                    <option value="9:16">9:16</option>
+                                    <option value="4:3">4:3</option>
+                                    <option value="3:4">3:4</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Subpanel: Pollinations -->
+                    <div id="cfg-image-panel-pollinations" class="cfg-image-subpanel">
+                        <div class="uie-rpg-field" style="margin-bottom:8px;"><label>Pollinations API Key / Token (optional)</label><input id="cfg-image-pollinations-key" type="password" placeholder="Optional token"></div>
+                        <div class="uie-rpg-field">
+                            <label>Model</label>
+                            <select id="cfg-image-pollinations-model" class="modal-select">
+                                <option value="flux">flux</option>
+                                <option value="turbo">turbo</option>
+                                <option value="kontext">kontext</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Subpanel: Koji (Optional Local Download) -->
+                    <div id="cfg-image-panel-koji" class="cfg-image-subpanel">
+                        <div style="padding:12px; background:rgba(203,163,92,0.08); border:1px solid rgba(203,163,92,0.25); border-radius:8px;">
+                            <p style="font-size:13px; color:#cba35c; margin:0 0 8px; font-weight:600;"><i class="fa-solid fa-circle-info"></i> Koji - Optional Local Image Generation</p>
+                            <p style="font-size:12px; opacity:0.85; margin:0 0 12px; line-height:1.5;">Koji is an optional local model (~2.5&nbsp;GB) downloaded from HuggingFace (<code>calcuis/koji</code>), a public repo that needs <strong>no token or login</strong>. It is <strong>not bundled or auto-downloaded</strong>. No API key is needed once installed; generation runs locally.</p>
+                            <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+                                <button type="button" id="cfg-image-koji-check-status" class="uie-rpg-btn"><i class="fa-solid fa-rotate"></i> Check Status</button>
+                                <button type="button" id="cfg-image-koji-download" class="uie-rpg-btn uie-rpg-btn-success"><i class="fa-solid fa-download"></i> Download Model</button>
+                                <button type="button" id="cfg-image-koji-delete" class="uie-rpg-btn uie-rpg-btn-danger" onclick="window.UIE_deleteKojiModel && window.UIE_deleteKojiModel()"><i class="fa-solid fa-trash"></i> Delete Model</button>
+                                <span id="cfg-image-koji-status" style="font-size:12px; opacity:0.8;">Not checked</span>
+                            </div>
+                            <div id="cfg-image-koji-progress-wrap" style="display:none; margin-top:12px;">
+                                <div style="display:flex; justify-content:space-between; font-size:11px; opacity:0.85; margin-bottom:4px;">
+                                    <span id="cfg-image-koji-progress-label">Preparing download&hellip;</span>
+                                    <span id="cfg-image-koji-progress-pct">0%</span>
+                                </div>
+                                <div style="width:100%; height:10px; background:rgba(255,255,255,0.1); border-radius:6px; overflow:hidden;">
+                                    <div id="cfg-image-koji-progress-bar" style="width:0%; height:100%; background:linear-gradient(90deg,#cba35c,#e3c27e); transition:width .4s ease;"></div>
+                                </div>
+                            </div>
+                            <p style="font-size:11px; opacity:0.7; margin:10px 0 0;">You can also install Koji during first-run setup (Y/N prompt). Once downloaded, images generate instantly.</p>
+                        </div>
+                    </div>
+
+                    <!-- Subpanel: ComfyUI -->
+                    <div id="cfg-image-panel-comfy" class="cfg-image-subpanel">
+                        <div class="uie-rpg-grid-2">
+                            <div class="uie-rpg-field">
+                                <label>ComfyUI Preset</label>
+                                <select id="cfg-image-comfy-url-preset" class="modal-select">
+                                    <option value="http://127.0.0.1:8188">Local ComfyUI :8188</option>
+                                    <option value="http://127.0.0.1:8189">Local ComfyUI :8189</option>
+                                    <option value="custom">Custom / Cloud URL</option>
+                                </select>
+                            </div>
+                            <div class="uie-rpg-field"><label>ComfyUI Base URL</label><input id="cfg-image-comfy-base" placeholder="http://127.0.0.1:8188"></div>
+                        </div>
+                        <div class="uie-rpg-field" style="margin-top:8px;"><label>ComfyUI API Key (RunPod / cloud)</label><input id="cfg-image-comfy-key" type="password" placeholder="Optional connection key"></div>
+                        
+                        <div style="display:flex; gap:8px; flex-wrap:wrap; margin:10px 0;">
+                            <button type="button" id="cfg-image-comfy-refresh" class="uie-rpg-btn"><i class="fa-solid fa-link"></i> Detect &amp; fill dropdowns</button>
+                            <button type="button" id="cfg-image-comfy-test" class="uie-rpg-btn"><i class="fa-solid fa-vial"></i> Test ComfyUI</button>
+                            <span id="cfg-image-comfy-status" style="font-size:12px; opacity:0.8; align-self:center;">Not tested</span>
+                        </div>
+
+                        <div class="uie-rpg-field" style="margin-bottom:8px;">
+                            <label>Checkpoint</label>
+                            <select id="cfg-image-comfy-ckpt" class="modal-select">
+                                <option value="">Auto / first available checkpoint</option>
+                                <option value="sd_xl_base_1.0.safetensors">SDXL Base</option>
+                                <option value="realvisxlV40.safetensors">RealVisXL</option>
+                                <option value="dreamshaperXL.safetensors">DreamShaper XL</option>
+                                <option value="juggernautXL.safetensors">Juggernaut XL</option>
+                            </select>
+                        </div>
+
+                        <div class="uie-rpg-grid-2">
+                            <div class="uie-rpg-field">
+                                <label>Quality Preset</label>
+                                <select id="cfg-image-comfy-quality" class="modal-select">
+                                    <option value="fast">Fast</option>
+                                    <option value="balanced">Balanced</option>
+                                    <option value="quality">Quality</option>
+                                </select>
+                            </div>
+                            <div class="uie-rpg-field">
+                                <label>Resolution Preset</label>
+                                <select id="cfg-image-comfy-resolution" class="modal-select">
+                                    <option value="512x512">512 x 512</option>
+                                    <option value="768x768">768 x 768</option>
+                                    <option value="1024x1024">1024 x 1024</option>
+                                    <option value="1024x768">1024 x 768</option>
+                                    <option value="768x1024">768 x 1024</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="uie-rpg-grid-3" style="margin-top:10px;">
+                            <div class="uie-rpg-field"><label>Steps</label><input id="cfg-image-comfy-steps" type="number" placeholder="20"></div>
+                            <div class="uie-rpg-field"><label>CFG</label><input id="cfg-image-comfy-cfg" type="number" placeholder="7" step="0.5"></div>
+                            <div class="uie-rpg-field"><label>Width</label><input id="cfg-image-comfy-width" type="number" placeholder="768"></div>
+                            <div class="uie-rpg-field"><label>Height</label><input id="cfg-image-comfy-height" type="number" placeholder="768"></div>
+                            <div class="uie-rpg-field"><label>Sampler</label><select id="cfg-image-comfy-sampler" class="modal-select"><option value="euler">euler</option><option value="euler_ancestral">euler_ancestral</option><option value="dpmpp_2m">dpmpp_2m</option><option value="dpmpp_sde">dpmpp_sde</option></select></div>
+                            <div class="uie-rpg-field"><label>Scheduler</label><select id="cfg-image-comfy-scheduler" class="modal-select"><option value="normal">normal</option><option value="karras">karras</option><option value="exponential">exponential</option></select></div>
+                            <div class="uie-rpg-field"><label>Denoise</label><input id="cfg-image-comfy-denoise" type="number" placeholder="1" step="0.05"></div>
+                            <div class="uie-rpg-field" style="grid-column: span 2;"><label>Seed (-1 random)</label><input id="cfg-image-comfy-seed" type="number" placeholder="-1"></div>
+                        </div>
+                        <div class="uie-rpg-field" style="margin-top:10px;"><label>Comfy prompt add-on</label><textarea id="cfg-image-comfy-common" placeholder="Add-on appended to positive prompt..."></textarea></div>
+                        <div class="uie-rpg-field" style="margin-top:10px;"><label>Comfy negative add-on</label><textarea id="cfg-image-comfy-common-neg" placeholder="Add-on appended to negative prompt..."></textarea></div>
+                        <details style="margin-top:8px;">
+                            <summary style="cursor:pointer; font-weight:700; color:#e08838;">Advanced ComfyUI Workflow JSON</summary>
+                            <textarea id="cfg-image-comfy-workflow" placeholder="Paste custom API workflow JSON here..."></textarea>
+                        </details>
+                    </div>
+
+                    <!-- Subpanel: SD WebUI / AUTOMATIC1111 -->
+                    <div id="cfg-image-panel-sdwebui" class="cfg-image-subpanel">
+                        <div class="uie-rpg-field" style="margin-bottom:8px;"><label>WebUI URL (e.g. port 7860)</label><input id="cfg-image-sd-url" placeholder="http://127.0.0.1:7860"></div>
+                        <div class="uie-rpg-grid-2">
+                            <div class="uie-rpg-field"><label>Steps</label><input id="cfg-image-sd-steps" type="number" placeholder="20"></div>
+                            <div class="uie-rpg-field"><label>CFG scale</label><input id="cfg-image-sd-cfg" type="number" placeholder="7" step="0.5"></div>
+                            <div class="uie-rpg-field"><label>Width</label><input id="cfg-image-sd-width" type="number" placeholder="512"></div>
+                            <div class="uie-rpg-field"><label>Height</label><input id="cfg-image-sd-height" type="number" placeholder="512"></div>
+                        </div>
+                    </div>
+
+                    <!-- Shared Style / Checkbox Options -->
+                    <div style="margin-top:12px; border-top:1px solid rgba(255,255,255,0.08); padding-top:12px;">
+                        <label class="uie-check-row">
+                            <input type="checkbox" id="cfg-image-strict">
+                            <span>Strict image instructions (prepend safety/quality rules)</span>
+                        </label>
+                        <label class="uie-check-row" style="margin-top:6px;">
+                            <input type="checkbox" id="cfg-image-confirm-prompt">
+                            <span>Confirm and edit prompt in dialog before generating</span>
+                        </label>
+                        <label class="uie-check-row" style="margin-top:6px;">
+                            <input type="checkbox" id="cfg-image-fallback-enabled" checked>
+                            <span>Enable fallback to Pollinations/SVG if primary provider fails</span>
+                        </label>
+                        <label class="uie-check-row" style="margin-top:6px;">
+                            <input type="checkbox" id="cfg-image-hybrid-mode">
+                            <span>Hybrid mode: Try Koji first, then fall back to cloud API</span>
+                        </label>
+                        <div id="cfg-image-hybrid-options" style="display:none; margin:8px 0 0 24px; padding:10px; border:1px solid rgba(203,163,92,0.3); border-radius:8px; background:rgba(203,163,92,0.06);">
+                            <div style="font-size:12px; font-weight:800; color:#e3c27e; margin-bottom:6px;">Hybrid routing</div>
+                            <p style="font-size:11px; opacity:.82; margin:0 0 8px; line-height:1.4;">Choose what the installed Koji model may make locally. Any unchecked category uses your configured main image API when auto-generation is enabled; otherwise it remains manual.</p>
+                            <div class="uie-rpg-grid-2">
+                                <label class="uie-check-row"><input type="checkbox" id="cfg-image-hybrid-koji-npc" checked><span>NPC portraits</span></label>
+                                <label class="uie-check-row"><input type="checkbox" id="cfg-image-hybrid-koji-skills" checked><span>Skill art</span></label>
+                                <label class="uie-check-row"><input type="checkbox" id="cfg-image-hybrid-koji-items" checked><span>Item images</span></label>
+                                <label class="uie-check-row"><input type="checkbox" id="cfg-image-hybrid-koji-assets" checked><span>World assets</span></label>
+                                <label class="uie-check-row"><input type="checkbox" id="cfg-image-auto-npc" checked><span>Auto-generate NPCs with main API</span></label>
+                                <label class="uie-check-row"><input type="checkbox" id="cfg-image-auto-skills" checked><span>Auto-generate skills with main API</span></label>
+                                <label class="uie-check-row"><input type="checkbox" id="cfg-image-auto-items" checked><span>Auto-generate items with main API</span></label>
+                                <label class="uie-check-row"><input type="checkbox" id="cfg-image-auto-assets" checked><span>Auto-generate assets with main API</span></label>
+                            </div>
+                        </div>
+                        
+                        <div class="uie-rpg-field" style="margin-top:10px;"><label>Main Style Prefix</label><textarea id="cfg-image-style">Anime art style, cinematic visual novel lighting, expressive characters, clean line art, high detail.</textarea></div>
+                        <div class="uie-rpg-field" style="margin-top:10px;"><label>Negative Prompt</label><textarea id="cfg-image-negative">low quality, blurry, deformed, text, watermark, noisy artifacts</textarea></div>
+                        
+                        <div class="uie-rpg-field" style="margin-top:10px;"><label>Background Template</label><textarea id="cfg-image-tpl-bg" placeholder="{{style}}&#10;{{layout}}&#10;{{contents}}&#10;{{placement_grid}}"></textarea></div>
+                        <p style="font-size:12px; opacity:0.78; margin:6px 0 0; line-height:1.35;">Background macros: <code>{{layout}}</code> gives camera, room/location type, and reserved edit space; <code>{{contents}}</code> lists required visible objects; <code>{{placement_grid}}</code> pins hot spots and edit-room anchors.</p>
+                        <div class="uie-rpg-field" style="margin-top:10px;"><label>Character portrait template</label><textarea id="cfg-image-tpl-char" placeholder="{{style}}\n{{base}}"></textarea></div>
+                        <div class="uie-rpg-field" style="margin-top:10px;"><label>User (persona) template</label><textarea id="cfg-image-tpl-user" placeholder="{{style}}\n{{base}}"></textarea></div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Tab 4: Audio & TTS -->
+            <div id="uie-sw-audio" class="uie-settings-section" style="display:none;">
+                <div class="uie-rpg-card">
+                    <div class="uie-rpg-card-title"><i class="fa-solid fa-volume-high"></i> Audio Provider Service</div>
+                    <label class="uie-check-row" style="margin:8px 0 12px;">
+                        <input type="checkbox" id="cfg-audio-enabled" checked>
+                        <span>Enable voices</span>
+                    </label>
+                    
+                    <div class="uie-rpg-grid-2">
+                        <div class="uie-rpg-field">
+                            <label>Audio Provider</label>
+                            <select id="cfg-audio-provider" class="modal-select">
+                                <option value="pocket">Pocket-TTS</option>
+                                <option value="kokoro">Kokoro Local (ONNX)</option>
+                                <option value="openai">OpenAI</option>
+                                <option value="openrouter">OpenRouter TTS</option>
+                                <option value="elevenlabs">ElevenLabs</option>
+                                <option value="azure">Azure AI Speech</option>
+                                <option value="google">Google Cloud Text-to-Speech</option>
+                                <option value="alltalk">AllTalk XTTS</option>
+                                <option value="edge_rvc">Edge Browser / Custom RVC</option>
+                                <option value="custom">Custom OpenAI-compatible</option>
+                            </select>
+                        </div>
+                        <div class="uie-rpg-field">
+                            <label>Character Assignment</label>
+                            <select id="cfg-audio-assignment" class="modal-select">
+                                <option value="active">Active target character</option>
+                                <option value="cards">Character cards</option>
+                                <option value="both">Cards and target characters</option>
+                                <option value="none">Disabled</option>
+                            </select>
+                        </div>
+                        <div class="uie-rpg-field" style="grid-column:1/-1;"><label>Provider URL / Endpoint</label><input id="cfg-audio-url" placeholder="Provider endpoint or local server URL"></div>
+                        <div class="uie-rpg-field" style="grid-column:1/-1;"><label>API Key / Token</label><input id="cfg-audio-key" type="password" placeholder="Paste provider key or token"></div>
+                        <div class="uie-rpg-field"><label>Model</label><input id="cfg-audio-model" placeholder="tts-1, gpt-4o-mini-tts, eleven_multilingual_v2..."></div>
+                        <div class="uie-rpg-field"><label>Voice</label><input id="cfg-audio-voice" placeholder="Voice name or voice ID"></div>
+                        <div class="uie-rpg-field">
+                            <label>Format</label>
+                            <select id="cfg-audio-format" class="modal-select">
+                                <option value="mp3">MP3</option>
+                                <option value="opus">OPUS</option>
+                                <option value="aac">AAC</option>
+                                <option value="flac">FLAC</option>
+                                <option value="wav" selected>WAV</option>
+                                <option value="pcm">PCM</option>
+                                <option value="ogg">OGG</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="cfg-tts-panel active" data-tts-panel="openai" style="margin-top:12px; border:1px solid rgba(255,255,255,0.12); border-radius:8px; padding:12px;">
+                        <div class="uie-rpg-grid-2">
+                            <div class="uie-rpg-field"><label>OpenAI Model</label><select id="cfg-audio-openai-model" class="modal-select"><option value="gpt-4o-mini-tts">gpt-4o-mini-tts</option><option value="tts-1">tts-1</option><option value="tts-1-hd">tts-1-hd</option></select></div>
+                            <div class="uie-rpg-field"><label>Voice</label><select id="cfg-audio-openai-voice" class="modal-select"><option value="marin">marin</option><option value="cedar">cedar</option><option value="alloy">alloy</option><option value="ash">ash</option><option value="ballad">ballad</option><option value="coral">coral</option><option value="echo">echo</option><option value="fable">fable</option><option value="nova">nova</option><option value="onyx">onyx</option><option value="sage">sage</option><option value="shimmer">shimmer</option><option value="verse">verse</option></select></div>
+                            <div class="uie-rpg-field"><label>Speed</label><input id="cfg-audio-openai-speed" type="number" min="0.25" max="4" step="0.05" placeholder="1.0"></div>
+                            <div class="uie-rpg-field"><label>Instructions</label><input id="cfg-audio-openai-instructions" placeholder="Calm visual novel delivery"></div>
+                        </div>
+                    </div>
+
+                    <div class="cfg-tts-panel" data-tts-panel="pocket" style="margin-top:12px; border:1px solid rgba(255,255,255,0.12); border-radius:8px; padding:12px;">
+                        <div class="uie-rpg-grid-2">
+                            <div class="uie-rpg-field" style="grid-column:1/-1;"><label>Pocket-TTS Backend URL</label><input id="cfg-audio-pocket-url" placeholder="http://127.0.0.1:28101"></div>
+                            <div class="uie-rpg-field">
+                                <label>Pocket Fallback Voice</label>
+                                <select id="cfg-audio-pocket-voice" class="modal-select">
+                                    <option value="alba">alba</option>
+                                    <option value="cosette">cosette</option>
+                                    <option value="marius">marius</option>
+                                    <option value="javert">javert</option>
+                                    <option value="jean">jean</option>
+                                    <option value="anna">anna</option>
+                                    <option value="vera">vera</option>
+                                    <option value="fantine">fantine</option>
+                                    <option value="charles">charles</option>
+                                    <option value="paul">paul</option>
+                                    <option value="eponine">eponine</option>
+                                    <option value="azelma">azelma</option>
+                                    <option value="george">george</option>
+                                    <option value="mary">mary</option>
+                                    <option value="jane">jane</option>
+                                    <option value="michael">michael</option>
+                                    <option value="eve">eve</option>
+                                    <option value="bill_boerst">bill_boerst</option>
+                                    <option value="peter_yearsley">peter_yearsley</option>
+                                    <option value="stuart_bell">stuart_bell</option>
+                                    <option value="caro_davy">caro_davy</option>
+                                </select>
+                            </div>
+                            <div class="uie-rpg-field">
+                                <label>Language</label>
+                                <select id="cfg-audio-pocket-language" class="modal-select">
+                                    <option value="english">English</option>
+                                </select>
+                            </div>
+                            <div class="uie-rpg-field">
+                                <label>Reference Audio File</label>
+                                <input id="cfg-audio-reference" type="hidden">
+                                <input id="cfg-audio-reference-file" class="modal-input" type="file" accept="audio/*">
+                                <small id="cfg-audio-reference-label" style="display:block;margin-top:5px;opacity:.68;">No reference audio selected.</small>
+                            </div>
+                            <div class="uie-rpg-field">
+                                <label>Reference Transcript</label>
+                                <input id="cfg-audio-f5-ref-text" placeholder="Reference audio text transcript">
+                            </div>
+                            <div class="uie-rpg-field">
+                                <label>Reference duration (sec)</label>
+                                <input id="cfg-audio-pocket-ref-seconds" type="number" min="1" max="15" value="6">
+                            </div>
+                            <label class="uie-check-row">
+                                <input type="checkbox" id="cfg-audio-pocket-use-reference" checked>
+                                <span>Use reference voice cloning</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="cfg-tts-panel" data-tts-panel="kokoro" style="margin-top:12px; border:1px solid rgba(255,255,255,0.12); border-radius:8px; padding:12px;">
+                        <div class="uie-rpg-grid-2">
+                            <div class="uie-rpg-field">
+                                <label>Kokoro Voice</label>
+                                <select id="cfg-audio-kokoro-voice" class="modal-select">
+                                    <option value="custom">Custom Blend (Studio)</option>
+                                    <option value="af_heart">af_heart</option>
+                                    <option value="af_alloy">af_alloy</option>
+                                    <option value="af_aoede">af_aoede</option>
+                                    <option value="af_bella">af_bella</option>
+                                    <option value="af_jessica">af_jessica</option>
+                                    <option value="af_kore">af_kore</option>
+                                    <option value="af_nicole">af_nicole</option>
+                                    <option value="af_nova">af_nova</option>
+                                    <option value="af_river">af_river</option>
+                                    <option value="af_sarah">af_sarah</option>
+                                    <option value="af_sky">af_sky</option>
+                                    <option value="am_adam">am_adam</option>
+                                    <option value="am_echo">am_echo</option>
+                                    <option value="am_eric">am_eric</option>
+                                    <option value="am_fenrir">am_fenrir</option>
+                                    <option value="am_liam">am_liam</option>
+                                    <option value="am_michael">am_michael</option>
+                                    <option value="am_onyx">am_onyx</option>
+                                    <option value="am_puck">am_puck</option>
+                                    <option value="am_santa">am_santa</option>
+                                    <option value="bf_alice">bf_alice</option>
+                                    <option value="bf_emma">bf_emma</option>
+                                    <option value="bf_isabella">bf_isabella</option>
+                                    <option value="bf_lily">bf_lily</option>
+                                    <option value="bm_daniel">bm_daniel</option>
+                                    <option value="bm_fable">bm_fable</option>
+                                    <option value="bm_george">bm_george</option>
+                                    <option value="bm_lewis">bm_lewis</option>
+                                </select>
+                            </div>
+                            <div class="uie-rpg-field">
+                                <label>Kokoro Language</label>
+                                <select id="cfg-audio-kokoro-language" class="modal-select">
+                                    <option value="english">English (US)</option>
+                                    <option value="en-gb">English (UK)</option>
+                                    <option value="japanese">Japanese</option>
+                                    <option value="chinese">Chinese</option>
+                                    <option value="spanish">Spanish</option>
+                                    <option value="french">French</option>
+                                    <option value="hindi">Hindi</option>
+                                    <option value="italian">Italian</option>
+                                    <option value="portuguese">Portuguese</option>
+                                </select>
+                            </div>
+                            <div class="uie-rpg-field">
+                                <label>Speed</label>
+                                <input id="cfg-audio-kokoro-speed" type="number" min="0.25" max="4" step="0.05" placeholder="1.0">
+                            </div>
+                            <div class="uie-rpg-field" id="cfg-audio-kokoro-studio-gender-wrap">
+                                <label>Gender (Masc vs Fem)</label>
+                                <input id="cfg-audio-kokoro-gender-blend" type="range" min="0" max="1" step="0.01" value="0.5">
+                            </div>
+                            <div class="uie-rpg-field" id="cfg-audio-kokoro-studio-vibe-wrap">
+                                <label>Vibe (Calm vs Energetic)</label>
+                                <input id="cfg-audio-kokoro-vibe-blend" type="range" min="0" max="1" step="0.01" value="0.5">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="cfg-tts-panel" data-tts-panel="openrouter" style="margin-top:12px; border:1px solid rgba(255,255,255,0.12); border-radius:8px; padding:12px;">
+                        <div class="uie-rpg-grid-2">
+                            <div class="uie-rpg-field" style="grid-column:1/-1;"><label>OpenRouter Base URL</label><input id="cfg-audio-openrouter-url" placeholder="https://openrouter.ai/api/v1"></div>
+                            <div class="uie-rpg-field"><label>TTS Model</label><input id="cfg-audio-openrouter-model" placeholder="Provider TTS model ID"></div>
+                            <div class="uie-rpg-field"><label>Voice</label><input id="cfg-audio-openrouter-voice" placeholder="Voice supported by selected model"></div>
+                            <div class="uie-rpg-field"><label>Speed</label><input id="cfg-audio-openrouter-speed" type="number" min="0.25" max="4" step="0.05" placeholder="1.0"></div>
+                        </div>
+                    </div>
+
+                    <div class="cfg-tts-panel" data-tts-panel="elevenlabs" style="margin-top:12px; border:1px solid rgba(255,255,255,0.12); border-radius:8px; padding:12px;">
+                        <div class="uie-rpg-grid-3">
+                            <div class="uie-rpg-field"><label>Model</label><select id="cfg-audio-eleven-model" class="modal-select"><option value="eleven_multilingual_v2">eleven_multilingual_v2</option><option value="eleven_flash_v2_5">eleven_flash_v2_5</option><option value="eleven_turbo_v2_5">eleven_turbo_v2_5</option><option value="eleven_v3">eleven_v3</option></select></div>
+                            <div class="uie-rpg-field"><label>Voice ID</label><input id="cfg-audio-eleven-voice-id" placeholder="ElevenLabs voice_id"></div>
+                            <div class="uie-rpg-field"><label>Stability</label><input id="cfg-audio-eleven-stability" type="number" min="0" max="1" step="0.01" placeholder="0.5"></div>
+                            <div class="uie-rpg-field"><label>Similarity Boost</label><input id="cfg-audio-eleven-similarity" type="number" min="0" max="1" step="0.01" placeholder="0.75"></div>
+                            <div class="uie-rpg-field"><label>Style</label><input id="cfg-audio-eleven-style" type="number" min="0" max="1" step="0.01" placeholder="0"></div>
+                            <label class="uie-check-row"><input type="checkbox" id="cfg-audio-eleven-speaker-boost"> Speaker boost</label>
+                        </div>
+                    </div>
+
+                    <div class="cfg-tts-panel" data-tts-panel="alltalk" style="margin-top:12px; border:1px solid rgba(255,255,255,0.12); border-radius:8px; padding:12px;">
+                        <div class="uie-rpg-grid-2">
+                            <div class="uie-rpg-field" style="grid-column:1/-1;"><label>AllTalk Server URL</label><input id="cfg-audio-local-url" placeholder="http://127.0.0.1:7851"></div>
+                            <div class="uie-rpg-field"><label>Engine / Model</label><input id="cfg-audio-local-model" placeholder="XTTSv2, F5-TTS, Piper..."></div>
+                            <div class="uie-rpg-field"><label>Language</label><input id="cfg-audio-local-language" placeholder="en"></div>
+                            <div class="uie-rpg-field"><label>Voice</label><input id="cfg-audio-local-voice" placeholder="Voice name or sample file"></div>
+                            <div class="uie-rpg-field"><label>Reference Audio File</label><input id="cfg-audio-local-reference" type="file" accept="audio/*"></div>
+                            <label class="uie-check-row"><input type="checkbox" id="cfg-audio-local-streaming"> Streaming</label>
+                            <label class="uie-check-row"><input type="checkbox" id="cfg-audio-local-deepspeed"> DeepSpeed</label>
+                        </div>
+                    </div>
+
+                    <div class="cfg-tts-panel" data-tts-panel="azure" style="margin-top:12px; border:1px solid rgba(255,255,255,0.12); border-radius:8px; padding:12px;">
+                        <div class="uie-rpg-grid-2">
+                            <div class="uie-rpg-field"><label>Azure Endpoint</label><input id="cfg-audio-azure-endpoint" placeholder="https://REGION.tts.speech.microsoft.com"></div>
+                            <div class="uie-rpg-field"><label>Azure Region</label><input id="cfg-audio-azure-region" placeholder="eastus"></div>
+                            <div class="uie-rpg-field"><label>Voice Name</label><input id="cfg-audio-azure-voice" placeholder="en-US-JennyNeural"></div>
+                            <div class="uie-rpg-field"><label>Language / Locale</label><input id="cfg-audio-azure-language" placeholder="en-US"></div>
+                            <div class="uie-rpg-field"><label>Style / Role</label><input id="cfg-audio-azure-style" placeholder="cheerful"></div>
+                            <div class="uie-rpg-field"><label>Output Format</label><input id="cfg-audio-azure-format" placeholder="audio-24khz-48kbitrate-mono-mp3"></div>
+                        </div>
+                    </div>
+
+                    <div class="cfg-tts-panel" data-tts-panel="google" style="margin-top:12px; border:1px solid rgba(255,255,255,0.12); border-radius:8px; padding:12px;">
+                        <div class="uie-rpg-grid-2">
+                            <div class="uie-rpg-field" style="grid-column:1/-1;"><label>Credentials JSON / API Key</label><input id="cfg-audio-google-credentials" type="password" placeholder="Service account JSON, path, or API key"></div>
+                            <div class="uie-rpg-field"><label>Project ID</label><input id="cfg-audio-google-project" placeholder="Google Cloud project ID"></div>
+                            <div class="uie-rpg-field"><label>Google Language Code</label><input id="cfg-audio-google-language" placeholder="en-US"></div>
+                            <div class="uie-rpg-field"><label>Voice Name</label><input id="cfg-audio-google-voice" placeholder="en-US-Neural2-F"></div>
+                            <div class="uie-rpg-field"><label>Audio Encoding</label><select id="cfg-audio-google-encoding" class="modal-select"><option value="MP3">MP3</option><option value="LINEAR16">LINEAR16</option><option value="OGG_OPUS">OGG_OPUS</option></select></div>
+                            <div class="uie-rpg-field"><label>Speaking Rate</label><input id="cfg-audio-google-rate" type="number" min="0.25" max="4" step="0.05" placeholder="1.0"></div>
+                            <div class="uie-rpg-field"><label>Pitch</label><input id="cfg-audio-google-pitch" type="number" min="-20" max="20" step="0.5" placeholder="0"></div>
+                        </div>
+                    </div>
+
+                    <div class="cfg-tts-panel" data-tts-panel="edge_rvc" style="margin-top:12px; border:1px solid rgba(255,255,255,0.12); border-radius:8px; padding:12px;">
+                        <div class="uie-rpg-grid-2">
+                            <div class="uie-rpg-field"><label>Edge Voice</label><input id="cfg-audio-edge-voice" placeholder="en-US-AriaNeural"></div>
+                            <div class="uie-rpg-field"><label>Rate</label><input id="cfg-audio-speed" placeholder="+0%"></div>
+                            <div class="uie-rpg-field"><label>Pitch</label><input id="cfg-audio-pitch" placeholder="+0Hz"></div>
+                            <div class="uie-rpg-field"><label>Volume</label><input id="cfg-audio-edge-volume" placeholder="+0%"></div>
+                            <div class="uie-rpg-field" style="grid-column:1/-1;"><label>RVC Server URL</label><input id="cfg-audio-rvc-url" placeholder="Optional local RVC endpoint"></div>
+                            <div class="uie-rpg-field"><label>RVC Model</label><input id="cfg-audio-rvc-model" placeholder="Model name"></div>
+                            <div class="uie-rpg-field"><label>RVC Index Rate</label><input id="cfg-audio-rvc-index-rate" type="number" min="0" max="1" step="0.05" placeholder="0.3"></div>
+                        </div>
+                    </div>
+
+                    <div class="cfg-tts-panel" data-tts-panel="custom" style="margin-top:12px; border:1px solid rgba(255,255,255,0.12); border-radius:8px; padding:12px;">
+                        <div class="uie-rpg-grid-2">
+                            <div class="uie-rpg-field"><label>Endpoint Shape</label><select id="cfg-audio-custom-shape" class="modal-select"><option value="openai_speech">OpenAI /audio/speech compatible</option><option value="custom_json">Custom JSON</option><option value="websocket">WebSocket stream</option></select></div>
+                            <div class="uie-rpg-field"><label>Auth Header</label><input id="cfg-audio-custom-auth-header" placeholder="Authorization"></div>
+                            <div class="uie-rpg-field" style="grid-column:1/-1;"><label>Custom Headers (JSON)</label><textarea id="cfg-audio-custom-headers" placeholder='{"x-api-key":"..."}'></textarea></div>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-top:10px;">
+                        <label class="uie-check-row">
+                            <input type="checkbox" id="cfg-audio-autoplay">
+                            <span>Autoplay voice responses on completion</span>
+                        </label>
+                    </div>
+
+                    <div style="margin-top:14px; border-top:1px solid rgba(255,255,255,0.12); padding-top:12px;">
+                        <div style="font-weight:800; margin-bottom:8px;"><i class="fa-solid fa-bookmark"></i> Voice Library & Dialogue Lab</div>
+                        <div id="uie-voice-library" aria-label="Voice Library"></div>
+                        <div class="uie-rpg-grid-2">
+                            <div class="uie-rpg-field"><label>Saved voice</label><select id="cfg-audio-saved-voice" class="modal-select"><option value="">No saved voice selected</option></select></div>
+                            <div class="uie-rpg-field"><label>Save current voice as</label><input id="cfg-audio-save-name" placeholder="e.g. Rowan - Night Shift"></div>
+                            <div class="uie-rpg-field"><label>Dialogue preset</label><select id="cfg-audio-dialogue-preset" class="modal-select"><option value="first_meeting">First meeting</option><option value="quiet_confession">Quiet confession</option><option value="urgent_warning">Urgent warning</option><option value="tavern_banter">Tavern banter</option><option value="distant_comms">Distant comms</option><option value="narrator">Cinematic narrator</option></select></div>
+                            <div class="uie-rpg-field"><label>Scene sound</label><select id="cfg-audio-immersion-room" class="modal-select"><option value="">Dry / intimate</option><option value="small">Small room</option><option value="large">Large hall</option></select></div>
+                            <div class="uie-rpg-field"><label>Character distance</label><input id="cfg-audio-immersion-distance" type="range" min="0" max="1" step="0.05" value="0"></div>
+                            <div class="uie-rpg-field"><label>Stereo position</label><input id="cfg-audio-immersion-pan" type="range" min="-1" max="1" step="0.05" value="0"></div>
+                            <div class="uie-rpg-field" style="grid-column:1/-1;"><label>Preview line</label><textarea id="cfg-audio-preview-text" rows="3">I didn’t expect to find you here. Stay close—the night has teeth.</textarea></div>
+                        </div>
+                        <div class="uie-row-actions" style="margin-top:10px; gap:8px; flex-wrap:wrap;">
+                            <button type="button" id="cfg-audio-generate-preview" class="uie-rpg-btn uie-rpg-btn-primary"><i class="fa-solid fa-play"></i> Preview voice</button>
+                            <button type="button" id="cfg-audio-save-voice" class="uie-rpg-btn uie-rpg-btn-success"><i class="fa-solid fa-floppy-disk"></i> Save voice</button>
+                            <button type="button" id="cfg-audio-delete-voice" class="uie-rpg-btn uie-rpg-btn-danger"><i class="fa-solid fa-trash"></i> Delete saved voice</button>
+                        </div>
+                        <div id="cfg-audio-gen-progress" class="uie-voice-progress"><div class="uie-voice-progress-track"><div id="cfg-audio-gen-progress-fill" class="uie-voice-progress-fill"></div></div><div id="cfg-audio-gen-progress-label" class="uie-voice-progress-label"></div></div>
+                    </div>
+
+                    <input type="hidden" id="cfg-audio-voice-map" value="">
+                </div>
+            </div>
+
+            <!-- Tab 5: Prompts & Filters -->
+            <div id="uie-sw-prompts" class="uie-settings-section" style="display:none;">
+                <div class="uie-rpg-card">
+                    <div class="uie-rpg-card-title"><i class="fa-solid fa-shield-halved"></i> AI Prompt Profiles</div>
+                    <p style="font-size:12px; opacity:0.85; margin:0 0 12px; line-height:1.4;">Manage global guidelines and instruction sets sent alongside story prompts.</p>
+                    
+                    <input type="file" id="cfg-st-prompts-file" accept="application/json,.json" style="display:none;">
+                    <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px;">
+                        <button type="button" id="pp-st-import-merge" class="uie-rpg-btn uie-rpg-btn-info"><i class="fa-solid fa-file-import"></i> Import merge</button>
+                        <button type="button" id="pp-st-import-replace" class="uie-rpg-btn uie-rpg-btn-danger"><i class="fa-solid fa-file-excel"></i> Import replace</button>
+                        <button type="button" id="pp-st-export" class="uie-rpg-btn"><i class="fa-solid fa-file-export"></i> Export profiles JSON</button>
+                    </div>
+
+                    <div class="uie-rpg-grid-2">
+                        <div class="uie-rpg-field"><label>Profile Name</label><input id="pp-name" placeholder="Story Guardrails"></div>
+                        <div class="uie-rpg-field">
+                            <label>Profile Type</label>
+                            <select id="pp-type" class="modal-select">
+                                <option value="story">Story</option>
+                                <option value="ai">AI Core</option>
+                                <option value="forbidden">Forbidden Override</option>
+                            </select>
+                        </div>
+                        <div class="uie-rpg-field" style="grid-column: 1 / -1;"><label>Instructions / Content</label><textarea id="pp-content" style="min-height:90px;" placeholder="Add prompt contents here..."></textarea></div>
+                    </div>
+                    
+                    <div style="display:flex; justify-content:flex-end; margin-top:10px;">
+                        <button type="button" id="pp-add" class="uie-rpg-btn uie-rpg-btn-primary">+ Add / Save Prompt Profile</button>
+                    </div>
+                    
+                    <div style="margin-top:14px;">
+                        <label style="display:block; font-size:12px; color:#b8c0cc; margin-bottom:6px; font-weight:800;">Active Profiles</label>
+                        <div id="pp-list" style="max-height:220px; overflow-y:auto; border:1px solid rgba(255,255,255,0.12); border-radius:8px; padding:10px; background:rgba(0,0,0,0.15);"></div>
+                    </div>
+                </div>
+
+                <div class="uie-rpg-card">
+                    <div class="uie-rpg-card-title"><i class="fa-solid fa-ban"></i> Content Filters</div>
+                    <p style="font-size:12px; opacity:0.85; margin:0 0 10px;">Define lists of banned words and names to filter out of prompts and generations.</p>
+                    
+                    <div class="uie-rpg-field">
+                        <label>Banned Words (one per line)</label>
+                        <textarea id="cfg-banned-words" placeholder="List forbidden words here..."></textarea>
+                    </div>
+                    <div class="uie-rpg-field" style="margin-top:10px;">
+                        <label>Banned Names / Speakers (one per line)</label>
+                        <textarea id="cfg-banned-names" placeholder="List names here..."></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab 5: RPG & Economy -->
+            <div id="uie-sw-rpg" class="uie-settings-section" style="display:none;">
+                <!-- Player RPG Sheet -->
+                <div class="uie-rpg-card">
+                    <div class="uie-rpg-card-title"><i class="fa-solid fa-user-shield"></i> Player RPG Sheet</div>
+                    <div class="uie-rpg-grid-2">
+                        <div class="uie-rpg-field"><label>Player Name</label><input type="text" id="uie-rpg-name" placeholder="Name"></div>
+                        <div class="uie-rpg-field"><label>Player Class / Role</label><input type="text" id="uie-rpg-class" placeholder="Class"></div>
+                        <div class="uie-rpg-field"><label>Level</label><input type="number" id="uie-rpg-level" min="1"></div>
+                        <div class="uie-rpg-field"><label>Age</label><input type="number" id="uie-rpg-age" min="0" max="999"></div>
+                        <div class="uie-rpg-field">
+                            <label>Age Group</label>
+                            <select id="uie-rpg-age-group">
+                                <option value="">Auto / Unset</option>
+                                <option value="child">Child</option>
+                                <option value="teen">Teen</option>
+                                <option value="young_adult">Young Adult</option>
+                                <option value="adult">Adult</option>
+                                <option value="elder">Elder</option>
+                            </select>
+                        </div>
+                        <div class="uie-rpg-field" style="justify-content:center; padding-top:12px;">
+                            <label class="uie-check-row">
+                                <input type="checkbox" id="uie-rpg-sync-persona">
+                                <span>Sync name to main Persona</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Classes -->
+                <div class="uie-rpg-card">
+                    <div class="uie-rpg-card-title"><i class="fa-solid fa-address-book"></i> Saved Classes / Archetypes</div>
+                    <div class="uie-rpg-field">
+                        <label>Saved Class</label>
+                        <select id="uie-class-saved"><option value="">-</option></select>
+                    </div>
+                    <div class="uie-row-actions" style="margin-top:12px; gap:8px;">
+                        <button id="uie-class-apply" class="uie-rpg-btn uie-rpg-btn-success">Apply Class</button>
+                        <button id="uie-class-save" class="uie-rpg-btn uie-rpg-btn-primary">Save Current</button>
+                        <button id="uie-class-delete" class="uie-rpg-btn uie-rpg-btn-danger">Delete</button>
+                    </div>
+                </div>
+
+                <!-- RPG Rules / Difficulty -->
+                <div class="uie-rpg-card">
+                    <div class="uie-rpg-card-title"><i class="fa-solid fa-gamepad"></i> RPG Mode Rules</div>
+                    <div class="uie-rpg-grid-2">
+                        <div class="uie-rpg-field">
+                            <label>Difficulty</label>
+                            <select id="uie-rpg-mode">
+                                <option value="pipsqueak">Pipsqueak</option>
+                                <option value="storyteller">Storyteller</option>
+                                <option value="adventurer">Adventurer</option>
+                                <option value="master">Master</option>
+                                <option value="grandmaster">Grandmaster</option>
+                            </select>
+                        </div>
+                        <div class="uie-switch-label" style="padding-top:14px;">
+                            <span style="font-weight:900; color:#ffb4a9;"><i class="fa-solid fa-skull"></i> Permadeath mode</span>
+                            <label class="uie-switch">
+                                <input type="checkbox" id="uie-check-permadeath">
+                                <span class="uie-slider"></span>
+                            </label>
+                        </div>
+                        <div class="uie-switch-label" style="padding-top:14px;">
+                            <span style="font-weight:900; color:#818cf8;"><i class="fa-solid fa-coins"></i> Enable Tax System</span>
+                            <label class="uie-switch">
+                                <input type="checkbox" id="uie-rpg-tax-system">
+                                <span class="uie-slider"></span>
+                            </label>
+                        </div>
+                        <div class="uie-switch-label" style="padding-top:14px;">
+                            <span style="font-weight:900; color:#fb7185;"><i class="fa-solid fa-wand-magic-sparkles"></i> Fantasy RPG Tax</span>
+                            <label class="uie-switch">
+                                <input type="checkbox" id="uie-rpg-fantasy-tax">
+                                <span class="uie-slider"></span>
+                            </label>
+                        </div>
+                        <div class="uie-switch-label" style="padding-top:14px;">
+                            <span style="font-weight:900; color:#38bdf8;"><i class="fa-solid fa-film"></i> Enable Cutscenes</span>
+                            <label class="uie-switch">
+                                <input type="checkbox" id="uie-rpg-cutscenes-enabled" checked>
+                                <span class="uie-slider"></span>
+                            </label>
+                        </div>
+                        <div class="uie-switch-label" style="padding-top:14px;">
+                            <span style="font-weight:900; color:#a78bfa;"><i class="fa-solid fa-robot"></i> AI-Directed Cutscenes</span>
+                            <label class="uie-switch">
+                                <input type="checkbox" id="uie-rpg-cutscenes-ai" checked>
+                                <span class="uie-slider"></span>
+                            </label>
+                        </div>
+                        <div class="uie-switch-label" style="padding-top:14px;">
+                            <span style="font-weight:900; color:#10b981;"><i class="fa-solid fa-wand-magic-sparkles"></i> Auto Battle</span>
+                            <label class="uie-switch">
+                                <input type="checkbox" id="uie-rpg-auto-battle">
+                                <span class="uie-slider"></span>
+                            </label>
+                        </div>
+                        <label class="uie-check-row" style="grid-column:1/-1;">
+                            <input type="checkbox" id="uie-rpg-readable-html-enabled" checked>
+                            <span>Ask before building readable HTML popups for books, letters, scrolls, boards, and documents</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Economy & Currency -->
+                <div class="uie-rpg-card">
+                    <div class="uie-rpg-card-title"><i class="fa-solid fa-coins"></i> Economy & Currency</div>
+                    <div class="uie-rpg-grid-2">
+                        <div class="uie-rpg-field">
+                            <label>Currency Preset</label>
+                            <select id="uie-set-currency-code">
+                                <option value="CUSTOM">Custom</option>
+                                <option value="USD">US Dollar ($)</option>
+                                <option value="EUR">Euro (€)</option>
+                                <option value="GBP">Pound (£)</option>
+                                <option value="JPY">Yen (¥)</option>
+                                <option value="GOLD">Gold (G)</option>
+                                <option value="CREDIT">Credits</option>
+                            </select>
+                        </div>
+                        <div class="uie-rpg-field"><label>Currency Name</label><input type="text" id="uie-set-currency-name" placeholder="Gold"></div>
+                        <div class="uie-rpg-field"><label>Currency Symbol</label><input type="text" id="uie-set-currency-sym" placeholder="G"></div>
+                    </div>
+                    <div class="uie-row-actions" style="margin-top:12px;">
+                        <button id="uie-currency-save-btn" class="uie-rpg-btn uie-rpg-btn-primary">Save Economy</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab 6: Edit UI -->
+            <div id="uie-sw-ui-edit" class="uie-settings-section" style="display:none;">
+                <div class="uie-rpg-card">
+                    <div class="uie-rpg-card-title"><i class="fa-solid fa-palette"></i> UI CSS & Font</div>
+                    <div class="uie-rpg-grid-2">
+                        <div class="uie-rpg-field" style="grid-column:1/-1;">
+                            <label>UI Font Family</label>
+                            <select id="cfg-ui-font-family">
+                                <option value="">Default interface stack</option>
+                                <option value="Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">Inter / System UI</option>
+                                <option value="'Outfit', Inter, system-ui, sans-serif">Outfit</option>
+                                <option value="'Segoe UI', Tahoma, Geneva, Verdana, sans-serif">Segoe UI</option>
+                                <option value="Arial, Helvetica, sans-serif">Arial</option>
+                                <option value="Georgia, 'Times New Roman', serif">Georgia</option>
+                                <option value="'Cinzel', Georgia, serif">Cinzel / Fantasy</option>
+                                <option value="'Courier New', Courier, monospace">Courier New</option>
+                                <option value="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace">System Monospace</option>
+                            </select>
+                        </div>
+                        <div class="uie-rpg-field"><label>Main UI Look</label><select id="cfg-ui-main-look"></select></div>
+                        <div class="uie-rpg-field"><label>Hamburger Menu Look</label><select id="cfg-ui-hamburger-look"></select></div>
+                        <div class="uie-rpg-field" style="grid-column:1/-1;"><label>All Modals Look</label><select id="cfg-ui-modal-look-all"></select></div>
+                        <div class="uie-rpg-field"><label>Settings Modal Look</label><select id="cfg-ui-modal-look-settings"></select></div>
+                        <div class="uie-rpg-field"><label>Party Modal Look</label><select id="cfg-ui-modal-look-party"></select></div>
+                        <div class="uie-rpg-field"><label>Inventory Modal Look</label><select id="cfg-ui-modal-look-inventory"></select></div>
+                        <div class="uie-rpg-field"><label>Social Modal Look</label><select id="cfg-ui-modal-look-social"></select></div>
+                        <div class="uie-rpg-field"><label>Phone Modal Look</label><select id="cfg-ui-modal-look-phone"></select></div>
+                        <div class="uie-rpg-field"><label>Map Modal Look</label><select id="cfg-ui-modal-look-map"></select></div>
+                        <div class="uie-rpg-field"><label>Battle Modal Look</label><select id="cfg-ui-modal-look-battle"></select></div>
+                        <div class="uie-rpg-field"><label>Character Modal Look</label><select id="cfg-ui-modal-look-character"></select></div>
+                        <div class="uie-rpg-field"><label>UI Text Color</label><input id="cfg-ui-text-color" type="color" value="#e5e7eb"></div>
+                        <div class="uie-rpg-field"><label>UI Panel Color</label><input id="cfg-ui-panel-color" type="color" value="#050a13"></div>
+                        <div class="uie-rpg-field"><label>Input Background Color</label><input id="cfg-ui-input-color" type="color" value="#050a13"></div>
+                        <div class="uie-rpg-field"><label>Accent Color</label><input id="cfg-ui-accent-color" type="color" value="#cc7a2e"></div>
+                        <div class="uie-rpg-field" style="grid-column:1/-1;"><label>Global UI Custom CSS</label><textarea id="cfg-ui-custom-css" placeholder="#uie-settings-window { }&#10;.uie-dialogue-card { }"></textarea></div>
+                    </div>
+                </div>
+
+                <div class="uie-rpg-card">
+                    <div class="uie-rpg-card-title"><i class="fa-solid fa-sliders"></i> UI Sizing & Scale Controls</div>
+                    <p style="font-size:12px; opacity:0.85; margin:0 0 12px; line-height:1.4;">Adjust the scale of specific interface elements dynamically. Changes apply immediately and are saved to your profile.</p>
+                    
+                    <div class="uie-rpg-field" style="margin-bottom:15px;">
+                        <label>HUD / Sidebar Scale: <span id="cfg-scale-sidebar-lbl">100</span>%</label>
+                        <input id="cfg-scale-sidebar" type="range" min="50" max="200" step="5" value="100" style="padding:0; width:100%; accent-color:#cc7a2e;">
+                    </div>
+                    
+                    <div class="uie-rpg-field" style="margin-bottom:15px;">
+                        <label>Hamburger Menu Scale: <span id="cfg-scale-menu-lbl">100</span>%</label>
+                        <input id="cfg-scale-menu" type="range" min="50" max="200" step="5" value="100" style="padding:0; width:100%; accent-color:#cc7a2e;">
+                    </div>
+
+                    <div class="uie-rpg-field" style="margin-bottom:15px;">
+                        <label>Chat / Dialogue Boxes Scale: <span id="cfg-scale-chatbox-lbl">100</span>%</label>
+                        <input id="cfg-scale-chatbox" type="range" min="50" max="200" step="5" value="100" style="padding:0; width:100%; accent-color:#cc7a2e;">
+                    </div>
+
+                    <div class="uie-rpg-field" style="margin-bottom:15px;">
+                        <label>UI Buttons Scale: <span id="cfg-scale-uibutton-lbl">100</span>%</label>
+                        <input id="cfg-scale-uibutton" type="range" min="50" max="200" step="5" value="100" style="padding:0; width:100%; accent-color:#cc7a2e;">
+                    </div>
+
+                    <div class="uie-rpg-field" style="margin-bottom:15px;">
+                        <label>Toast Notifications Scale: <span id="cfg-scale-toast-lbl">100</span>%</label>
+                        <input id="cfg-scale-toast" type="range" min="50" max="200" step="5" value="100" style="padding:0; width:100%; accent-color:#cc7a2e;">
+                    </div>
+
+                    <div style="margin-top:20px;">
+                        <button type="button" id="cfg-ui-scale-reset" class="uie-rpg-btn">Reset All UI Scales</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<input type="file" id="uie-bg-file" accept="image/*" style="display:none;">
+<input type="file" id="uie-launcher-file" accept="image/*" style="display:none;">

@@ -1,0 +1,182 @@
+<style>
+  #uie-shop-window{
+    position:fixed;
+    top:50%;
+    left:50%;
+    transform:translate(-50%,-50%);
+    width:min(980px, 95vw);
+    height:min(760px, 90vh);
+    z-index:2147483646;
+    display:flex;
+    flex-direction:column;
+    border:1px solid rgba(234,195,113,0.35);
+    border-radius:16px;
+    background:
+      radial-gradient(1200px 400px at 10% -40%, rgba(234,195,113,0.15), transparent),
+      radial-gradient(900px 300px at 100% 120%, rgba(111,170,255,0.10), transparent),
+      rgba(8,12,18,0.97);
+    box-shadow: 0 24px 80px rgba(0,0,0,0.62), inset 0 0 0 1px rgba(255,255,255,0.04);
+    overflow:hidden;
+  }
+  #uie-shop-window::before,
+  #uie-shop-window::after{ content:none !important; }
+  #uie-shop-window .uie-header{
+    display:flex !important;
+    align-items:center !important;
+    justify-content:space-between !important;
+    gap:12px;
+    padding:12px 14px !important;
+    border-bottom:1px solid rgba(234,195,113,0.28);
+    background:linear-gradient(90deg, rgba(20,28,40,0.96), rgba(12,16,24,0.96));
+    flex-shrink:0;
+  }
+  #uie-shop-window .uie-info{ display:flex; flex-direction:column; gap:2px; }
+  #uie-shop-window .uie-header h2{
+    margin:0;
+    color:#f2cf8c;
+    letter-spacing:0.5px;
+    font-size:1.1rem;
+    font-family: Georgia, "Times New Roman", serif;
+  }
+  #uie-shop-window .uie-content{
+    position:relative;
+    z-index:1;
+    flex:1;
+    min-height:0;
+    overflow:auto;
+    padding:12px;
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+  }
+  #uie-shop-toolbar{
+    display:grid;
+    grid-template-columns: 1fr auto auto;
+    gap:8px;
+  }
+  #uie-shop-keywords{
+    width:100%;
+    box-sizing:border-box;
+    border-radius:12px;
+    border:1px solid rgba(255,255,255,0.18);
+    background:rgba(255,255,255,0.06);
+    color:#fff;
+    padding:10px 12px;
+  }
+  #uie-shop-generate, #uie-shop-refresh{
+    height:40px;
+    border-radius:12px;
+    border:1px solid rgba(255,255,255,0.18);
+    color:#fff;
+    cursor:pointer;
+  }
+  #uie-shop-generate{
+    background:linear-gradient(180deg, #4f7dff, #3457ba);
+    padding:0 14px;
+    font-weight:800;
+  }
+  #uie-shop-refresh{
+    width:42px;
+    background:rgba(0,0,0,0.28);
+  }
+  #uie-shop-items{
+    flex:1;
+    overflow:auto;
+    display:grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap:10px;
+    align-content:start;
+  }
+  .uie-shop-item{
+    display:flex;
+    gap:10px;
+    align-items:center;
+    border-radius:14px;
+    border:1px solid rgba(255,255,255,0.14);
+    background:linear-gradient(180deg, rgba(255,255,255,0.05), rgba(0,0,0,0.16));
+    padding:10px;
+  }
+  .uie-shop-icon{
+    width:44px;
+    height:44px;
+    border-radius:12px;
+    border:1px solid rgba(234,195,113,0.34);
+    background:rgba(0,0,0,0.34);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    color:#f2cf8c;
+    font-size:20px;
+  }
+  .uie-shop-name{ font-weight:800; color:#fff; }
+  .uie-shop-desc{ opacity:0.78; font-size:12px; }
+  .uie-shop-buy{
+    margin-top:6px;
+    height:34px;
+    padding:0 12px;
+    border-radius:10px;
+    border:none;
+    font-weight:800;
+    cursor:pointer;
+  }
+  @media not all {
+    #uie-shop-window{
+      width:96vw;
+      height:90vh;
+      border-radius:12px;
+    }
+    #uie-shop-toolbar{
+      grid-template-columns: 1fr;
+    }
+    #uie-shop-items{
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+<div id="uie-shop-window" class="uie-window" style="display:none;">
+  <div class="uie-header">
+    <div class="uie-info">
+      <h2>RPG Merchant</h2>
+      <div style="font-size:12px; opacity:0.78;">Context-generated stock from your scene.</div>
+    </div>
+    <div style="margin-left:auto; display:flex; align-items:center; gap:10px;">
+      <div id="uie-shop-balance" style="font-weight:900; color:#cba35c;">0 G</div>
+      <i class="fa-solid fa-circle-question" onclick="UIE_openGuide('guide-shop')" title="Help / Guide" style="cursor:pointer; color:#cba35c; margin-right:6px;"></i>
+      <i class="fa-solid fa-xmark uie-close-btn" id="uie-shop-close"></i>
+    </div>
+  </div>
+
+  <div class="uie-content">
+    <div id="uie-shop-toolbar">
+      <input id="uie-shop-keywords" type="text" placeholder="Keywords: potion, grocery, boutique, underworld gear...">
+      <button id="uie-shop-generate" title="Generate shop inventory"><i class="fa-solid fa-image"></i> Generate</button>
+      <button id="uie-shop-refresh" title="Refresh inventory"><i class="fa-solid fa-rotate-right"></i></button>
+    </div>
+
+    <div id="uie-shop-items">
+      <div style="opacity:0.75; padding:14px; border:1px dashed rgba(255,255,255,0.18); border-radius:14px; text-align:center; color:#888;">
+        Generate a catalog to begin.
+      </div>
+    </div>
+  </div>
+
+  <template id="uie-shop-item-template">
+    <div class="uie-shop-item">
+      <div class="uie-shop-icon"></div>
+      <div style="flex:1; min-width:0;">
+        <div class="uie-shop-name"></div>
+        <div class="uie-shop-desc"></div>
+      </div>
+      <div style="text-align:right;">
+        <div class="uie-shop-price" style="font-weight:900; color:#cba35c;"></div>
+        <button class="uie-shop-buy">BUY</button>
+      </div>
+    </div>
+  </template>
+
+  <template id="uie-shop-empty-template">
+    <div style="opacity:0.75; padding:14px; border:1px dashed rgba(255,255,255,0.18); border-radius:14px; text-align:center; color:#888;">
+      Generate a catalog to begin.
+    </div>
+  </template>
+</div>

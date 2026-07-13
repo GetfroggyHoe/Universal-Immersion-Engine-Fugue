@@ -1,0 +1,125 @@
+<style>
+  #uie-mmo-chat-window {
+    position: fixed !important;
+    right: 22px !important;
+    bottom: 86px !important;
+    width: min(460px, calc(100vw - 24px)) !important;
+    height: min(560px, calc(100vh - 112px)) !important;
+    z-index: 2147483636 !important;
+    display: none;
+    flex-direction: column;
+    overflow: hidden;
+    color: #edf8ff;
+    background: linear-gradient(180deg, rgba(9, 14, 24, .96), rgba(5, 8, 14, .98));
+    border: 1px solid rgba(86, 190, 178, .36);
+    border-radius: 8px;
+    box-shadow: 0 24px 78px rgba(0,0,0,.62), inset 0 1px rgba(255,255,255,.06);
+    font-family: Inter, system-ui, sans-serif;
+  }
+  #uie-mmo-chat-window .mmo-head,
+  #uie-lfg-window .mmo-head,
+  #uie-trade-window .mmo-head {
+    min-height: 46px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    background: rgba(6, 10, 18, .82);
+    border-bottom: 1px solid rgba(255,255,255,.08);
+  }
+  .mmo-head-title { font-size: 12px; font-weight: 900; letter-spacing: .12em; text-transform: uppercase; color: #8ee3d2; }
+  .mmo-head-sub { margin-left: auto; color: rgba(237,248,255,.58); font-size: 11px; font-weight: 800; }
+  .mmo-icon-btn {
+    width: 32px;
+    height: 32px;
+    display: grid;
+    place-items: center;
+    border: 1px solid rgba(255,255,255,.1);
+    border-radius: 8px;
+    color: #d9f7f1;
+    background: rgba(255,255,255,.04);
+    cursor: pointer;
+  }
+  .mmo-icon-btn:hover { border-color: rgba(142,227,210,.48); background: rgba(142,227,210,.1); }
+  #uie-mmo-chat-list {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    background:
+      linear-gradient(180deg, rgba(255,255,255,.02), transparent),
+      radial-gradient(circle at 18% 0%, rgba(86,190,178,.12), transparent 34%);
+  }
+  .mmo-chat-line {
+    display: grid;
+    grid-template-columns: auto auto auto minmax(0,1fr);
+    gap: 6px;
+    align-items: baseline;
+    font-size: 12px;
+    line-height: 1.35;
+  }
+  .mmo-chat-time { color: rgba(237,248,255,.38); font-size: 10px; }
+  .mmo-chat-channel { font-weight: 900; color: #8ee3d2; }
+  .mmo-chat-name { color: #f4d58d; font-weight: 850; }
+  .mmo-chat-text { min-width: 0; overflow-wrap: anywhere; color: rgba(237,248,255,.88); }
+  .chan-trade .mmo-chat-channel { color: #f2b36d; }
+  .chan-lfg .mmo-chat-channel { color: #99d17b; }
+  .chan-local .mmo-chat-channel { color: #b7a7ff; }
+  #uie-mmo-chat-form {
+    display: grid;
+    grid-template-columns: minmax(0,1fr) 42px;
+    gap: 8px;
+    padding: 10px;
+    border-top: 1px solid rgba(255,255,255,.08);
+    background: rgba(6, 10, 18, .86);
+  }
+  #uie-mmo-chat-input {
+    min-width: 0;
+    height: 38px;
+    border-radius: 8px;
+    border: 1px solid rgba(255,255,255,.12);
+    background: rgba(0,0,0,.28);
+    color: #fff;
+    padding: 0 10px;
+    outline: none;
+  }
+  #uie-mmo-chat-input:focus { border-color: rgba(142,227,210,.6); }
+  .mmo-chat-options {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    border-top: 1px solid rgba(255,255,255,.06);
+    background: rgba(255,255,255,.025);
+    color: rgba(237,248,255,.7);
+    font-size: 11px;
+  }
+  .mmo-chat-options label { display: flex; align-items: center; gap: 6px; margin-left: auto; }
+  @media not all {
+    #uie-mmo-chat-window { right: 8px !important; bottom: 70px !important; height: min(520px, calc(100vh - 82px)) !important; }
+    .mmo-chat-line { grid-template-columns: auto auto minmax(0,1fr); }
+    .mmo-chat-time { display: none; }
+  }
+</style>
+
+<div id="uie-mmo-chat-window" class="uie-window" data-open-display="flex">
+  <div class="mmo-head">
+    <button type="button" class="mmo-icon-btn" id="uie-mmo-chat-pause" title="Pause live pulses"><i class="fa-solid fa-pause"></i></button>
+    <div class="mmo-head-title"><i class="fa-solid fa-comments"></i> Server Chat</div>
+    <div class="mmo-head-sub" id="uie-mmo-chat-status">Live pulse on</div>
+    <button type="button" class="mmo-icon-btn" id="uie-mmo-chat-pulse" title="Generate chat pulse"><i class="fa-solid fa-bolt"></i></button>
+    <button type="button" class="mmo-icon-btn" id="uie-mmo-chat-close" title="Close"><i class="fa-solid fa-xmark"></i></button>
+  </div>
+  <div id="uie-mmo-chat-list"></div>
+  <div class="mmo-chat-options">
+    <span>Global / Trade / LFG / Local</span>
+    <label><input type="checkbox" id="uie-mmo-chat-ai" checked> AI flavor</label>
+  </div>
+  <form id="uie-mmo-chat-form">
+    <input id="uie-mmo-chat-input" autocomplete="off" placeholder="Message the simulated server...">
+    <button type="submit" class="mmo-icon-btn" title="Send"><i class="fa-solid fa-paper-plane"></i></button>
+  </form>
+</div>

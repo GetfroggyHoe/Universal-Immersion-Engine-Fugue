@@ -1,0 +1,338 @@
+<style>
+  #uie-atmosphere-window {
+    top: 15vh;
+    left: 20vw;
+    width: min(460px, 90vw);
+    background: rgba(15, 20, 28, 0.94);
+    backdrop-filter: blur(4px) saturate(1.8);
+    position: fixed;
+    z-index: 2147483646;
+    pointer-events: auto;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid rgba(225, 193, 122, 0.25);
+    border-radius: 16px;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255,255,255,0.1);
+    color: #e2e8f0;
+    font-family: system-ui, -apple-system, sans-serif;
+  }
+  #uie-atmosphere-window .uie-header {
+    display: flex;
+    align-items: center;
+    padding: 14px 18px;
+    border-bottom: 1px solid rgba(203, 163, 92, 0.3);
+    background: linear-gradient(90deg, #1b202b, #0e121a);
+    border-top-left-radius: 15px;
+    border-top-right-radius: 15px;
+  }
+  #uie-atmosphere-window .uie-header h2 {
+    margin: 0;
+    font-family: serif;
+    color: #cba35c;
+    font-size: 1.3em;
+    letter-spacing: 0.5px;
+  }
+  #uie-atmosphere-window .uie-close-btn {
+    cursor: pointer;
+    font-size: 1.2em;
+    color: #cba35c;
+    margin-left: auto;
+    transition: transform 0.2s, color 0.2s;
+  }
+  #uie-atmosphere-window .uie-close-btn:hover {
+    transform: scale(1.1);
+    color: #fff;
+  }
+  #uie-atmosphere-window .uie-section {
+    padding: 16px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  }
+  #uie-atmosphere-window .uie-section-title {
+    font-size: 0.85em;
+    font-weight: 800;
+    color: #cba35c;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: 12px;
+  }
+  
+  /* GRID / BUTTON STYLES */
+  .uie-tweaker-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+  .uie-tweaker-weather-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 6px;
+  }
+  .uie-tweaker-btn {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #cbd5e1;
+    padding: 10px 6px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.85em;
+    font-weight: 600;
+    text-align: center;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+  }
+  .uie-tweaker-btn i {
+    font-size: 1.2em;
+    color: rgba(255,255,255,0.4);
+    transition: color 0.2s;
+  }
+  .uie-tweaker-btn:hover {
+    background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(203, 163, 92, 0.4);
+    color: #fff;
+  }
+  .uie-tweaker-btn:hover i {
+    color: #cba35c;
+  }
+  .uie-tweaker-btn.active {
+    background: rgba(203, 163, 92, 0.15);
+    border-color: #cba35c;
+    color: #cba35c;
+    box-shadow: 0 0 10px rgba(203, 163, 92, 0.2);
+  }
+  .uie-tweaker-btn.active i {
+    color: #cba35c;
+  }
+  
+  /* CLOCK PANEL */
+  .uie-clock-controls {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+  }
+  .uie-atmo-form {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .uie-atmo-field {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    min-width: 0;
+  }
+  .uie-atmo-field label {
+    color: #94a3b8;
+    font-size: 0.72em;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .uie-atmo-field input,
+  .uie-atmo-field select {
+    min-width: 0;
+    height: 36px;
+    border-radius: 8px;
+    border: 1px solid rgba(255,255,255,0.12);
+    background: rgba(0,0,0,0.24);
+    color: #f8fafc;
+    padding: 0 10px;
+    outline: none;
+    box-sizing: border-box;
+  }
+  .uie-atmo-wide { grid-column: 1 / -1; }
+  .uie-clock-display {
+    background: rgba(0, 0, 0, 0.25);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 12px;
+    padding: 12px;
+    margin-bottom: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .uie-clock-time {
+    font-family: monospace;
+    font-size: 1.5em;
+    color: #cba35c;
+    font-weight: 700;
+  }
+  .uie-clock-date {
+    font-size: 0.9em;
+    color: #94a3b8;
+    font-weight: 600;
+  }
+  @media not all {
+    #uie-atmosphere-window {
+      top: 4vh;
+      left: 2vw;
+      width: 96vw;
+      max-width: 96vw;
+      height: auto;
+      max-height: 92vh;
+    }
+    #uie-atmosphere-window .uie-header {
+      padding: 10px 12px;
+    }
+    #uie-atmosphere-window .uie-header h2 {
+      font-size: 1.05em;
+    }
+    #uie-atmosphere-window .uie-section {
+      padding: 12px;
+    }
+    .uie-tweaker-weather-grid {
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 4px;
+    }
+    .uie-tweaker-btn {
+      min-width: 0;
+      padding: 8px 4px;
+      font-size: 0.74em;
+      line-height: 1.15;
+    }
+    .uie-atmo-form {
+      grid-template-columns: 1fr;
+    }
+    .uie-clock-controls {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 5px;
+    }
+  }
+</style>
+
+<div id="uie-atmosphere-window" class="uie-window" style="display:none;">
+    <div class="uie-header">
+        <h2>Atmosphere & Game Time</h2>
+        <i class="fa-solid fa-xmark uie-close-btn" id="uie-atmosphere-close"></i>
+    </div>
+    
+    <div class="uie-content" style="flex:1; overflow-y:auto;">
+        <!-- TIME OVERRIDE -->
+        <div class="uie-section">
+            <div class="uie-section-title">Scene Light</div>
+            <div class="uie-tweaker-grid">
+                <button class="uie-tweaker-btn" id="uie-tweaker-time-day" data-time="day">
+                    <i class="fa-regular fa-sun"></i>
+                    Day/Morning
+                </button>
+                <button class="uie-tweaker-btn" id="uie-tweaker-time-sunset" data-time="sunset">
+                    <i class="fa-solid fa-cloud-sun"></i>
+                    Sunset
+                </button>
+                <button class="uie-tweaker-btn" id="uie-tweaker-time-night" data-time="night">
+                    <i class="fa-regular fa-moon"></i>
+                    Night
+                </button>
+            </div>
+        </div>
+        
+        <!-- WEATHER OVERRIDE -->
+        <div class="uie-section">
+            <div class="uie-section-title">Weather & Atmosphere</div>
+            <div class="uie-tweaker-weather-grid">
+                <button class="uie-tweaker-btn" id="uie-tweaker-w-clear" data-weather="clear">
+                    <i class="fa-solid fa-circle"></i>
+                    Clear
+                </button>
+                <button class="uie-tweaker-btn" id="uie-tweaker-w-rain" data-weather="rain">
+                    <i class="fa-solid fa-cloud-showers-heavy"></i>
+                    Rain
+                </button>
+                <button class="uie-tweaker-btn" id="uie-tweaker-w-storm" data-weather="storm">
+                    <i class="fa-solid fa-cloud-bolt"></i>
+                    Storm
+                </button>
+                <button class="uie-tweaker-btn" id="uie-tweaker-w-snow" data-weather="snow">
+                    <i class="fa-regular fa-snowflake"></i>
+                    Snow
+                </button>
+                <button class="uie-tweaker-btn" id="uie-tweaker-w-fog" data-weather="fog">
+                    <i class="fa-solid fa-smog"></i>
+                    Fog
+                </button>
+            </div>
+            <div class="uie-atmo-form" style="margin-top:12px;">
+                <div class="uie-atmo-field">
+                    <label for="uie-atmo-weather-name">Custom Weather</label>
+                    <input id="uie-atmo-weather-name" type="text" placeholder="Meteor shower, pollen haze, neon drizzle">
+                </div>
+                <div class="uie-atmo-field">
+                    <label for="uie-atmo-weather-visual">Visual</label>
+                    <select id="uie-atmo-weather-visual">
+                        <option value="auto">Auto</option>
+                        <option value="clear">Clear</option>
+                        <option value="rain">Rain</option>
+                        <option value="storm">Storm</option>
+                        <option value="snow">Snow</option>
+                        <option value="fog">Fog</option>
+                    </select>
+                </div>
+                <button class="uie-tweaker-btn uie-atmo-wide" id="uie-atmo-apply-weather" type="button">
+                    <i class="fa-solid fa-cloud-sun-rain"></i>
+                    Apply Custom Weather
+                </button>
+            </div>
+        </div>
+        
+        <!-- WORLD CLOCK -->
+        <div class="uie-section" style="border-bottom:none;">
+            <div class="uie-section-title">Game Time</div>
+            <div class="uie-clock-display">
+                <div class="uie-clock-time" id="uie-tweaker-clock-time">08:00</div>
+                <div class="uie-clock-date" id="uie-tweaker-clock-date">Day 1 · Mon</div>
+            </div>
+            
+            <div class="uie-atmo-form" style="margin-bottom:12px;">
+                <div class="uie-atmo-field">
+                    <label for="uie-atmo-hour">Hour</label>
+                    <input id="uie-atmo-hour" type="number" min="0" max="23" value="8">
+                </div>
+                <div class="uie-atmo-field">
+                    <label for="uie-atmo-minute">Minute</label>
+                    <input id="uie-atmo-minute" type="number" min="0" max="59" value="0">
+                </div>
+                <div class="uie-atmo-field">
+                    <label for="uie-atmo-day">Absolute Day</label>
+                    <input id="uie-atmo-day" type="number" min="1" max="999999" value="1">
+                </div>
+                <div class="uie-atmo-field">
+                    <label for="uie-atmo-rp-date">Calendar Date</label>
+                    <input id="uie-atmo-rp-date" type="text" placeholder="YYYY-MM-DD or custom date">
+                </div>
+                <div class="uie-atmo-field">
+                    <label for="uie-atmo-speed">Real Minutes per Game Hour</label>
+                    <input id="uie-atmo-speed" type="number" min="1" max="1440" value="20">
+                </div>
+                <div class="uie-atmo-field">
+                    <label for="uie-atmo-dynamic">Dynamic Time</label>
+                    <select id="uie-atmo-dynamic">
+                        <option value="on">On</option>
+                        <option value="off">Off</option>
+                    </select>
+                </div>
+                <button class="uie-tweaker-btn uie-atmo-wide" id="uie-atmo-apply-clock" type="button">
+                    <i class="fa-solid fa-clock"></i>
+                    Apply Game Time
+                </button>
+            </div>
+
+            <div class="uie-section-title" style="font-size:0.75em; margin-bottom:8px;">Fast-Forward Time</div>
+            <div class="uie-clock-controls">
+                <button class="uie-tweaker-btn" data-advance="1">
+                    +1m
+                </button>
+                <button class="uie-tweaker-btn" data-advance="15">
+                    +15m
+                </button>
+                <button class="uie-tweaker-btn" data-advance="60">
+                    +1h
+                </button>
+                <button class="uie-tweaker-btn" data-advance="1440">
+                    +24h
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

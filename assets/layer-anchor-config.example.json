@@ -1,0 +1,61 @@
+{
+  "defaults": {
+    "source_anchor": {
+      "x": "image-center",
+      "y": "content-bottom"
+    },
+    "canvas_anchor": {
+      "x": "safe-center",
+      "y": "safe-bottom"
+    },
+    "scale": 1.0
+  },
+  "groups": [
+    {
+      "match": "hair",
+      "source_anchor": {
+        "x": "50%",
+        "y": "32%"
+      },
+      "canvas_anchor": {
+        "x": "50%",
+        "y": "31%"
+      }
+    },
+    {
+      "match": "head",
+      "source_anchor": {
+        "x": "50%",
+        "y": "36%"
+      },
+      "canvas_anchor": {
+        "x": "50%",
+        "y": "34%"
+      }
+    },
+    {
+      "match": "outfit",
+      "source_anchor": {
+        "x": "image-center",
+        "y": "content-bottom"
+      },
+      "canvas_anchor": {
+        "x": "safe-center",
+        "y": "safe-bottom"
+      }
+    }
+  ],
+  "files": {
+    "long-ponytail.png": {
+      "source_anchor": {
+        "x": "50%",
+        "y": "30%"
+      },
+      "canvas_anchor": {
+        "x": "50%",
+        "y": "31%"
+      },
+      "scale": 1.0
+    }
+  }
+}

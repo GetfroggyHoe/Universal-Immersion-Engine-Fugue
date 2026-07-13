@@ -1,0 +1,248 @@
+/* ===========================================================================
+ * Layered VN Animation System — parametric animation families
+ * ---------------------------------------------------------------------------
+ * A SMALL set of high-quality, reusable animation families driven entirely by
+ * CSS custom properties. JavaScript (the animation controllers) sets these
+ * variables per playback; the families themselves are never hardcoded per
+ * emotion, character, or event. This avoids hundreds of near-identical
+ * keyframes.
+ *
+ * Public custom properties (all optional, sensible defaults below):
+ *   --ua-x         motion distance X            (default 0px)
+ *   --ua-y         motion distance Y            (default 0px)
+ *   --ua-scale     target scale                 (default 1)
+ *   --ua-rot       rotation                     (default 0deg)
+ *   --ua-dur       duration                     (default .5s)
+ *   --ua-delay     delay                        (default 0s)
+ *   --ua-intensity 0..1 strength multiplier     (default 1)
+ *   --ua-ease      timing function              (default cubic-bezier(.22,.61,.36,1))
+ *   --ua-blur      blur amount                  (default 0px)
+ *   --ua-opacity   start opacity                (default 1)
+ *   --ua-overshoot overshoot distance           (default 0px)
+ *
+ * These classes are applied to LAYER elements (dialogue box, foreground,
+ * camera viewport, etc). The controllers remove the class on animationend so
+ * elements are never left continuously animating.
+ * =========================================================================== */
+
+:root {
+    --ua-x: 0px;
+    --ua-y: 0px;
+    --ua-scale: 1;
+    --ua-rot: 0deg;
+    --ua-dur: 0.5s;
+    --ua-delay: 0s;
+    --ua-intensity: 1;
+    --ua-ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+    --ua-blur: 0px;
+    --ua-opacity: 1;
+    --ua-overshoot: 0px;
+}
+
+/* Base playback contract shared by every family. Only transform / opacity /
+ * filter are animated (never layout-triggering properties). */
+[class*="ua-play-"] {
+    animation-duration: var(--ua-dur);
+    animation-delay: var(--ua-delay);
+    animation-timing-function: var(--ua-ease);
+    animation-fill-mode: both;
+    animation-iteration-count: 1;
+    will-change: transform, opacity, filter;
+}
+
+/* ---- Continuity / restrained families ---------------------------------- */
+
+/* neutral fade and settle */
+.ua-play-fade-settle { animation-name: ua-fade-settle; }
+@keyframes ua-fade-settle {
+    from { opacity: var(--ua-opacity); transform: translateY(calc(6px * var(--ua-intensity))); }
+    to   { opacity: 1; transform: none; }
+}
+
+/* minimal continuation transition — barely perceptible */
+.ua-play-continuation { animation-name: ua-continuation; }
+@keyframes ua-continuation {
+    from { opacity: 0.86; transform: translateY(calc(1.5px * var(--ua-intensity))); }
+    to   { opacity: 1; transform: none; }
+}
+
+/* firm controlled entrance — decisive, no bounce */
+.ua-play-firm-entrance { animation-name: ua-firm-entrance; }
+@keyframes ua-firm-entrance {
+    from { opacity: 0.2; transform: translateY(calc(10px * var(--ua-intensity))) scale(calc(1 - 0.02 * var(--ua-intensity))); }
+    60%  { opacity: 1; transform: translateY(0) scale(1); }
+    to   { opacity: 1; transform: none; }
+}
+
+/* rigid tense entrance — hard snap then a held micro-tension */
+.ua-play-rigid-entrance { animation-name: ua-rigid-entrance; animation-timing-function: steps(2, end); }
+@keyframes ua-rigid-entrance {
+    0%   { opacity: 0.35; transform: translateY(calc(4px * var(--ua-intensity))); }
+    35%  { opacity: 1; transform: translateY(calc(-1px * var(--ua-intensity))); }
+    45%  { transform: translateX(calc(1px * var(--ua-intensity))); }
+    55%  { transform: translateX(calc(-1px * var(--ua-intensity))); }
+    to   { transform: none; }
+}
+
+/* uneven nervous movement — irregular small jitters */
+.ua-play-nervous { animation-name: ua-nervous; }
+@keyframes ua-nervous {
+    0%   { transform: translate(0, 0); }
+    17%  { transform: translate(calc(-1.5px * var(--ua-intensity)), calc(0.5px * var(--ua-intensity))); }
+    31%  { transform: translate(calc(1px * var(--ua-intensity)), 0); }
+    46%  { transform: translate(calc(-0.5px * var(--ua-intensity)), calc(1px * var(--ua-intensity))); }
+    58%  { transform: translate(calc(1.5px * var(--ua-intensity)), 0); }
+    73%  { transform: translate(calc(-1px * var(--ua-intensity)), calc(-0.5px * var(--ua-intensity))); }
+    100% { transform: none; }
+}
+
+/* heavy downward settle — weight, resignation */
+.ua-play-heavy-settle { animation-name: ua-heavy-settle; animation-timing-function: cubic-bezier(0.3, 0, 0.2, 1); }
+@keyframes ua-heavy-settle {
+    from { opacity: 0.6; transform: translateY(calc(-8px * var(--ua-intensity))); }
+    70%  { transform: translateY(calc(2px * var(--ua-intensity))); }
+    to   { opacity: 1; transform: none; }
+}
+
+/* quick excited lift — light upward overshoot */
+.ua-play-excited-lift { animation-name: ua-excited-lift; animation-timing-function: cubic-bezier(0.2, 0.9, 0.25, 1.4); }
+@keyframes ua-excited-lift {
+    from { opacity: 0.5; transform: translateY(calc(8px * var(--ua-intensity))); }
+    55%  { transform: translateY(calc(-1 * var(--ua-overshoot, 4px) * var(--ua-intensity))); }
+    to   { opacity: 1; transform: none; }
+}
+
+/* smooth flirtatious glide — easy lateral drift + faint scale */
+.ua-play-flirt-glide { animation-name: ua-flirt-glide; animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1); }
+@keyframes ua-flirt-glide {
+    from { opacity: 0.55; transform: translateX(calc(-14px * var(--ua-intensity))) scale(0.99); }
+    to   { opacity: 1; transform: translateX(0) scale(1); }
+}
+
+/* exhausted delayed rise — slow, late, low energy */
+.ua-play-exhausted-rise { animation-name: ua-exhausted-rise; animation-timing-function: cubic-bezier(0.25, 0.1, 0.25, 1); }
+@keyframes ua-exhausted-rise {
+    0%   { opacity: 0.3; transform: translateY(calc(10px * var(--ua-intensity))); }
+    40%  { opacity: 0.4; transform: translateY(calc(9px * var(--ua-intensity))); }
+    to   { opacity: 1; transform: none; }
+}
+
+/* restrained fear tremor — tiny high-frequency shiver, contained */
+.ua-play-fear-tremor { animation-name: ua-fear-tremor; animation-timing-function: linear; }
+@keyframes ua-fear-tremor {
+    0%, 100% { transform: translate(0, 0); }
+    10% { transform: translate(calc(-0.6px * var(--ua-intensity)), calc(0.4px * var(--ua-intensity))); }
+    20% { transform: translate(calc(0.6px * var(--ua-intensity)), 0); }
+    30% { transform: translate(calc(-0.5px * var(--ua-intensity)), calc(-0.4px * var(--ua-intensity))); }
+    40% { transform: translate(calc(0.5px * var(--ua-intensity)), calc(0.3px * var(--ua-intensity))); }
+    50% { transform: translate(calc(-0.6px * var(--ua-intensity)), 0); }
+    60% { transform: translate(calc(0.5px * var(--ua-intensity)), calc(0.4px * var(--ua-intensity))); }
+    70% { transform: translate(calc(-0.4px * var(--ua-intensity)), 0); }
+    80% { transform: translate(calc(0.5px * var(--ua-intensity)), calc(-0.3px * var(--ua-intensity))); }
+    90% { transform: translate(calc(-0.4px * var(--ua-intensity)), 0); }
+}
+
+/* ---- Strong families (only played when justified) ---------------------- */
+
+/* explosive impact shake — physical force reaching the box */
+.ua-play-impact-shake { animation-name: ua-impact-shake; animation-timing-function: cubic-bezier(0.36, 0.07, 0.19, 0.97); }
+@keyframes ua-impact-shake {
+    0%   { transform: translate(0, 0) rotate(0); }
+    12%  { transform: translate(calc(-6px * var(--ua-intensity)), calc(3px * var(--ua-intensity))) rotate(calc(-0.4deg * var(--ua-intensity))); }
+    28%  { transform: translate(calc(5px * var(--ua-intensity)), calc(-3px * var(--ua-intensity))) rotate(calc(0.4deg * var(--ua-intensity))); }
+    44%  { transform: translate(calc(-4px * var(--ua-intensity)), calc(2px * var(--ua-intensity))) rotate(0); }
+    62%  { transform: translate(calc(3px * var(--ua-intensity)), calc(-1px * var(--ua-intensity))); }
+    80%  { transform: translate(calc(-1.5px * var(--ua-intensity)), 0); }
+    100% { transform: none; }
+}
+
+/* interruption cut-in — a fast slide-in that overrides the previous line */
+.ua-play-cut-in { animation-name: ua-cut-in; animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1); }
+@keyframes ua-cut-in {
+    from { opacity: 0; transform: translateX(calc(-26px * var(--ua-intensity))) skewX(calc(-3deg * var(--ua-intensity))); }
+    to   { opacity: 1; transform: none; }
+}
+
+/* abrupt speaker takeover — decisive replace with scale punch */
+.ua-play-takeover { animation-name: ua-takeover; animation-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1); }
+@keyframes ua-takeover {
+    from { opacity: 0; transform: translateY(calc(14px * var(--ua-intensity))) scale(1.04); }
+    55%  { opacity: 1; transform: translateY(0) scale(0.995); }
+    to   { transform: none; }
+}
+
+/* emotional escalation — a swelling pulse */
+.ua-play-escalate { animation-name: ua-escalate; animation-timing-function: cubic-bezier(0.34, 1.2, 0.5, 1); }
+@keyframes ua-escalate {
+    from { transform: scale(1); }
+    45%  { transform: scale(calc(1 + 0.03 * var(--ua-intensity))); }
+    to   { transform: scale(1); }
+}
+
+/* emotional de-escalation — a gentle release */
+.ua-play-deescalate { animation-name: ua-deescalate; animation-timing-function: cubic-bezier(0.25, 0.1, 0.25, 1); }
+@keyframes ua-deescalate {
+    from { transform: scale(calc(1 + 0.02 * var(--ua-intensity))); opacity: 0.9; }
+    to   { transform: scale(1); opacity: 1; }
+}
+
+/* ---- Environment / camera reaction helpers (transform-only) ------------ */
+/* Used by the EnvironmentAnimationController for camera jolts & prop reacts.
+ * WAAPI is used for dynamic directional values; these classes cover the
+ * simple, repeatable cases. */
+.ua-cam-jolt { animation: ua-cam-jolt var(--ua-dur, 0.4s) var(--ua-ease, ease-out) both; will-change: transform; }
+@keyframes ua-cam-jolt {
+    0%   { transform: translate(0, 0) scale(1); }
+    18%  { transform: translate(calc(var(--ua-x, 5px) * var(--ua-intensity)), calc(var(--ua-y, 3px) * var(--ua-intensity))) scale(calc(1 + 0.006 * var(--ua-intensity))); }
+    46%  { transform: translate(calc(var(--ua-x, 5px) * -0.6 * var(--ua-intensity)), calc(var(--ua-y, 3px) * -0.5 * var(--ua-intensity))); }
+    72%  { transform: translate(calc(var(--ua-x, 5px) * 0.3 * var(--ua-intensity)), 0); }
+    100% { transform: none; }
+}
+
+.ua-prop-react { animation: ua-prop-react var(--ua-dur, 0.5s) var(--ua-ease, cubic-bezier(.2,.8,.3,1)) both; will-change: transform; transform-origin: 50% 100%; }
+@keyframes ua-prop-react {
+    0%   { transform: translateY(0) rotate(0); }
+    25%  { transform: translateY(calc(-3px * var(--ua-intensity))) rotate(calc(var(--ua-rot, 0.6deg) * var(--ua-intensity))); }
+    60%  { transform: translateY(0) rotate(calc(var(--ua-rot, 0.6deg) * -0.5 * var(--ua-intensity))); }
+    100% { transform: none; }
+}
+
+/* Persistent ambient breathing for environment (very subtle, loops). */
+.ua-ambient-breathe { animation: ua-ambient-breathe var(--ua-dur, 22s) ease-in-out infinite; will-change: transform; }
+@keyframes ua-ambient-breathe {
+    50% { transform: scale(1.012); }
+}
+
+/* ===========================================================================
+ * Accessibility: prefers-reduced-motion.
+ * The controllers also enforce this in JS (they degrade to fades), but this
+ * is a hard CSS backstop so shaking / large movement / zoom / parallax can
+ * never play. Everything collapses to a short opacity transition.
+ * =========================================================================== */
+@media (prefers-reduced-motion: reduce) {
+    [class*="ua-play-"],
+    .ua-cam-jolt,
+    .ua-prop-react {
+        animation-name: ua-reduced-fade !important;
+        animation-duration: 180ms !important;
+        animation-timing-function: ease !important;
+        animation-iteration-count: 1 !important;
+    }
+    .ua-ambient-breathe { animation: none !important; }
+    @keyframes ua-reduced-fade {
+        from { opacity: 0.82; }
+        to   { opacity: 1; }
+    }
+}
+
+/* Explicit reduced-motion class toggled by JS (setReducedMotion) so we honor
+ * both the OS setting and an in-app toggle. */
+body.uie-reduced-motion [class*="ua-play-"],
+body.uie-reduced-motion .ua-cam-jolt,
+body.uie-reduced-motion .ua-prop-react {
+    animation-name: ua-reduced-fade !important;
+    animation-duration: 180ms !important;
+    animation-timing-function: ease !important;
+    animation-iteration-count: 1 !important;
+}
+body.uie-reduced-motion .ua-ambient-breathe { animation: none !important; }

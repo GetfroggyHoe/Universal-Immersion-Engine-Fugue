@@ -1,0 +1,1354 @@
+<div id="uie-diary-window" class="uie-window uie-book-overlay" style="display:none;">
+    <style>
+        #uie-diary-window {
+            position: fixed;
+            inset: auto;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: min(880px, 95vw);
+            height: min(640px, 85vh);
+            z-index: 20005;
+            display: none;
+            background: transparent;
+            backdrop-filter: none;
+            padding: 0;
+        }
+
+        /* Leather Bound Book Cover Stitching */
+        #uie-diary-window .uie-diary-cover {
+            display: flex;
+            width: 100%;
+            height: 100%;
+            border-radius: 20px;
+            border: 14px solid #3d2314;
+            outline: 3px solid #1a0f08;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.85), 0 25px 80px rgba(0,0,0,0.85);
+            background:
+                linear-gradient(90deg, rgba(255,255,255,0.08), transparent 18%, rgba(0,0,0,0.16) 50%, transparent 82%, rgba(255,255,255,0.05)),
+                repeating-linear-gradient(0deg, rgba(0,0,0,0.08) 0 2px, transparent 2px 9px),
+                #3a2113;
+            position: relative;
+            overflow: hidden;
+            box-sizing: border-box;
+        }
+
+        #uie-diary-window .uie-diary-cover::before {
+            content: "";
+            position: absolute;
+            inset: 10px;
+            border: 2px dashed rgba(222, 178, 106, 0.42);
+            border-radius: 12px;
+            pointer-events: none;
+            z-index: 20;
+        }
+
+        #uie-diary-window .uie-diary-cover::after {
+            content: "";
+            position: absolute;
+            top: 46%;
+            right: -18px;
+            width: 86px;
+            height: 56px;
+            border-radius: 10px 0 0 10px;
+            border: 3px solid #2a170d;
+            background: linear-gradient(180deg, #7b4a25, #4c2c17);
+            box-shadow: inset 0 2px rgba(255,255,255,0.16), 0 4px 16px rgba(0,0,0,0.35);
+            pointer-events: none;
+            z-index: 21;
+        }
+
+        /* Center Crease / Spine Shadow */
+        #uie-diary-window .uie-diary-spine {
+            width: 32px;
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10;
+            background: linear-gradient(90deg, 
+                rgba(0,0,0,0.2) 0%, 
+                rgba(0,0,0,0.45) 50%, 
+                rgba(0,0,0,0.2) 100%
+            );
+            pointer-events: none;
+        }
+
+        #uie-diary-window .uie-diary-spine::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            left: 50%;
+            width: 2px;
+            background: rgba(0,0,0,0.28);
+            transform: translateX(-50%);
+        }
+
+        /* Antique Parchment Spread Pages */
+        #uie-diary-window .uie-diary-page {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background-color: #fcf5eb !important;
+            background-image:
+                linear-gradient(90deg, rgba(92,55,27,0.08), transparent 12%, transparent 88%, rgba(92,55,27,0.08)),
+                repeating-linear-gradient(180deg, transparent 0 29px, rgba(96, 137, 177, 0.22) 30px 31px),
+                linear-gradient(150deg, #fff9e8 0%, #f2e2b9 100%) !important;
+            position: relative;
+            height: 100%;
+            overflow: hidden;
+            box-sizing: border-box;
+            padding: 22px 26px;
+        }
+
+        /* Subtly Overlay Parchment Textured Paper */
+        #uie-diary-window .uie-diary-page::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background-image: url("https://files.catbox.moe/pmph9q.jpg");
+            background-size: 380px 380px;
+            background-repeat: repeat;
+            opacity: 0.15;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        #uie-diary-window .uie-diary-page-left {
+            border-right: 1px solid rgba(74, 46, 22, 0.18);
+            border-radius: 6px 0 0 6px;
+        }
+
+        #uie-diary-window .uie-diary-page-right {
+            border-left: 1px solid rgba(74, 46, 22, 0.18);
+            border-radius: 0 6px 6px 0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header elements inside parchment */
+        #uie-diary-window .uie-diary-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-family: 'Cinzel', serif;
+            font-size: 1.1em;
+            color: #4a2e16;
+            border-bottom: 2px solid rgba(74, 46, 22, 0.15);
+            padding-bottom: 8px;
+            margin-bottom: 12px;
+            z-index: 10;
+            position: relative;
+        }
+
+        #uie-diary-window .uie-diary-header .entry-label {
+            font-weight: 800;
+            letter-spacing: 0.5px;
+        }
+
+        #uie-diary-window .uie-diary-header .header-controls {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            font-size: 16px;
+        }
+
+        #uie-diary-window .uie-diary-header .header-controls i {
+            cursor: pointer;
+            color: #5d4037;
+            transition: color 0.2s, transform 0.1s;
+        }
+
+        #uie-diary-window .uie-diary-header .header-controls i:hover {
+            color: #5d4037;
+            transform: scale(1.1);
+        }
+
+        /* Input Subject Fields on Parchment */
+        #uie-diary-window .uie-diary-subject {
+            width: 100%;
+            box-sizing: border-box;
+            border: none;
+            border-bottom: 2px dashed rgba(74, 46, 22, 0.2);
+            outline: none;
+            padding: 8px 4px;
+            background: transparent;
+            color: #b9873f;
+            font-family: 'Segoe Script', 'Lucida Handwriting', 'Brush Script MT', cursive;
+            font-size: 1.38em;
+            font-weight: 900;
+            margin-bottom: 12px;
+            z-index: 2;
+            position: relative;
+        }
+
+        #uie-diary-window .uie-diary-subject::placeholder {
+            color: #5b3519;
+            opacity: 1;
+        }
+
+        /* Left-page Artwork Memory Binder Box */
+        #uie-diary-window .left-page-artwork {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            border: 2px dashed rgba(74, 46, 22, 0.22);
+            border-radius: 12px;
+            margin: 8px 0;
+            background: rgba(93, 64, 55, 0.08) !important;
+            overflow: hidden;
+            position: relative;
+            min-height: 180px;
+            max-height: 250px;
+            z-index: 2;
+        }
+
+        #uie-diary-window #uie-diary-photo {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: #4a2e16;
+            font-family: 'Cinzel', serif;
+            text-align: center;
+            gap: 10px;
+            padding: 12px;
+            box-sizing: border-box;
+            transition: background 0.2s, color 0.2s;
+            pointer-events: auto;
+        }
+
+        #uie-diary-window #uie-diary-photo:hover {
+            background: rgba(74, 46, 22, 0.35);
+            color: #f5deb3;
+        }
+
+        #uie-diary-window #uie-diary-photo i {
+            font-size: 48px;
+            opacity: 0.85;
+        }
+
+        #uie-diary-window #uie-diary-photo img {
+            max-width: 96%;
+            max-height: 96%;
+            margin-bottom: 12px;
+            z-index: 2;
+            position: relative;
+        }
+
+        #uie-diary-window .uie-diary-subject::placeholder {
+            color: #5b3519;
+            opacity: 1;
+        }
+
+        /* Left-page Artwork Memory Binder Box */
+        #uie-diary-window .left-page-artwork {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            border: 2px dashed rgba(74, 46, 22, 0.22);
+            border-radius: 12px;
+            margin: 8px 0;
+            background: rgba(93, 64, 55, 0.08) !important;
+            overflow: hidden;
+            position: relative;
+            min-height: 220px;
+            z-index: 2;
+        }
+
+        #uie-diary-window #uie-diary-photo {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: #4a2e16;
+            font-family: 'Cinzel', serif;
+            text-align: center;
+            gap: 10px;
+            padding: 12px;
+            box-sizing: border-box;
+            transition: background 0.2s, color 0.2s;
+            pointer-events: auto;
+        }
+
+        #uie-diary-window #uie-diary-photo:hover {
+            background: rgba(74, 46, 22, 0.35);
+            color: #f5deb3;
+        }
+
+        #uie-diary-window #uie-diary-photo i {
+            font-size: 48px;
+            opacity: 0.85;
+        }
+
+        #uie-diary-window #uie-diary-photo img {
+            max-width: 96%;
+            max-height: 96%;
+            object-fit: contain;
+            border-radius: 6px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+        }
+
+        #uie-diary-window .uie-diary-photo-controls {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-top: 6px;
+            z-index: 2;
+        }
+        #uie-diary-window .uie-diary-photo-fit {
+            height: 30px;
+            border-radius: 20px;
+            border: 1.5px solid #5d4037;
+            background: rgba(255, 255, 255, 0.45);
+            color: #5d4037;
+            font-family: 'Cinzel', serif;
+            font-weight: 700;
+            font-size: 11px;
+            padding: 0 10px;
+        }
+
+        /* Antique Parchment Buttons */
+        #uie-diary-window .parchment-btn {
+            padding: 6px 14px;
+            border-radius: 20px;
+            border: 1.5px solid #5d4037;
+            background: rgba(255, 255, 255, 0.45);
+            color: #5d4037;
+            font-family: 'Cinzel', serif;
+            font-weight: 700;
+            font-size: 11px;
+            cursor: pointer;
+            outline: none;
+            transition: all 0.2s, transform 0.1s;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        #uie-diary-window .parchment-btn:hover {
+            background: #5d4037;
+            color: #fdf6e2;
+            transform: translateY(-1px);
+        }
+
+        #uie-diary-window .parchment-btn:active {
+            transform: translateY(0);
+        }
+
+        /* Right Page Layout */
+        #uie-diary-window .right-header {
+            display: flex;
+            justify-content: flex-end;
+            margin-bottom: 8px;
+            z-index: 10;
+            position: relative;
+        }
+
+        #uie-diary-window .right-page-content {
+            flex: 1;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            border: 1px solid rgba(74, 46, 22, 0.1);
+            border-radius: 8px;
+            background: rgba(93, 64, 55, 0.04) !important;
+            overflow: hidden;
+            z-index: 2;
+        }
+
+        /* Sticker Layer overlaying write sheet */
+        #uie-diary-window #uie-diary-sticker-layer {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            z-index: 5;
+            overflow: hidden;
+        }
+
+        /* Write sheet input area */
+        #uie-diary-window .uie-diary-input {
+            flex: 1;
+            width: 100%;
+            border: none;
+            outline: none;
+            padding: 16px;
+            background-color: transparent !important;
+            background-image:
+                linear-gradient(90deg, rgba(180, 62, 48, 0.24) 0 1px, transparent 1px 100%),
+                repeating-linear-gradient(180deg, transparent 0 27px, rgba(96, 137, 177, 0.20) 28px 29px) !important;
+            background-position: 38px 0, 0 0;
+            color: var(--diary-text-color, #2c1e10) !important;
+            font-family: 'Segoe Print', 'Bradley Hand ITC', 'Georgia', serif;
+            font-size: 15px;
+            line-height: 29px;
+            resize: none;
+            z-index: 1;
+            box-sizing: border-box;
+        }
+
+        /* Footer buttons for spreads */
+        #uie-diary-window .parchment-footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: 14px;
+            border-top: 1.5px solid rgba(74, 46, 22, 0.15);
+            padding-top: 10px;
+            z-index: 10;
+            position: relative;
+        }
+
+        #uie-diary-window .parchment-footer.right-footer {
+            justify-content: flex-end;
+        }
+
+        #uie-diary-window .uie-diary-btn {
+            background: none;
+            border: none;
+            color: #5d4037;
+            font-family: 'Cinzel', serif;
+            font-weight: 800;
+            cursor: pointer;
+            outline: none;
+            font-size: 12px;
+            transition: transform 0.1s, opacity 0.2s;
+        }
+
+        #uie-diary-window .uie-diary-btn:hover {
+            transform: scale(1.05);
+        }
+
+        #uie-diary-window #uie-diary-new {
+            border: 2px solid #5d4037;
+            border-radius: 20px;
+            padding: 4px 16px;
+            background: rgba(255, 255, 255, 0.35);
+        }
+
+        #uie-diary-window #uie-diary-new:hover {
+            background: #5d4037;
+            color: #fdf6e2;
+        }
+
+        /* Sticker Placement Elements */
+        .uie-diary-sticker {
+            position: absolute;
+            width: 76px;
+            height: 76px;
+            filter: drop-shadow(0 4px 6px rgba(0,0,0,0.25));
+            pointer-events: auto;
+            touch-action: none;
+            cursor: grab;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 6;
+        }
+        
+        .uie-diary-sticker:active {
+            cursor: grabbing;
+            z-index: 100;
+        }
+
+        .uie-diary-sticker img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            pointer-events: none;
+        }
+
+        .uie-diary-sticker .uie-diary-sticker-x {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #ff3b30;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            display: grid;
+            place-items: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            font-size: 12px;
+            opacity: 0;
+            transition: opacity 0.2s;
+            pointer-events: auto;
+        }
+
+        .uie-diary-sticker:hover .uie-diary-sticker-x {
+            opacity: 1;
+        }
+
+        /* Sticker Drawer Modal Overlay */
+        #uie-diary-sticker-drawer {
+            position: absolute;
+            inset: 0;
+            display: none;
+            align-items: flex-end;
+            justify-content: center;
+            background: rgba(0,0,0,0.65);
+            z-index: 20020;
+        }
+
+        #uie-diary-sticker-drawer .uie-sticker-sheet {
+            width: 100%;
+            max-height: 80%;
+            border-radius: 20px 20px 0 0;
+            border-top: 2px solid #cba35c;
+            background: rgba(18,16,12,0.98);
+            color: #fff;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 -10px 40px rgba(0,0,0,0.6);
+        }
+
+        #uie-diary-sticker-drawer .uie-sticker-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 18px;
+            border-bottom: 1px solid rgba(255,255,255,0.12);
+            font-family: 'Cinzel', serif;
+        }
+
+        #uie-diary-sticker-drawer .uie-sticker-title {
+            font-weight: 800;
+            letter-spacing: 0.8px;
+            color: #cba35c;
+        }
+
+        #uie-diary-sticker-drawer .uie-sticker-btn {
+            height: 30px;
+            padding: 0 14px;
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.15);
+            background: rgba(255,255,255,0.08);
+            color: #fff;
+            font-weight: bold;
+            font-size: 11px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        #uie-diary-sticker-drawer .uie-sticker-btn:hover {
+            background: rgba(255,255,255,0.2);
+        }
+
+        #uie-diary-sticker-drawer .uie-sticker-close {
+            height: 30px;
+            width: 36px;
+            border-radius: 12px;
+            border: 1px solid rgba(243,139,168,0.4);
+            background: rgba(243,139,168,0.08);
+            color: #f38ba8;
+            font-weight: 900;
+            cursor: pointer;
+            display: grid;
+            place-items: center;
+            font-size: 16px;
+        }
+
+        #uie-diary-sticker-drawer .uie-sticker-close:hover {
+            background: rgba(243,139,168,0.2);
+        }
+
+        #uie-diary-sticker-drawer .uie-sticker-tabs {
+            padding: 10px 18px;
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+            background: rgba(0,0,0,0.2);
+        }
+
+        .uie-sticker-tab {
+            height: 28px;
+            padding: 0 12px;
+            border-radius: 999px;
+            border: 1px solid rgba(255,255,255,0.12);
+            background: rgba(255,255,255,0.04);
+            color: #f3e4c2;
+            font-weight: 700;
+            font-size: 11px;
+            cursor: pointer;
+            font-family: 'Cinzel', serif;
+            transition: all 0.2s;
+        }
+
+        .uie-sticker-tab:hover {
+            background: rgba(255,255,255,0.1);
+        }
+
+        .uie-sticker-tab.active {
+            background: #cba35c;
+            color: #000;
+            border-color: #cba35c;
+        }
+
+        #uie-sticker-grid {
+            padding: 16px;
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 12px;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        @media not all {
+            #uie-sticker-grid { grid-template-columns: repeat(4, 1fr); }
+        }
+
+        .uie-sticker-tile {
+            width: 100%;
+            aspect-ratio: 1;
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.12);
+            background: rgba(255,255,255,0.03);
+            overflow: hidden;
+            cursor: pointer;
+            display: grid;
+            place-items: center;
+            transition: border-color 0.2s, background 0.2s;
+        }
+
+        .uie-sticker-tile:hover {
+            border-color: #cba35c;
+            background: rgba(255,255,255,0.08);
+        }
+
+        .uie-sticker-tile img {
+            width: 86%;
+            height: 86%;
+            object-fit: contain;
+        }
+
+        #uie-sticker-empty {
+            padding: 24px;
+            color: #f3e4c2;
+            font-weight: 800;
+            text-align: center;
+            font-family: 'Cinzel', serif;
+        }
+
+        /* Readable parchment diary skin */
+        #uie-diary-window {
+            color: #2b1608 !important;
+        }
+        #uie-diary-window .uie-diary-cover {
+            border-color: #24140c !important;
+            outline-color: #080403 !important;
+            background:
+                linear-gradient(90deg, rgba(255,255,255,0.035), transparent 18%, rgba(0,0,0,0.36) 50%, transparent 82%, rgba(255,255,255,0.02)),
+                repeating-linear-gradient(0deg, rgba(0,0,0,0.18) 0 2px, transparent 2px 9px),
+                #120906 !important;
+            box-shadow: inset 0 0 24px rgba(0,0,0,0.92), 0 25px 80px rgba(0,0,0,0.86) !important;
+        }
+        #uie-diary-window .uie-diary-cover::before {
+            border-color: rgba(167, 114, 74, 0.38) !important;
+        }
+        #uie-diary-window .uie-diary-cover::after {
+            border-color: #080403 !important;
+            background: #2b1a10 !important;
+        }
+        #uie-diary-window .uie-diary-spine {
+            background: linear-gradient(90deg, rgba(0,0,0,0.28) 0%, rgba(0,0,0,0.68) 50%, rgba(0,0,0,0.28) 100%) !important;
+        }
+        #uie-diary-window .uie-diary-page {
+            background-color: #fcf5eb !important;
+            background-image:
+                linear-gradient(90deg, rgba(92,55,27,0.08), transparent 12%, transparent 88%, rgba(92,55,27,0.08)),
+                repeating-linear-gradient(180deg, transparent 0 29px, rgba(96, 137, 177, 0.18) 30px 31px),
+                linear-gradient(150deg, #fff9e8 0%, #f2e2b9 100%) !important;
+            color: #2b1608 !important;
+            border-color: rgba(74, 46, 22, 0.28) !important;
+        }
+        #uie-diary-window .uie-diary-page::before {
+            display: block !important;
+            background-image: url("https://files.catbox.moe/pmph9q.jpg") !important;
+            background-size: 380px 380px !important;
+            background-repeat: repeat !important;
+            opacity: 0.15 !important;
+        }
+        #uie-diary-window .uie-diary-header,
+        #uie-diary-window .uie-diary-subject,
+        #uie-diary-window .uie-diary-header .header-controls i,
+        #uie-diary-window .uie-diary-btn {
+            color: #2b1608 !important;
+            border-color: rgba(74, 46, 22, 0.32) !important;
+        }
+        #uie-diary-window .uie-diary-subject::placeholder,
+        #uie-diary-window .uie-diary-input::placeholder {
+            color: #5b3519 !important;
+            opacity: 1;
+        }
+        #uie-diary-window .left-page-artwork,
+        #uie-diary-window .right-page-content {
+            background: rgba(93, 64, 55, 0.08) !important;
+            border-color: rgba(74, 46, 22, 0.26) !important;
+        }
+
+        #uie-diary-window .uie-diary-toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 6px;
+            padding: 8px;
+            border-bottom: 1px solid rgba(91, 49, 20, 0.22);
+            background: rgba(255, 246, 208, 0.18);
+            z-index: 7;
+        }
+
+        #uie-diary-window .uie-diary-tool {
+            min-width: 30px;
+            height: 30px;
+            display: inline-grid;
+            place-items: center;
+            border: 1px solid rgba(91, 49, 20, 0.34);
+            border-radius: 7px;
+            background: rgba(247, 227, 178, 0.82);
+            color: #3a1d08;
+            font-weight: 900;
+            cursor: pointer;
+        }
+
+        #uie-diary-window .uie-diary-tool.active,
+        #uie-diary-window .uie-diary-tool:hover {
+            background: #7b4a25;
+            color: #fff7df;
+        }
+
+        #uie-diary-window .uie-diary-font,
+        #uie-diary-window .uie-diary-color {
+            height: 30px;
+            border: 1px solid rgba(91, 49, 20, 0.34) !important;
+            border-radius: 7px;
+            background: #f7e3b2 !important;
+            color: #3a1d08 !important;
+            font-weight: 800;
+        }
+
+        #uie-diary-window .uie-diary-font {
+            min-width: 155px;
+            max-width: 210px;
+            box-shadow: inset 0 1px rgba(255,255,255,0.44);
+        }
+        #uie-diary-window .uie-diary-color {
+            width: 34px;
+            padding: 2px !important;
+            cursor: pointer;
+        }
+        #uie-diary-window .uie-diary-subject,
+        #uie-diary-window .uie-diary-input,
+        #uie-diary-window select,
+        #uie-diary-window input,
+        #uie-diary-window textarea {
+            background-color: rgba(255, 246, 208, 0.34) !important;
+            color: var(--diary-text-color, #241207) !important;
+            caret-color: #3a1d08 !important;
+            border-color: rgba(91, 49, 20, 0.34) !important;
+        }
+        #uie-diary-window .uie-diary-input {
+            background-color: transparent !important;
+            background-image:
+                linear-gradient(to right, rgba(74, 46, 22, 0.10) 1px, transparent 1px),
+                linear-gradient(to bottom, transparent 95%, rgba(74, 46, 22, 0.20) 96%) !important;
+            color: var(--diary-text-color, #241207) !important;
+        }
+        #uie-diary-window .parchment-btn,
+        #uie-diary-window #uie-diary-new {
+            background: #f7e5bc !important;
+            border-color: #7b4a25 !important;
+            color: #2b1608 !important;
+        }
+        #uie-diary-window .parchment-btn:hover,
+        #uie-diary-window #uie-diary-new:hover {
+            background: #7b4a25 !important;
+            color: #fff7df !important;
+        }
+        #uie-diary-sticker-drawer {
+            background: rgba(8, 4, 3, 0.78) !important;
+        }
+        #uie-diary-sticker-drawer .uie-sticker-sheet {
+            background: #f7e8c6 !important;
+            color: #2b1608 !important;
+            border-color: #7b4a25 !important;
+        }
+        #uie-diary-sticker-drawer .uie-sticker-head,
+        #uie-diary-sticker-drawer .uie-sticker-tabs {
+            background: #ead2a3 !important;
+            border-color: rgba(74, 46, 22, 0.28) !important;
+        }
+        #uie-diary-sticker-drawer .uie-sticker-title,
+        .uie-sticker-tab,
+        #uie-sticker-empty {
+            color: #2b1608 !important;
+        }
+        #uie-diary-sticker-drawer .uie-sticker-btn,
+        .uie-sticker-tab,
+        .uie-sticker-tile {
+            background: #f3dfb6 !important;
+            border-color: rgba(74, 46, 22, 0.36) !important;
+        }
+        .uie-sticker-tab.active,
+        .uie-sticker-tile:hover {
+            background: #7b4a25 !important;
+            border-color: #3d2314 !important;
+            color: #fff7df !important;
+        }
+
+        /* Final parchment pass: warm fibered pages, no gray content boxes, animated page turns */
+        #uie-diary-window .uie-diary-cover {
+            perspective: 1800px;
+            overflow: hidden !important;
+        }
+        #uie-diary-window .uie-diary-page {
+            transform-style: preserve-3d;
+            backface-visibility: hidden;
+            background-color: #f3d99d !important;
+            background-image:
+                radial-gradient(circle at 18% 14%, rgba(118, 69, 29, 0.16) 0 1px, transparent 2px),
+                radial-gradient(circle at 78% 26%, rgba(81, 42, 17, 0.11) 0 1px, transparent 2px),
+                radial-gradient(circle at 34% 72%, rgba(130, 76, 30, 0.10) 0 1px, transparent 2px),
+                linear-gradient(90deg, rgba(87, 47, 19, 0.24), transparent 10%, transparent 88%, rgba(87, 47, 19, 0.16)),
+                repeating-linear-gradient(8deg, rgba(91, 49, 20, 0.035) 0 1px, transparent 1px 7px),
+                repeating-linear-gradient(97deg, rgba(255, 255, 255, 0.055) 0 1px, transparent 1px 11px),
+                linear-gradient(135deg, #f9e9bc 0%, #e8c47f 48%, #f1d99e 100%) !important;
+            box-shadow:
+                inset 0 0 34px rgba(92, 50, 18, 0.28),
+                inset 0 0 0 1px rgba(91, 49, 20, 0.18),
+                0 8px 18px rgba(30, 12, 4, 0.22);
+        }
+        #uie-diary-window .uie-diary-page::before {
+            display: block !important;
+            background-image:
+                radial-gradient(circle at 20% 30%, rgba(83, 42, 15, 0.14) 0 1px, transparent 2px),
+                radial-gradient(circle at 72% 66%, rgba(83, 42, 15, 0.10) 0 1px, transparent 2px),
+                repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.08) 0 1px, transparent 1px 13px),
+                repeating-linear-gradient(90deg, rgba(65, 32, 11, 0.04) 0 1px, transparent 1px 17px) !important;
+            background-size: 180px 180px, 240px 240px, auto, auto !important;
+            opacity: 0.72 !important;
+            mix-blend-mode: multiply;
+        }
+        #uie-diary-window .uie-diary-page::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            z-index: 1;
+            background:
+                linear-gradient(180deg, rgba(255, 249, 224, 0.34), transparent 18%, transparent 82%, rgba(103, 55, 19, 0.14)),
+                linear-gradient(90deg, rgba(79, 36, 10, 0.16), transparent 9%, transparent 91%, rgba(79, 36, 10, 0.14));
+        }
+        #uie-diary-window .uie-diary-page-left {
+            transform-origin: right center;
+            border-right-color: rgba(70, 35, 12, 0.3) !important;
+        }
+        #uie-diary-window .uie-diary-page-right {
+            transform-origin: left center;
+            border-left-color: rgba(70, 35, 12, 0.3) !important;
+        }
+        #uie-diary-window .left-page-artwork,
+        #uie-diary-window .right-page-content {
+            background:
+                linear-gradient(180deg, rgba(255, 246, 208, 0.22), rgba(129, 73, 27, 0.06)) !important;
+            border: 1px solid rgba(91, 49, 20, 0.24) !important;
+            box-shadow: inset 0 0 20px rgba(91, 49, 20, 0.10);
+        }
+        #uie-diary-window .uie-diary-input {
+            background-image:
+                linear-gradient(to right, rgba(139, 39, 23, 0.20) 1px, transparent 1px),
+                repeating-linear-gradient(to bottom, transparent 0 27px, rgba(73, 99, 125, 0.20) 28px 29px) !important;
+            background-position: 38px 0, 0 0 !important;
+        }
+        #uie-diary-window .uie-diary-subject {
+            color: #b9873f !important;
+            font-family: 'Segoe Script', 'Lucida Handwriting', 'Brush Script MT', cursive !important;
+            font-weight: 900 !important;
+            letter-spacing: 0 !important;
+            text-shadow: 0 1px rgba(255, 247, 218, 0.48);
+        }
+        #uie-diary-window #uie-diary-global-layer {
+            position: absolute;
+            inset: 14px;
+            z-index: 12;
+            pointer-events: none;
+        }
+        #uie-diary-window .uie-diary-item {
+            position: absolute;
+            pointer-events: auto;
+            touch-action: none;
+            cursor: grab;
+            z-index: 14;
+        }
+        #uie-diary-window .uie-diary-item.active {
+            cursor: grabbing;
+            z-index: 25;
+        }
+        #uie-diary-window .uie-diary-item-ctrl {
+            position: absolute;
+            width: 22px;
+            height: 22px;
+            display: grid;
+            place-items: center;
+            border-radius: 50%;
+            border: 1px solid rgba(52, 23, 6, 0.5);
+            background: #f7e3b2;
+            color: #3a1d08;
+            box-shadow: 0 2px 7px rgba(0,0,0,0.22);
+            font-size: 12px;
+            opacity: 0;
+            transition: opacity .15s ease;
+            pointer-events: auto;
+        }
+        #uie-diary-window .uie-diary-item:hover .uie-diary-item-ctrl,
+        #uie-diary-window .uie-diary-item.active .uie-diary-item-ctrl {
+            opacity: 1;
+        }
+        #uie-diary-window .uie-diary-photo-x,
+        #uie-diary-window .uie-diary-sticker-x {
+            top: -11px;
+            right: -11px;
+        }
+        #uie-diary-window .uie-diary-handle-rotate {
+            bottom: -11px;
+            left: -11px;
+        }
+        #uie-diary-window .uie-diary-handle-resize {
+            right: -9px;
+            bottom: -9px;
+            border-radius: 5px;
+            cursor: nwse-resize;
+        }
+        #uie-diary-window.uie-diary-turn-next .uie-diary-page-right,
+        #uie-diary-window.uie-diary-turn-new .uie-diary-page-right {
+            animation: uieDiaryFlipNext .34s ease-in-out;
+        }
+        #uie-diary-window.uie-diary-turn-prev .uie-diary-page-left {
+            animation: uieDiaryFlipPrev .34s ease-in-out;
+        }
+        #uie-diary-window.uie-diary-turn-delete .uie-diary-page-right {
+            animation: uieDiaryPageRemove .25s ease-in both;
+        }
+        @keyframes uieDiaryFlipNext {
+            0% { transform: rotateY(0deg); box-shadow: inset 0 0 34px rgba(92, 50, 18, 0.28), -8px 8px 20px rgba(30, 12, 4, 0.18); }
+            48% { transform: rotateY(-38deg) skewY(-1deg); box-shadow: inset 18px 0 38px rgba(73, 32, 9, 0.36), -18px 10px 28px rgba(30, 12, 4, 0.32); }
+            100% { transform: rotateY(0deg); }
+        }
+        @keyframes uieDiaryFlipPrev {
+            0% { transform: rotateY(0deg); }
+            48% { transform: rotateY(38deg) skewY(1deg); box-shadow: inset -18px 0 38px rgba(73, 32, 9, 0.34), 18px 10px 28px rgba(30, 12, 4, 0.30); }
+            100% { transform: rotateY(0deg); }
+        }
+        @keyframes uieDiaryPageRemove {
+            from { opacity: 1; transform: rotateY(0deg) translateX(0); }
+            to { opacity: 0; transform: rotateY(-26deg) translateX(22px); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            #uie-diary-window.uie-diary-turn-next .uie-diary-page-right,
+            #uie-diary-window.uie-diary-turn-new .uie-diary-page-right,
+            #uie-diary-window.uie-diary-turn-prev .uie-diary-page-left,
+            #uie-diary-window.uie-diary-turn-delete .uie-diary-page-right {
+                animation: none !important;
+            }
+        }
+
+        #uie-diary-window .uie-diary-mobile-footer {
+            display: none;
+        }
+
+        /* Mobile spreads keep the book readable as side by side spreads */
+        @media not all {
+            #uie-diary-window {
+                width: calc(100vw - 10px) !important;
+                height: calc(100dvh - 12px) !important;
+                max-height: calc(100dvh - 12px) !important;
+            }
+
+            #uie-diary-window .uie-diary-cover {
+                flex-direction: row !important;
+                overflow: hidden !important;
+                border-width: 6px !important;
+                border-radius: 12px !important;
+            }
+
+            #uie-diary-window .uie-diary-spine {
+                display: block !important;
+            }
+
+            #uie-diary-window .uie-diary-page {
+                flex: 1 !important;
+                height: 100% !important;
+                padding: 10px 12px !important;
+            }
+
+            #uie-diary-window .uie-diary-page-left {
+                display: flex !important;
+                flex-direction: column !important;
+                gap: 6px;
+                flex: 0 0 auto !important;
+                border-bottom: 2px dashed rgba(74,46,22,0.2) !important;
+            }
+
+            #uie-diary-window .uie-diary-header {
+                align-items: center;
+                gap: 8px;
+                margin-bottom: 8px;
+                padding-bottom: 6px;
+            }
+
+            #uie-diary-window .uie-diary-header .entry-label {
+                font-size: 14px;
+            }
+
+            #uie-diary-window .uie-diary-header .header-controls {
+                gap: 10px;
+                font-size: 17px;
+            }
+
+            #uie-diary-window .uie-diary-subject {
+                font-size: 0.88em !important;
+                line-height: 1.15 !important;
+                margin-bottom: 2px !important;
+                padding: 3px 4px !important;
+                min-height: 28px !important;
+            }
+
+            #uie-diary-window .left-page-artwork {
+                flex: 1 !important;
+                min-height: 180px !important;
+                max-height: none !important;
+                height: auto !important;
+                margin: 4px 0 !important;
+                border-radius: 8px !important;
+            }
+
+            #uie-diary-window #uie-diary-photo-box i {
+                font-size: 18px !important;
+            }
+
+            #uie-diary-window #uie-diary-photo-box span {
+                display: none !important;
+            }
+
+            #uie-diary-window .uie-diary-photo-controls {
+                justify-content: flex-start;
+                gap: 6px;
+                margin: 4px 0 0;
+            }
+
+            #uie-diary-window .parchment-btn,
+            #uie-diary-window .uie-diary-btn {
+                min-height: 30px;
+                font-size: 11px;
+                padding: 4px 9px;
+            }
+
+            #uie-diary-window .uie-diary-toolbar {
+                position: sticky;
+                top: 0;
+                gap: 5px;
+                padding: 6px 6px 5px;
+                overflow-x: auto;
+                flex-wrap: nowrap;
+                scrollbar-width: none;
+                min-height: 38px;
+                background: rgba(247, 227, 178, 0.92);
+                border-bottom: 1px solid rgba(74, 46, 22, 0.18);
+                z-index: 9;
+            }
+
+            #uie-diary-window .uie-diary-toolbar::-webkit-scrollbar {
+                display: none;
+            }
+
+            #uie-diary-window .uie-diary-font {
+                min-width: 118px;
+                max-width: 138px;
+            }
+
+            #uie-diary-window .right-header {
+                justify-content: flex-start;
+                margin: 0 0 5px;
+                flex: 0 0 auto;
+            }
+
+            #uie-diary-window .uie-diary-page-right {
+                flex: 1 1 auto !important;
+                min-height: 0 !important;
+                overflow: auto !important;
+            }
+
+            #uie-diary-window .right-page-content {
+                flex: 1 1 auto !important;
+                min-height: 0 !important;
+                overflow: hidden !important;
+            }
+
+            #uie-diary-window #uie-diary-text.uie-diary-input {
+                min-height: 0 !important;
+                flex: 1 1 auto !important;
+                overflow-y: auto !important;
+                -webkit-overflow-scrolling: touch !important;
+                font-size: 15px !important;
+            }
+
+            #uie-diary-window .parchment-footer {
+                display: flex !important;
+            }
+
+            #uie-diary-window .uie-diary-mobile-footer {
+                display: none !important;
+            }
+            }
+        }
+
+        @media not all {
+            #uie-diary-window {
+                width: min(980px, calc(100vw - 12px)) !important;
+                height: calc(100dvh - 12px) !important;
+            }
+
+            #uie-diary-window .uie-diary-cover {
+                flex-direction: row !important;
+                overflow: hidden !important;
+                border-width: 6px !important;
+            }
+
+            #uie-diary-window .uie-diary-page {
+                padding: 12px 16px !important;
+            }
+
+            #uie-diary-window .left-page-artwork {
+                min-height: 96px !important;
+                max-height: 150px !important;
+            }
+
+            #uie-diary-window .right-page-content {
+                min-height: 0;
+            }
+        }
+        /* Repair pass: no side clasp, and writing aligns to the ruled paper. */
+        #uie-diary-window .uie-diary-cover::after {
+            display: none !important;
+            content: none !important;
+        }
+        #uie-diary-window .right-page-content {
+            --diary-line-height: 30px;
+        }
+        #uie-diary-window #uie-diary-text.uie-diary-input {
+            padding: 8px 18px 12px 44px !important;
+            line-height: var(--diary-line-height) !important;
+            background-color: transparent !important;
+            background-image:
+                linear-gradient(to right, transparent 0 30px, rgba(151, 42, 28, 0.28) 30px 31px, transparent 31px),
+                repeating-linear-gradient(to bottom, transparent 0 28px, rgba(73, 99, 125, 0.28) 28px 29px, transparent 29px var(--diary-line-height)) !important;
+            background-size: 100% var(--diary-line-height), 100% var(--diary-line-height) !important;
+            background-position: 0 0, 0 0 !important;
+            background-repeat: repeat !important;
+        }
+        @media not all {
+            #uie-diary-window {
+                inset: 0 !important;
+                width: 100vw !important;
+                height: 100dvh !important;
+                max-width: 100vw !important;
+                max-height: 100dvh !important;
+                transform: none !important;
+                border-radius: 0 !important;
+                overflow: hidden !important;
+            }
+            #uie-diary-window .uie-diary-cover {
+                width: 100% !important;
+                height: 100% !important;
+                display: grid !important;
+                grid-template-columns: 1fr !important;
+                gap: 10px !important;
+                overflow-y: auto !important;
+                padding: 10px !important;
+            }
+            #uie-diary-window .uie-diary-page {
+                width: 100% !important;
+                min-width: 0 !important;
+                max-width: 100% !important;
+                border-radius: 12px !important;
+                padding: 12px !important;
+            }
+            #uie-diary-window .uie-diary-page-left {
+                display: flex !important;
+                flex-direction: column !important;
+                gap: 10px !important;
+                min-height: auto !important;
+            }
+            #uie-diary-window .left-page-artwork {
+                flex: 1 !important;
+                min-height: 320px !important;
+                max-height: none !important;
+                height: auto !important;
+                width: 100% !important;
+            }
+            #uie-diary-window #uie-diary-photo-box span {
+                display: inline !important;
+                font-size: 13px !important;
+            }
+            #uie-diary-window .uie-diary-photo-controls {
+                display: grid !important;
+                grid-template-columns: 1fr 1fr !important;
+                gap: 8px !important;
+            }
+            #uie-diary-window .uie-diary-photo-controls .parchment-btn,
+            #uie-diary-window .parchment-btn,
+            #uie-diary-window .uie-diary-btn {
+                min-height: 44px !important;
+                font-size: 13px !important;
+                white-space: normal !important;
+            }
+            #uie-diary-window .uie-diary-page-right {
+                display: grid !important;
+                grid-template-rows: auto minmax(220px, 1fr) auto !important;
+                min-height: min(58dvh, 620px) !important;
+            }
+            #uie-diary-window .uie-diary-toolbar {
+                min-height: 48px !important;
+                overflow-x: auto !important;
+            }
+            #uie-diary-window .uie-diary-tool {
+                min-width: 44px !important;
+                min-height: 44px !important;
+            }
+        }
+    </style>
+    
+    <div class="uie-diary-cover">
+        <!-- Center Spine shadow crease -->
+        <div class="uie-diary-spine"></div>
+        
+        <!-- Global Layer for placed photos and stickers -->
+        <div id="uie-diary-global-layer"></div>
+        
+        <!-- Left Page: Metadata, Subject, Photo illustrations -->
+        <div class="uie-diary-page uie-diary-page-left">
+            <div class="uie-diary-header">
+                <span class="entry-label">Entry #<span id="uie-diary-num">1</span></span>
+                <div id="uie-diary-date" style="font-size:0.75em; font-weight: bold; opacity: 0.85;"></div>
+                <div class="header-controls">
+                    <i class="fa-solid fa-circle-question" onclick="uie.phone.openBooksGuide('guide-diary')" title="Help / Guide"></i>
+                    <i class="fa-solid fa-trash" id="uie-diary-delete" title="Delete Page"></i>
+                    <i class="fa-solid fa-xmark uie-close-btn" id="uie-diary-close"></i>
+                </div>
+            </div>
+            
+            <input id="uie-diary-title" class="uie-diary-subject" type="text" placeholder="Subject / Title...">
+            
+            <div class="left-page-artwork" id="uie-diary-photo-box" style="display:flex; align-items:center; justify-content:center;">
+                <div style="opacity:0.72; color:#4a2e16; font-family:'Cinzel', serif; font-weight:800; display:flex; flex-direction:column; align-items:center; gap:8px; pointer-events:none;">
+                    <i class="fa-solid fa-image" style="font-size:34px;"></i>
+                    <span>Photo Box</span>
+                </div>
+            </div>
+            
+            <div class="parchment-footer" style="flex-direction: column; gap: 8px; margin-top: auto; border-top: 1.5px solid rgba(74, 46, 22, 0.15); padding-top: 10px; z-index: 10; position: relative; display: flex;">
+                <div class="uie-diary-photo-controls" style="display: flex; gap: 8px; justify-content: center; align-items: center; flex-wrap: wrap; width: 100%;">
+                    <button id="uie-diary-photo-copy" class="parchment-btn"><i class="fa-solid fa-copy"></i> Copy</button>
+                    <button type="button" id="uie-diary-add-photo-btn" class="parchment-btn"><i class="fa-solid fa-camera"></i> Add Photo</button>
+                    <select id="uie-diary-photo-fit-mode" class="uie-diary-photo-fit" title="Photo fit mode">
+                        <option value="contain">Fit</option>
+                        <option value="stretch">Stretch</option>
+                    </select>
+                    <button id="uie-diary-photo-clear" class="parchment-btn"><i class="fa-solid fa-times"></i> Clear</button>
+                </div>
+                <div class="uie-diary-page-controls" style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin-top: 4px;">
+                    <button class="uie-diary-btn" id="uie-diary-prev">&larr; Previous</button>
+                    <button class="uie-diary-btn" id="uie-diary-new">New Page</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Right Page: Stickers, Story logs -->
+        <div class="uie-diary-page uie-diary-page-right">
+            <div class="right-header">
+                <button id="uie-diary-stickers" class="parchment-btn" title="Open sticker sheets"><i class="fa-solid fa-face-smile"></i> Stickers</button>
+            </div>
+            
+            <div class="right-page-content">
+                <div class="uie-diary-toolbar" aria-label="Diary writing options">
+                    <select id="uie-diary-font" class="uie-diary-font" title="Writing font"></select>
+                    <button type="button" id="uie-diary-bold" class="uie-diary-tool" title="Bold"><i class="fa-solid fa-bold"></i></button>
+                    <button type="button" id="uie-diary-italic" class="uie-diary-tool" title="Italic"><i class="fa-solid fa-italic"></i></button>
+                    <button type="button" id="uie-diary-underline" class="uie-diary-tool" title="Underline"><i class="fa-solid fa-underline"></i></button>
+                    <button type="button" id="uie-diary-text-dec" class="uie-diary-tool" title="Decrease Text Size"><i class="fa-solid fa-minus"></i></button>
+                    <span id="uie-diary-text-size-val" style="font-size: 11px; font-weight: bold; margin: 0 4px; color: #241207; opacity: 0.85; width: 16px; text-align: center; display: inline-block;">16</span>
+                    <button type="button" id="uie-diary-text-inc" class="uie-diary-tool" title="Increase Text Size"><i class="fa-solid fa-plus"></i></button>
+                    <input type="color" id="uie-diary-text-color" class="uie-diary-color" value="#241207" title="Text color">
+                    <input type="color" id="uie-diary-paper-color" class="uie-diary-color" value="#f1d99e" title="Page tint">
+                </div>
+                <!-- Placed sticker layer (rendered relative to right-page parchment box) -->
+                <div id="uie-diary-sticker-layer"></div>
+                <textarea id="uie-diary-text" class="uie-diary-input" placeholder="Write today's journey here..."></textarea>
+            </div>
+            
+            <div class="parchment-footer right-footer">
+                <button class="uie-diary-btn" id="uie-diary-next">Next &rarr;</button>
+            </div>
+        </div>
+
+        <div class="uie-diary-mobile-footer" aria-label="Diary page navigation">
+            <button type="button" class="uie-diary-btn" onclick="document.getElementById('uie-diary-prev')?.click()">Previous</button>
+            <button type="button" class="uie-diary-btn" onclick="document.getElementById('uie-diary-new')?.click()">New Page</button>
+            <button type="button" class="uie-diary-btn" onclick="document.getElementById('uie-diary-next')?.click()">Next</button>
+        </div>
+        
+        <!-- File input targets -->
+        <input type="file" id="uie-diary-photo-file" accept="image/*" style="display:none;">
+        <input type="file" id="uie-sticker-import-files" accept=".png,.gif,.jpg,.jpeg,.svg,image/*" multiple style="display:none;">
+        
+        <!-- Stickers Selector Sheet -->
+        <div id="uie-diary-sticker-drawer">
+            <div class="uie-sticker-sheet">
+                <div class="uie-sticker-head">
+                    <div class="uie-sticker-title">Sticker Album</div>
+                    <button class="uie-sticker-btn" id="uie-sticker-import">Import Pack</button>
+                    <button class="uie-sticker-close" id="uie-sticker-close">×</button>
+                </div>
+                <div id="uie-diary-sticker-tabs" class="uie-sticker-tabs"></div>
+                <div id="uie-sticker-grid"></div>
+                <div id="uie-sticker-empty" style="display:none;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TEMPLATES -->
+    <template id="uie-template-diary-sticker-tab">
+        <button class="uie-sticker-tab"></button>
+    </template>
+
+    <template id="uie-template-diary-sticker-tile">
+        <div class="uie-sticker-tile">
+            <img>
+        </div>
+    </template>
+
+    <template id="uie-template-diary-sticker-placed">
+        <div class="uie-diary-sticker">
+            <img draggable="false" alt="">
+            <div class="uie-diary-sticker-x">×</div>
+        </div>
+    </template>
+</div>

@@ -1,0 +1,164 @@
+<style>
+  .uie-processed-assets{
+    display:flex;
+    flex-direction:column;
+    gap:14px;
+    margin-top:10px;
+  }
+  .uie-processed-assets-section{
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+  }
+  .uie-processed-assets-section h4{
+    margin:0;
+    font-size:12px;
+    letter-spacing:0;
+    color:#e6c27a;
+  }
+  .uie-processed-assets-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill, minmax(112px, 1fr));
+    gap:8px;
+  }
+  .uie-processed-asset-card{
+    min-width:0;
+    border:1px solid rgba(215,165,82,0.22);
+    border-radius:6px;
+    background:rgba(24,15,8,0.46);
+    overflow:hidden;
+  }
+  .uie-processed-asset-img{
+    width:100%;
+    aspect-ratio:1 / 1;
+    display:grid;
+    place-items:center;
+    background:rgba(0,0,0,0.24);
+    padding:6px;
+    box-sizing:border-box;
+  }
+  .uie-processed-asset-img img{
+    width:100%;
+    height:100%;
+    object-fit:contain;
+    display:block;
+  }
+  #uie-assets-list{
+    display:grid !important;
+    grid-template-columns:repeat(auto-fill, minmax(168px, 1fr)) !important;
+    gap:10px !important;
+    align-items:stretch !important;
+  }
+  #uie-assets-list .uie-asset-card{
+    box-sizing:border-box !important;
+    min-width:0 !important;
+    height:248px !important;
+    min-height:248px !important;
+    max-height:248px !important;
+    padding:10px !important;
+    border-radius:8px !important;
+    border:1px solid rgba(255,255,255,.12) !important;
+    background:rgba(255,255,255,.035) !important;
+    display:flex !important;
+    flex-direction:column !important;
+    overflow:hidden !important;
+  }
+  #uie-assets-list .asset-img-container{
+    display:grid;
+    place-items:center;
+    width:100%;
+    height:118px;
+    min-height:118px;
+    max-height:118px;
+    aspect-ratio:auto;
+    border-radius:8px;
+    background:rgba(0,0,0,.32);
+    margin-bottom:8px;
+    overflow:hidden;
+    border:1px solid rgba(255,255,255,.12);
+    padding:10px;
+    box-sizing:border-box;
+  }
+  #uie-assets-list .asset-img{
+    width:100% !important;
+    height:100% !important;
+    object-fit:contain !important;
+    display:block !important;
+  }
+  #uie-assets-list .asset-name{
+    min-height:32px;
+    max-height:32px;
+    overflow:hidden;
+    display:-webkit-box;
+    -webkit-line-clamp:2;
+    line-clamp:2;
+    -webkit-box-orient:vertical;
+    overflow-wrap:anywhere;
+    font-size:12px;
+    line-height:1.2;
+  }
+  #uie-assets-list .asset-desc{
+    flex:1 1 auto;
+    min-height:0;
+    max-height:54px;
+    overflow:hidden;
+    font-size:10.5px !important;
+    line-height:1.25;
+  }
+  #uie-assets-list .asset-travel-controls{
+    flex:0 0 auto;
+    margin-top:6px !important;
+    padding-top:6px !important;
+  }
+  .uie-processed-asset-name,
+  .uie-processed-asset-tags,
+  .uie-processed-asset-macros{
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+    padding:0 7px;
+  }
+  .uie-processed-asset-name{
+    padding-top:6px;
+    font-size:11px;
+    font-weight:900;
+    color:#f3dfb7;
+  }
+  .uie-processed-asset-tags{
+    font-size:9px;
+    color:rgba(235,220,196,0.68);
+  }
+  .uie-processed-asset-macros{
+    padding-bottom:6px;
+    font-size:9px;
+    color:#d8b16a;
+  }
+</style>
+<div style="width:100%;height:100%;min-height:0;overflow:auto;padding:14px;display:flex;flex-direction:column;gap:10px;">
+  <div style="font-weight:900; display:flex; align-items:center; gap:10px;">
+    Assets <i class="fa-solid fa-circle-info uie-assets-help" style="cursor:pointer; opacity:0.7;" title="Inventory Manual"></i>
+  </div>
+  <div style="color:#a6adc8;font-size:12px;">Travel assets are placed manually. Move to a placed asset before boarding or using it.</div>
+  <div id="uie-assets-list"></div>
+</div>
+<template id="uie-asset-card-template">
+    <div class="uie-asset-card">
+        <div class="asset-img-container" style="display:none;">
+            <img class="asset-img" src="">
+        </div>
+        <div class="asset-name" style="font-weight:800;color:#eee;"></div>
+        <div class="asset-desc" style="font-size:11px;opacity:0.7;margin-top:4px;white-space:pre-wrap;display:none;"></div>
+        <div class="asset-travel-controls" style="display:none;margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,.1);gap:7px;flex-direction:column;">
+            <label style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:#a6adc8;">Travel Category</label>
+            <select class="asset-travel-category" style="width:100%;border:1px solid rgba(255,255,255,.14);border-radius:8px;background:#171922;color:#fff;padding:7px;"></select>
+            <div class="asset-location" style="font-size:11px;color:#d8dee9;"></div>
+            <div class="asset-travel-rule" style="font-size:10px;color:#a6adc8;"></div>
+            <div class="asset-actions" style="display:flex;gap:6px;flex-wrap:wrap;">
+                <button class="asset-action-place" type="button" style="display:none;flex:1;border:1px solid #4c8;border-radius:8px;background:rgba(68,204,136,.14);color:#8fdbb5;padding:7px;cursor:pointer;">Place Here</button>
+                <button class="asset-action-go" type="button" style="display:none;flex:1;border:1px solid #69c;border-radius:8px;background:rgba(102,153,204,.14);color:#a8c9eb;padding:7px;cursor:pointer;">Go To Asset</button>
+                <button class="asset-action-board" type="button" style="display:none;flex:1;border:1px solid #c9a34c;border-radius:8px;background:rgba(201,163,76,.14);color:#e2c778;padding:7px;cursor:pointer;">Board / Use</button>
+                <button class="asset-action-park" type="button" style="display:none;flex:1;border:1px solid #c97a4c;border-radius:8px;background:rgba(201,122,76,.14);color:#e5a77f;padding:7px;cursor:pointer;">Park / Disembark</button>
+            </div>
+        </div>
+    </div>
+</template>

@@ -1,0 +1,342 @@
+<div id="uie-you-window" class="uie-window" data-open-display="flex" style="display:none;">
+  <style>
+    #uie-you-window {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: min(980px, 94vw);
+      height: min(780px, 92vh);
+      z-index: 20024;
+      flex-direction: column;
+      overflow: hidden;
+      color: #edf3f8;
+      background: linear-gradient(145deg, rgba(17, 21, 28, .98), rgba(9, 13, 20, .98) 58%, rgba(24, 20, 17, .98));
+      border: 1px solid rgba(216, 183, 108, .46);
+      border-radius: 8px;
+      box-shadow: 0 24px 70px rgba(0, 0, 0, .72);
+      font-family: Inter, "Trebuchet MS", system-ui, sans-serif;
+      box-sizing: border-box;
+    }
+
+    #uie-you-window * { box-sizing: border-box; }
+
+    .uie-you-header {
+      min-height: 68px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 16px 18px;
+      border-bottom: 1px solid rgba(216, 183, 108, .22);
+      background: rgba(255, 255, 255, .035);
+      flex-shrink: 0;
+    }
+
+    .uie-you-title {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+      margin: 0;
+      color: #f4d891;
+      font-family: Cinzel, Georgia, serif;
+      font-size: 24px;
+      font-weight: 900;
+      letter-spacing: 0;
+    }
+
+    .uie-you-title i {
+      color: #8fc8d8;
+    }
+
+    .uie-you-tools {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    .uie-you-icon-btn {
+      width: 36px;
+      height: 36px;
+      display: grid;
+      place-items: center;
+      border: 1px solid rgba(216, 183, 108, .28);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, .045);
+      color: #edf3f8;
+      cursor: pointer;
+    }
+
+    .uie-you-icon-btn:hover {
+      background: rgba(143, 200, 216, .14);
+      border-color: rgba(143, 200, 216, .5);
+    }
+
+    .uie-you-close:hover {
+      background: rgba(231, 88, 103, .16);
+      border-color: rgba(231, 88, 103, .5);
+      color: #ffd3d8;
+    }
+
+    .uie-you-body {
+      min-height: 0;
+      flex: 1;
+      display: grid;
+      grid-template-columns: 300px minmax(0, 1fr);
+      gap: 14px;
+      padding: 14px;
+      overflow: auto;
+    }
+
+    .uie-you-profile,
+    .uie-you-section {
+      border: 1px solid rgba(148, 163, 184, .16);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, .035);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, .045);
+    }
+
+    .uie-you-profile {
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      min-width: 0;
+      align-self: start;
+    }
+
+    .uie-you-photo {
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      border-radius: 8px;
+      border: 1px solid rgba(216, 183, 108, .34);
+      background: rgba(0, 0, 0, .32);
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+      color: rgba(237, 243, 248, .55);
+      font-size: 58px;
+    }
+
+    .uie-you-photo img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .uie-you-name {
+      margin: 0;
+      color: #ffffff;
+      font-size: 26px;
+      line-height: 1.08;
+      font-weight: 900;
+      overflow-wrap: anywhere;
+    }
+
+    .uie-you-subline {
+      color: #f4d891;
+      font-size: 13px;
+      font-weight: 800;
+      line-height: 1.35;
+      overflow-wrap: anywhere;
+    }
+
+    .uie-you-vitals {
+      display: grid;
+      gap: 8px;
+    }
+
+    .uie-you-vital {
+      display: grid;
+      grid-template-columns: 70px minmax(0, 1fr) auto;
+      gap: 8px;
+      align-items: center;
+      color: #cbd5e1;
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .uie-you-vital span:last-child {
+      color: #edf3f8;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .uie-you-track {
+      height: 8px;
+      border-radius: 999px;
+      background: rgba(0, 0, 0, .38);
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, .08);
+    }
+
+    .uie-you-fill {
+      height: 100%;
+      width: 0;
+      border-radius: inherit;
+      background: linear-gradient(90deg, #8fc8d8, #f4d891);
+    }
+
+    .uie-you-main {
+      min-width: 0;
+      display: grid;
+      gap: 14px;
+      align-content: start;
+    }
+
+    .uie-you-section {
+      padding: 14px;
+      min-width: 0;
+    }
+
+    .uie-you-section h3 {
+      margin: 0 0 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #8fc8d8;
+      font-size: 12px;
+      font-weight: 950;
+      text-transform: uppercase;
+      letter-spacing: 0;
+    }
+
+    .uie-you-kv-grid,
+    .uie-you-stats-grid,
+    .uie-you-lineage-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .uie-you-kv,
+    .uie-you-stat,
+    .uie-you-line {
+      min-width: 0;
+      padding: 9px 10px;
+      border: 1px solid rgba(255, 255, 255, .08);
+      border-radius: 8px;
+      background: rgba(0, 0, 0, .2);
+    }
+
+    .uie-you-kv span,
+    .uie-you-stat span,
+    .uie-you-line span {
+      display: block;
+      color: #94a3b8;
+      font-size: 10px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0;
+      margin-bottom: 4px;
+    }
+
+    .uie-you-kv b,
+    .uie-you-stat b,
+    .uie-you-line b {
+      display: block;
+      color: #edf3f8;
+      font-size: 13px;
+      line-height: 1.25;
+      overflow-wrap: anywhere;
+    }
+
+    .uie-you-effects {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .uie-you-effect {
+      min-height: 32px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 9px;
+      border-radius: 8px;
+      border: 1px solid rgba(143, 200, 216, .24);
+      background: rgba(143, 200, 216, .09);
+      color: #edf3f8;
+      font-size: 12px;
+      font-weight: 850;
+    }
+
+    .uie-you-effect small {
+      color: #f4d891;
+      font-size: 11px;
+      font-weight: 900;
+    }
+
+    .uie-you-empty {
+      color: #94a3b8;
+      font-size: 13px;
+      font-weight: 750;
+    }
+
+    @media not all {
+      #uie-you-window {
+        width: 100vw;
+        height: 100dvh;
+        max-width: 100vw;
+        max-height: 100dvh;
+        border-radius: 0;
+        top: 0;
+        left: 0;
+        transform: none;
+      }
+
+      .uie-you-body {
+        grid-template-columns: 1fr;
+      }
+
+      .uie-you-kv-grid,
+      .uie-you-stats-grid,
+      .uie-you-lineage-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+
+  <div class="uie-you-header">
+    <h2 class="uie-you-title"><i class="fa-solid fa-id-badge"></i><span>You</span></h2>
+    <div class="uie-you-tools">
+      <button type="button" id="uie-you-refresh" class="uie-you-icon-btn" title="Refresh"><i class="fa-solid fa-rotate"></i></button>
+      <button type="button" id="uie-you-close" class="uie-you-icon-btn uie-you-close" title="Close"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+  </div>
+
+  <div class="uie-you-body">
+    <aside class="uie-you-profile">
+      <div id="uie-you-photo" class="uie-you-photo"><i class="fa-solid fa-user"></i></div>
+      <div>
+        <h3 id="uie-you-name" class="uie-you-name">You</h3>
+        <div id="uie-you-class-level" class="uie-you-subline">Level 1 Adventurer</div>
+      </div>
+      <div id="uie-you-vitals" class="uie-you-vitals"></div>
+    </aside>
+
+    <main class="uie-you-main">
+      <section class="uie-you-section">
+        <h3><i class="fa-solid fa-address-card"></i> Identity</h3>
+        <div id="uie-you-core-grid" class="uie-you-kv-grid"></div>
+      </section>
+
+      <section class="uie-you-section">
+        <h3><i class="fa-solid fa-sparkles"></i> Status Effects</h3>
+        <div id="uie-you-status-list" class="uie-you-effects"></div>
+      </section>
+
+      <section class="uie-you-section">
+        <h3><i class="fa-solid fa-chart-simple"></i> Stats</h3>
+        <div id="uie-you-stats-grid" class="uie-you-stats-grid"></div>
+      </section>
+
+      <section class="uie-you-section">
+        <h3><i class="fa-solid fa-people-roof"></i> Lineage</h3>
+        <div id="uie-you-lineage-grid" class="uie-you-lineage-grid"></div>
+      </section>
+    </main>
+  </div>
+</div>

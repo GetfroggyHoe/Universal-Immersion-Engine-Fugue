@@ -1,0 +1,30 @@
+{
+  "name": "universal-immersion-engine-local",
+  "private": true,
+  "license": "SEE LICENSE IN LICENSE.md",
+  "type": "module",
+  "description": "Universal Immersion Engine: Fugue standalone RPG visual-novel frontend.",
+  "scripts": {
+    "test": "node scripts/test-map-navigation.mjs",
+    "test:story-preset": "node scripts/test-story-preset.mjs",
+    "test:combat": "node scripts/test-combat-projection.mjs",
+    "test:context": "node scripts/test-context-memory.mjs",
+    "test:api-response": "node scripts/test-api-response-extraction.mjs",
+    "test:vn-response": "node scripts/test-vn-response-validation.mjs",
+    "test:expression": "node scripts/test-expression-engine.mjs",
+    "test:expression-bridge": "node scripts/test-expression-bridge.mjs",
+    "test:browser-backgrounds": "node scripts/test-browser-directional-backgrounds.mjs",
+    "test:living-world": "node scripts/test-living-world.mjs",
+    "test:layered-animation": "node scripts/test-layered-animation.mjs",
+    "sync:ui": "node scripts/sync-ui-embeds.mjs",
+    "test:comfy": "node scripts/test-comfyui-smoke.mjs",
+    "backend:install": "python -m pip install -r python/requirements.txt",
+    "backend:start": "python -m uvicorn python.uie_backend:app --host 127.0.0.1 --port 28101",
+    "backend:start:lan": "python -m uvicorn python.uie_backend:app --host 127.0.0.1 --port 28101",
+    "start": "node dev-server.mjs",
+    "start:full": "node scripts/start-full.mjs",
+    "start:device": "node dev-server.mjs --host 0.0.0.0 --port 8093 --backend-host 127.0.0.1 --no-backend --no-image-service",
+    "start:lan": "node dev-server.mjs --host 0.0.0.0 --port 8093 --backend-host 127.0.0.1 --no-backend --no-image-service",
+    "start:mobile": "node dev-server.mjs --host 0.0.0.0 --port 8093 --backend-host 127.0.0.1 --no-backend --no-image-service"
+  }
+}

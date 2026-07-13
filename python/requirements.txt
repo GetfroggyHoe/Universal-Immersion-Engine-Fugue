@@ -1,0 +1,20 @@
+fastapi>=0.115,<1
+uvicorn[standard]>=0.30,<1
+pydantic>=2.7,<3
+numpy>=1.26,<3
+pydub>=0.25,<1
+scipy>=1.11,<2
+onnxruntime>=1.16,<2
+sentencepiece>=0.2,<1
+soundfile>=0.12,<1
+kokoro-onnx>=0.5,<1
+Pillow>=10.0,<12
+huggingface_hub>=0.24,<2
+tokenizers>=0.19,<2
+# Koji (local image generation) dependencies
+torch>=2.1
+torchvision>=0.16
+diffusers>=0.27
+transformers>=4.40
+accelerate>=0.30
+safetensors>=0.4

@@ -1,0 +1,317 @@
+<div id="uie-main-menu" class="uie-launch-menu" style="display:none;" aria-label="Game menu">
+  <style>
+    /* Sidecar Menu Container overrides */
+    #uie-main-menu {
+      display: flex !important;
+      position: fixed !important;
+      top: 0 !important;
+      right: 0 !important;
+      bottom: 0 !important;
+      left: auto !important;
+      width: 320px !important;
+      height: 100vh !important;
+      max-height: 100vh !important;
+      z-index: 2147483640 !important;
+      flex-direction:column !important;
+      transform: translateX(100%) !important;
+      opacity: 0 !important;
+      visibility: hidden !important;
+      pointer-events: none !important;
+      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s, visibility 0.3s !important;
+      background: radial-gradient(120% 80% at 8% 0%, color-mix(in srgb, var(--menu-accent, #76d7ff), transparent 82%), transparent 48%),
+                  linear-gradient(155deg, var(--menu-bg-a, rgba(10, 16, 28, 0.72)), var(--menu-bg-b, rgba(5, 8, 14, 0.78))) !important;
+      border: none !important;
+      border-left: 1px solid var(--menu-border, rgba(118,215,255,.28)) !important;
+      border-radius: 0 !important;
+      box-shadow: -8px 0 36px rgba(0, 0, 0, 0.65) !important;
+      font-family: Inter, system-ui, sans-serif !important;
+      box-sizing: border-box !important;
+    }
+
+    /* Toggle visibility cleanly using inline style check */
+    #uie-main-menu[style*="display: none"],
+    #uie-main-menu[style*="display:none"] {
+      transform: translateX(100%) !important;
+      opacity: 0 !important;
+      visibility: hidden !important;
+      pointer-events: none !important;
+    }
+
+    #uie-main-menu:not([style*="display: none"]):not([style*="display:none"]) {
+      transform: translateX(0) !important;
+      opacity: 1 !important;
+      visibility: visible !important;
+      pointer-events: auto !important;
+    }
+
+    /* Themes definitions matching core settings */
+    #uie-main-menu[data-menu-theme="fantasy"] {
+      --menu-accent: #e7c66a;
+      --menu-accent-2: #9df0b1;
+      --menu-bg-a: rgba(30, 22, 42, 0.72);
+      --menu-bg-b: rgba(10, 12, 18, 0.78);
+      --menu-border: rgba(231,198,106,.32);
+    }
+    #uie-main-menu[data-menu-theme="modern"] {
+      --menu-accent: #8cc8ff;
+      --menu-accent-2: #ffe08a;
+      --menu-bg-a: rgba(17, 24, 39, 0.72);
+      --menu-bg-b: rgba(8, 11, 16, 0.78);
+      --menu-border: rgba(140,200,255,.28);
+    }
+    #uie-main-menu[data-menu-theme="futuristic"] {
+      --menu-accent: #00e5ff;
+      --menu-accent-2: #b6ff6d;
+      --menu-bg-a: rgba(3, 18, 32, 0.70);
+      --menu-bg-b: rgba(3, 6, 16, 0.78);
+      --menu-border: rgba(0,229,255,.34);
+    }
+    #uie-main-menu[data-menu-theme="academic"] {
+      --menu-accent: #ffd166;
+      --menu-accent-2: #9ddcff;
+      --menu-bg-a: rgba(18, 24, 38, 0.72);
+      --menu-bg-b: rgba(13, 18, 24, 0.78);
+      --menu-border: rgba(255,209,102,.3);
+    }
+
+    /* Header styling */
+    #uie-main-menu #uie-menu-drag {
+      min-height: 60px !important;
+      padding: 12px 18px !important;
+      display: flex !important;
+      align-items: center !important;
+      gap: 12px !important;
+      border-bottom: 1px solid var(--menu-border, rgba(118,215,255,.28)) !important;
+      background: rgba(255,255,255,.035) !important;
+      cursor: default !important;
+      box-sizing: border-box !important;
+    }
+    .uie-menu-mark {
+      width: 36px !important;
+      height: 36px !important;
+      display: grid !important;
+      place-items: center !important;
+      border: 1px solid var(--menu-border) !important;
+      border-radius: 8px !important;
+      color: var(--menu-accent) !important;
+      background: rgba(255,255,255,.06) !important;
+    }
+    #uie-menu-title {
+      font-size: 14px !important;
+      font-weight: 900 !important;
+      letter-spacing: .08em !important;
+      text-transform: uppercase !important;
+      color: #f8fbff !important;
+    }
+    #uie-menu-close {
+      margin-left: auto !important;
+      width: 34px !important;
+      height: 34px !important;
+      display: grid !important;
+      place-items: center !important;
+      border: 1px solid transparent !important;
+      border-radius: 8px !important;
+      color: #aeb9c8 !important;
+      background: rgba(255,255,255,.035) !important;
+      cursor: pointer !important;
+    }
+    #uie-menu-close:hover {
+      color: #f8fafc !important;
+      border-color: var(--menu-border) !important;
+      background: rgba(255,255,255,.08) !important;
+    }
+
+    /* Workspace & content sections */
+    #uie-main-menu .uie-menu-workspace {
+      grid-template-columns: 1fr !important;
+      flex: 1 !important;
+      min-height: 0 !important;
+      overflow: hidden !important;
+      display: flex !important;
+      flex-direction:column !important;
+    }
+
+    #uie-main-menu .uie-menu-tabs {
+      display: none !important;
+    }
+
+    #uie-main-menu #uie-menu-content {
+      flex: 1 !important;
+      padding: 16px !important;
+      overflow-y: auto !important;
+      display: flex !important;
+      flex-direction:column !important;
+      gap: 20px !important;
+      box-sizing: border-box !important;
+    }
+
+    #uie-main-menu .uie-menu-page {
+      display: block !important;
+      animation: none !important;
+    }
+
+    #uie-main-menu .uie-side-menu-section {
+      display: flex !important;
+      flex-direction:column !important;
+      gap: 8px !important;
+    }
+
+    #uie-main-menu .uie-launch-heading {
+      margin: 0 !important;
+      font-size: 11px !important;
+      font-weight: 900 !important;
+      letter-spacing: .12em !important;
+      text-transform: uppercase !important;
+      color: var(--menu-accent, #76d7ff) !important;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+      padding-bottom: 5px !important;
+      margin-bottom: 8px !important;
+    }
+
+    #uie-main-menu .uie-launch-grid {
+      display: flex !important;
+      flex-direction: column !important;
+      gap: 4px !important;
+    }
+
+    /* Main menu options are rows, not boxed cards. */
+    #uie-main-menu .uie-menu-btn {
+      min-width: 0 !important;
+      width: 100% !important;
+      height: 40px !important;
+      min-height: 40px !important;
+      padding: 0 10px !important;
+      display: flex !important;
+      flex-direction: row !important;
+      align-items: center !important;
+      justify-content: flex-start !important;
+      gap: 10px !important;
+      border: 0 !important;
+      border-left: 1px solid transparent !important;
+      border-radius: 0 !important;
+      color: #cbd5e1 !important;
+      background: transparent !important;
+      cursor: pointer !important;
+      text-align: left !important;
+      transform: none !important;
+      transition: all 0.15s ease !important;
+      box-shadow: none !important;
+      box-sizing: border-box !important;
+    }
+    #uie-main-menu .uie-menu-btn:hover {
+      transform: none !important;
+      border-left-color: var(--menu-accent) !important;
+      color: #fff !important;
+      background: rgba(255, 255, 255, 0.06) !important;
+    }
+    #uie-main-menu .uie-menu-btn i {
+      width: 22px !important;
+      flex: 0 0 auto !important;
+      color: var(--menu-accent) !important;
+      font-size: 16px !important;
+      text-align: center !important;
+    }
+    #uie-main-menu .uie-menu-btn span {
+      min-width: 0 !important;
+      flex: 1 !important;
+      font-size: 11px !important;
+      font-weight: 800 !important;
+      line-height: 1.25 !important;
+      white-space: normal !important;
+      overflow: hidden !important;
+      display: -webkit-box !important;
+      -webkit-line-clamp: 2 !important;
+      -webkit-box-orient: vertical !important;
+      text-overflow: ellipsis !important;
+    }
+    #uie-main-menu .uie-menu-btn.danger i {
+      color: #fb7185 !important;
+    }
+    #uie-main-menu .uie-menu-btn.danger:hover {
+      border-color: rgba(251, 113, 133, .38) !important;
+    }
+
+    @media not all {
+      #uie-main-menu {
+        width: 290px !important;
+      }
+      #uie-main-menu #uie-menu-content {
+        padding: 12px !important;
+        gap: 16px !important;
+      }
+      #uie-main-menu .uie-menu-btn {
+        height: 38px !important;
+        min-height: 38px !important;
+        gap: 8px !important;
+      }
+      #uie-main-menu .uie-menu-btn i {
+        font-size: 14px !important;
+      }
+      #uie-main-menu .uie-menu-btn span {
+        font-size: 10px !important;
+      }
+    }
+  </style>
+
+  <div id="uie-menu-drag">
+    <div class="uie-menu-mark"><i class="fa-solid fa-bars"></i></div>
+    <span id="uie-menu-title">Command Deck</span>
+    <button type="button" id="uie-menu-close" aria-label="Close menu"><i class="fa-solid fa-xmark"></i></button>
+  </div>
+
+  <div class="uie-menu-workspace">
+    <div id="uie-menu-content">
+      <!-- Story Tools -->
+      <section id="uie-tab-story" class="uie-menu-page">
+        <div class="uie-launch-heading">Story tools</div>
+        <div class="uie-launch-grid">
+          <button id="uie-btn-journal" class="uie-menu-btn"><i class="fa-solid fa-book-open"></i><span>Journal</span></button>
+          <button id="uie-btn-diary" class="uie-menu-btn"><i class="fa-solid fa-book"></i><span>Diary</span></button>
+          <button id="uie-btn-open-map" class="uie-menu-btn"><i class="fa-solid fa-map-location-dot"></i><span>Map</span></button>
+          <button id="uie-btn-factions" class="uie-menu-btn"><i class="fa-solid fa-network-wired"></i><span>Organizations</span></button>
+          <button id="uie-btn-activities" class="uie-menu-btn"><i class="fa-solid fa-person-running"></i><span>Activities</span></button>
+          <button id="uie-btn-battle" class="uie-menu-btn"><i class="fa-solid fa-khanda"></i><span>Battle</span></button>
+        </div>
+      </section>
+
+      <!-- Character Tools -->
+      <section id="uie-tab-character" class="uie-menu-page">
+        <div class="uie-launch-heading">Character tools</div>
+        <div class="uie-launch-grid">
+          <button id="uie-btn-personas" class="uie-menu-btn"><i class="fa-solid fa-masks-theater"></i><span>Persona</span></button>
+          <button id="uie-btn-inventory" class="uie-menu-btn"><i class="fa-solid fa-bag-shopping"></i><span>Inventory</span></button>
+          <button id="uie-btn-character-cards" class="uie-menu-btn"><i class="fa-solid fa-address-card"></i><span>Characters</span></button>
+          <button id="uie-btn-party" class="uie-menu-btn"><i class="fa-solid fa-users"></i><span>Party</span></button>
+          <button id="uie-btn-social" class="uie-menu-btn"><i class="fa-solid fa-heart"></i><span>Social</span></button>
+          <button id="uie-btn-you" class="uie-menu-btn"><i class="fa-solid fa-id-badge"></i><span>You</span></button>
+        </div>
+      </section>
+
+      <!-- World Tools -->
+      <section id="uie-tab-world" class="uie-menu-page">
+        <div class="uie-launch-heading">World tools</div>
+        <div class="uie-launch-grid">
+          <button id="uie-btn-databank" class="uie-menu-btn"><i class="fa-solid fa-server"></i><span>Databank</span></button>
+          <button id="uie-btn-open-phone" class="uie-menu-btn"><i class="fa-solid fa-mobile-screen"></i><span>Phone</span></button>
+          <button id="uie-btn-add-npc" class="uie-menu-btn"><i class="fa-solid fa-user-plus"></i><span>Add NPC</span></button>
+          <button id="uie-btn-open-calendar-main" class="uie-menu-btn"><i class="fa-solid fa-calendar-days"></i><span>Calendar</span></button>
+          <button id="uie-btn-tweaker" class="uie-menu-btn"><i class="fa-solid fa-cloud-sun-rain"></i><span>Atmosphere</span></button>
+          <button id="uie-btn-helper-pet" class="uie-menu-btn"><i class="fa-solid fa-wand-sparkles"></i><span>Helper</span></button>
+        </div>
+      </section>
+
+      <!-- System Tools -->
+      <section id="uie-tab-system" class="uie-menu-page">
+        <div class="uie-launch-heading">System</div>
+        <div class="uie-launch-grid">
+          <button id="uie-btn-open-settings" class="uie-menu-btn"><i class="fa-solid fa-sliders"></i><span>Settings</span></button>
+          <button id="btn-edit-room" class="uie-menu-btn"><i class="fa-solid fa-couch"></i><span>Edit Room</span></button>
+          <button id="uie-btn-help" class="uie-menu-btn"><i class="fa-solid fa-circle-question"></i><span>Help</span></button>
+          <button id="btn-save-game" class="uie-menu-btn"><i class="fa-solid fa-floppy-disk"></i><span>Save</span></button>
+          <button id="btn-load-game" class="uie-menu-btn"><i class="fa-solid fa-folder-open"></i><span>Load</span></button>
+          <button id="uie-btn-exit-to-main" class="uie-menu-btn danger"><i class="fa-solid fa-arrow-right-from-bracket"></i><span>Exit</span></button>
+        </div>
+      </section>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,1272 @@
+<div id="uie-factions-window" data-uie-factions-template="organizations-v2" style="display:none;">
+  <style>
+    #uie-factions-window {
+      position: fixed !important;
+      inset: 0 !important;
+      z-index: 20030;
+      display: none;
+      color: #edf3f8;
+      background: #070a13;
+      overflow: hidden;
+      font-family: Inter, Outfit, system-ui, sans-serif;
+    }
+
+    #uie-factions-window * { box-sizing: border-box; }
+
+    /* Aurora Borealis / Northern Lights Glowing Background Wave Effect */
+    #uie-factions-window::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background: 
+        radial-gradient(ellipse at 30% 20%, rgba(20, 184, 166, 0.22) 0%, transparent 60%),
+        radial-gradient(ellipse at 70% 30%, rgba(99, 102, 241, 0.20) 0%, transparent 60%),
+        radial-gradient(ellipse at 40% 70%, rgba(168, 85, 247, 0.15) 0%, transparent 50%),
+        radial-gradient(ellipse at 10% 80%, rgba(45, 212, 191, 0.12) 0%, transparent 40%);
+      filter: blur(40px);
+      opacity: 0.9;
+      z-index: 0;
+    }
+
+    .uie-org-shell {
+      position: relative;
+      z-index: 1;
+      height: 100%;
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr);
+      padding: 24px;
+      gap: 18px;
+      pointer-events: auto;
+    }
+
+    .uie-org-top {
+      position: relative;
+      z-index: 2;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 16px;
+      min-height: 78px;
+    }
+
+    .uie-org-title {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      min-width: 0;
+    }
+
+    .uie-org-sigil {
+      width: 58px;
+      height: 58px;
+      position: relative;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      color: #10141b;
+      background:
+        radial-gradient(circle, #e6d49a 0 24%, transparent 25%),
+        linear-gradient(135deg, #7fa0ad, #d6b468 48%, #3d4652);
+      box-shadow: 0 14px 28px rgba(0,0,0,.32), inset 0 0 0 2px rgba(237,243,248,.28);
+      flex: 0 0 auto;
+      font-size: 20px;
+    }
+
+    .uie-org-sigil::before,
+    .uie-org-sigil::after {
+      content: "";
+      position: absolute;
+      border-radius: 50%;
+      border: 1px solid rgba(255,247,223,.55);
+      inset: -8px;
+    }
+
+    .uie-org-sigil::after {
+      inset: 12px;
+      border-color: rgba(21,18,15,.55);
+      transform: rotate(45deg);
+      border-radius: 8px;
+    }
+
+    .uie-org-heading h2 {
+      margin: 0;
+      color: #fff7df;
+      font-size: clamp(28px, 3.2vw, 48px);
+      line-height: .96;
+      letter-spacing: 0;
+    }
+
+    .uie-org-heading p {
+      margin: 7px 0 0;
+      color: #e8d9bc;
+      font-size: 13px;
+      font-weight: 760;
+      max-width: 86ch;
+    }
+
+    .uie-org-top-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .uie-org-btn {
+      min-height: 38px;
+      padding: 0 13px;
+      border: 1px solid rgba(255,247,223,.18);
+      border-radius: 9px;
+      background: rgba(255,247,223,.08);
+      color: #fff7df;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      font-weight: 900;
+      font-size: 12px;
+      cursor: pointer;
+      outline: none;
+      transition: all .15s ease;
+    }
+
+    .uie-org-btn:hover { background: rgba(255,247,223,.15); border-color: rgba(255,247,223,.32); }
+    .uie-org-btn.primary { background: #d6b468; color: #11151b; border-color: #d6b468; }
+    .uie-org-btn.primary:hover { background: #e0c070; }
+    .uie-org-btn.danger { color: #ff9bae; border-color: rgba(255,122,144,.45); background: rgba(255,122,144,.10); }
+    .uie-org-btn.danger:hover { background: rgba(255,122,144,.18); }
+    .uie-org-btn.icon { width: 38px; padding: 0; }
+    .uie-org-btn.ghost { background: transparent; border-color: rgba(255,247,223,.10); }
+    .uie-org-btn.ghost:hover { background: rgba(255,247,223,.08); }
+
+    /* Main board: Left Sidebar tabs + Center Organization Names + Right Active Intel */
+    .uie-org-board {
+      position: relative;
+      z-index: 2;
+      min-height: 0;
+      display: grid;
+      grid-template-columns: 160px minmax(280px, 360px) minmax(0, 1fr);
+      gap: 18px;
+    }
+
+    .uie-org-panel {
+      min-height: 0;
+      border: 1px solid rgba(255,247,223,.14);
+      border-radius: 18px;
+      background: rgba(12, 11, 10, .48);
+      box-shadow: 0 24px 70px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,247,223,.08);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+      overflow: hidden;
+    }
+
+    /* LEFTMOST Column: Sidebar Tabs/Filters */
+    .uie-org-sidebar-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding: 10px 0;
+    }
+    
+    .uie-org-sidebar-panel .uie-org-filter-chip {
+      width: 100%;
+      min-height: 38px;
+      border-radius: 10px;
+      border: 1px solid rgba(255,247,223,.12);
+      background: rgba(255,247,223,.05);
+      color: #a89878;
+      font-size: 11px;
+      font-weight: 850;
+      display: flex;
+      align-items: center;
+      padding: 0 14px;
+      cursor: pointer;
+      transition: all .15s ease;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+    }
+    .uie-org-sidebar-panel .uie-org-filter-chip:hover {
+      background: rgba(255,247,223,.12);
+      color: #fff7df;
+    }
+    .uie-org-sidebar-panel .uie-org-filter-chip.active {
+      color: #15120f;
+      background: #d6b468;
+      border-color: #d6b468;
+      font-weight: 950;
+    }
+
+    /* CENTER Column: Organization Names list */
+    .uie-org-directory {
+      display: grid;
+      grid-template-rows: auto auto auto minmax(0, 1fr);
+      min-width: 0;
+    }
+
+    /* Compact search bar */
+    .uie-org-search-wrap {
+      padding: 8px 14px;
+      border-bottom: 1px solid rgba(255,247,223,.06);
+      position: relative;
+    }
+    .uie-org-search-wrap::before {
+      content: "\f002";
+      font-family: "Font Awesome 6 Free";
+      font-weight: 900;
+      position: absolute;
+      left: 24px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: rgba(214,180,104,.4);
+      font-size: 11px;
+      pointer-events: none;
+    }
+    .uie-org-search-input {
+      width: 100%;
+      min-height: 32px;
+      border-radius: 8px;
+      border: 1px solid rgba(255,247,223,.10);
+      background: rgba(0,0,0,.30);
+      color: #edf3f8;
+      padding: 6px 10px 6px 30px;
+      font-size: 12px;
+      font-weight: 700;
+      outline: none;
+      caret-color: #d6b468;
+    }
+    .uie-org-search-input::placeholder { color: rgba(237,243,248,.35); opacity: 1; }
+
+    /* Compact intel toolbar */
+    .uie-org-intel-toolbar {
+      display: flex;
+      gap: 8px;
+      padding: 10px 14px;
+      border-bottom: 1px solid rgba(255,247,223,.08);
+      overflow-x: auto;
+      flex-wrap: nowrap;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+    }
+    .uie-org-intel-toolbar::-webkit-scrollbar { display: none; }
+    .uie-org-intel-toolbar .uie-org-btn {
+      min-height: 34px;
+      white-space: nowrap;
+      flex: 0 0 auto;
+      font-size: 11px;
+    }
+
+    #uie-organization-list {
+      min-height: 0;
+      overflow-y: auto;
+      padding: 12px;
+      display: grid;
+      gap: 10px;
+      align-content: start;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255,247,223,.08) transparent;
+    }
+
+    .uie-org-card {
+      position: relative;
+      border: 1px solid rgba(255,247,223,.12);
+      border-radius: 14px;
+      background:
+        linear-gradient(135deg, rgba(237,243,248,.06), rgba(237,243,248,.02));
+      overflow: hidden;
+      transition: all .15s ease;
+    }
+
+    .uie-org-card:hover { border-color: rgba(214,180,104,.28); background: linear-gradient(135deg, rgba(237,243,248,.09), rgba(237,243,248,.03)); }
+
+    .uie-org-card::before {
+      content: "";
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      width: 3px;
+      background: var(--org-accent, #d6b468);
+      opacity: .65;
+    }
+
+    .uie-org-card-inner {
+      position: relative;
+      padding: 11px 13px;
+      display: grid;
+      grid-template-columns: 40px minmax(0, 1fr);
+      gap: 11px;
+      align-items: start;
+    }
+
+    .uie-org-emblem {
+      width: 40px;
+      height: 40px;
+      display: grid;
+      place-items: center;
+      color: #11151b;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #7fa0ad, #d6b468 48%, #394351);
+      box-shadow: 0 6px 16px rgba(0,0,0,.28);
+      font-size: 16px;
+    }
+
+    .uie-org-card-body { min-width: 0; }
+
+    .uie-org-card-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+    }
+
+    .uie-org-name {
+      margin: 0;
+      padding: 0;
+      border: 0;
+      background: transparent;
+      color: #fff7df;
+      font-size: 14px;
+      line-height: 1.2;
+      font-weight: 950;
+      text-align: left;
+      cursor: pointer;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      min-width: 0;
+    }
+
+    .uie-org-name:hover { color: #d6b468; }
+
+    .uie-org-card-badges {
+      display: flex;
+      gap: 4px;
+      flex-shrink: 0;
+    }
+
+    .uie-org-badge {
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 9px;
+      font-weight: 900;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+    .uie-org-badge.heat { background: rgba(255,100,80,.15); color: #ff8a70; border: 1px solid rgba(255,100,80,.2); }
+    .uie-org-badge.heat.high { background: rgba(255,60,60,.2); color: #ff6060; border-color: rgba(255,60,60,.3); }
+    .uie-org-badge.member { background: rgba(100,200,150,.12); color: #7edba5; border: 1px solid rgba(100,200,150,.18); }
+    .uie-org-badge.hook { background: rgba(160,140,255,.12); color: #b8a8ff; border: 1px solid rgba(160,140,255,.18); }
+
+    .uie-org-card-meta {
+      margin-top: 5px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      align-items: center;
+    }
+
+    .uie-org-chip {
+      padding: 2px 6px;
+      border: 1px solid rgba(255,247,223,.10);
+      border-radius: 4px;
+      background: rgba(0,0,0,.18);
+      white-space: nowrap;
+      font-size: 10px;
+      font-weight: 800;
+      color: #a89878;
+    }
+
+    .uie-org-standing-bar {
+      height: 3px;
+      border-radius: 2px;
+      background: rgba(255,247,223,.06);
+      margin-top: 6px;
+      overflow: hidden;
+    }
+    .uie-org-standing-fill {
+      height: 100%;
+      border-radius: 2px;
+      transition: width .3s ease;
+    }
+
+    .uie-org-card-footer {
+      margin-top: 6px;
+      display: flex;
+      gap: 4px;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .uie-org-card-hook {
+      font-size: 10px;
+      color: #8a7e6a;
+      font-weight: 700;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      flex: 1;
+      min-width: 0;
+    }
+    .uie-org-card-hook::before {
+      content: "\f08d";
+      font-family: "Font Awesome 6 Free";
+      font-weight: 900;
+      margin-right: 4px;
+      color: rgba(160,140,255,.5);
+      font-size: 9px;
+    }
+    .uie-org-card-actions { display: flex; gap: 4px; flex-shrink: 0; }
+    .uie-org-card-actions .uie-org-btn { min-height: 24px; padding: 0 8px; font-size: 10px; border-radius: 6px; }
+    .uie-org-card-actions .uie-org-btn.icon { width: 24px; padding: 0; }
+
+    /* RIGHTMOST Column: Active Intel (Taller & wider window for stats and hooks) */
+    .uie-org-stage {
+      position: relative;
+      min-height: 0;
+      padding: 20px;
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr);
+      gap: 16px;
+      overflow: hidden;
+    }
+
+    .uie-org-stage-scrollable {
+      min-height: 0;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255,247,223,.08) transparent;
+    }
+
+    /* Active Numbers Grid */
+    .uie-org-snapshot {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+      gap: 10px;
+    }
+    
+    .uie-org-stat {
+      min-height: 72px;
+      border: 1px solid rgba(255,247,223,.12);
+      border-radius: 14px;
+      padding: 10px;
+      background: rgba(255,247,223,.05);
+      text-align: center;
+      transition: background-color 0.2s;
+    }
+    .uie-org-stat:hover {
+      background: rgba(255,247,223,.08);
+    }
+    .uie-org-stat span {
+      display: block;
+      color: #d6b468;
+      font-size: 9px;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      font-weight: 950;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .uie-org-stat b {
+      display: block;
+      color: #fff7df;
+      font-size: 16px;
+      line-height: 1.2;
+      margin-top: 6px;
+      overflow-wrap: anywhere;
+    }
+    .uie-org-stat.alert b { color: #ff8a70; }
+    .uie-org-stat.good b { color: #7edba5; }
+    .uie-org-stat.info b { color: #8ab4f8; }
+
+    /* Active hooks feed */
+    .uie-org-hooks-feed {
+      min-height: 0;
+      display: grid;
+      gap: 6px;
+      align-content: start;
+    }
+
+    .uie-org-hook-item {
+      padding: 8px 10px;
+      border: 1px solid rgba(214,180,104,.08);
+      border-radius: 10px;
+      background: rgba(0,0,0,.2);
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      gap: 8px;
+      align-items: start;
+      cursor: pointer;
+    }
+    .uie-org-hook-item:hover { background: rgba(255,247,223,.06); }
+
+    .uie-org-hook-icon {
+      width: 24px;
+      height: 24px;
+      display: grid;
+      place-items: center;
+      border-radius: 6px;
+      font-size: 10px;
+      flex-shrink: 0;
+    }
+    .uie-org-hook-icon.conflict { background: rgba(255,100,80,.12); color: #ff8a70; }
+    .uie-org-hook-icon.intel { background: rgba(160,140,255,.12); color: #b8a8ff; }
+    .uie-org-hook-icon.opportunity { background: rgba(100,200,150,.12); color: #7edba5; }
+    .uie-org-hook-icon.rumor { background: rgba(214,180,104,.12); color: #d6b468; }
+
+    .uie-org-hook-text { font-size: 11px; color: #c8b898; font-weight: 700; line-height: 1.4; }
+    .uie-org-hook-source { font-size: 9px; color: #6a6050; font-weight: 800; text-transform: uppercase; margin-top: 2px; }
+
+    .uie-org-section-title {
+      color: #d6b468;
+      font-size: 10px;
+      font-weight: 900;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      margin: 0 0 6px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .uie-org-section-title::after {
+      content: "";
+      flex: 1;
+      height: 1px;
+      background: rgba(214,180,104,.1);
+    }
+
+    /* Intel panel (pending intel) */
+    .uie-org-intel-panel {
+      border: 1px solid rgba(160,140,255,.12);
+      border-radius: 10px;
+      background: rgba(160,140,255,.03);
+      padding: 10px;
+      display: grid;
+      gap: 8px;
+    }
+    .uie-org-intel-item {
+      padding: 8px;
+      border: 1px solid rgba(160,140,255,.08);
+      border-radius: 8px;
+      background: rgba(0,0,0,.15);
+      display: grid;
+      gap: 6px;
+    }
+    .uie-org-intel-header { display: flex; justify-content: space-between; align-items: center; gap: 6px; }
+    .uie-org-intel-name { font-size: 12px; font-weight: 900; color: #fff7df; }
+    .uie-org-intel-meta { font-size: 9px; color: #8a7e6a; font-weight: 800; text-transform: uppercase; }
+    .uie-org-intel-reason { font-size: 10px; color: #a89878; line-height: 1.4; }
+    .uie-org-intel-actions { display: flex; gap: 4px; flex-wrap: wrap; }
+    .uie-org-intel-actions .uie-org-btn { min-height: 24px; padding: 0 8px; font-size: 10px; }
+
+    .uie-org-empty {
+      padding: 22px 18px;
+      color: #6a6050;
+      text-align: center;
+      font-weight: 850;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+    .uie-org-empty button { margin-top: 10px; }
+
+    /* Dossier modal */
+    .uie-org-dossier {
+      position: fixed;
+      inset: 0;
+      z-index: 2147483642;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 18px;
+      background: rgba(4, 5, 6, .72);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+      pointer-events: auto;
+    }
+    .uie-org-dossier[aria-hidden="false"] { display: flex; }
+
+    .uie-org-dossier-panel {
+      width: min(1180px, 96vw);
+      height: min(780px, 92vh);
+      min-height: 0;
+      display: grid;
+      grid-template-columns: 310px minmax(0, 1fr);
+      border: 1px solid rgba(255,247,223,.18);
+      border-radius: 24px;
+      background:
+        linear-gradient(135deg, rgba(20,24,33,.98), rgba(10,15,22,.98) 58%, rgba(29,23,18,.98));
+      box-shadow: 0 34px 110px rgba(0,0,0,.62), inset 0 1px 0 rgba(255,247,223,.08);
+      overflow: hidden;
+    }
+
+    .uie-org-dossier-side {
+      min-height: 0;
+      padding: 20px;
+      border-right: 1px solid rgba(255,247,223,.12);
+      display: grid;
+      grid-template-rows: auto auto minmax(0, 1fr);
+      gap: 16px;
+      background: rgba(255,247,223,.04);
+    }
+
+    .uie-org-dossier-sigil {
+      width: 132px;
+      height: 132px;
+      margin: 8px auto 2px;
+      position: relative;
+      display: grid;
+      place-items: center;
+      color: #11151b;
+      border-radius: 34px;
+      background:
+        radial-gradient(circle, #e6d49a 0 20%, transparent 21%),
+        linear-gradient(135deg, #7fa0ad, #d6b468 48%, #394351);
+      box-shadow: 0 24px 58px rgba(0,0,0,.32);
+      font-size: 44px;
+    }
+
+    .uie-org-dossier-sigil::before {
+      content: "";
+      position: absolute;
+      inset: 15px;
+      border: 2px solid rgba(21,18,15,.48);
+      border-radius: 50%;
+      box-shadow: 0 0 0 13px rgba(255,247,223,.14);
+    }
+
+    .uie-org-dossier-title input {
+      width: 100%;
+      border: 1px solid rgba(216,183,108,.34);
+      border-radius: 10px;
+      background: rgba(5, 8, 14, .72);
+      color: #edf3f8;
+      font-size: 25px;
+      font-weight: 950;
+      line-height: 1.1;
+      text-align: center;
+      outline: none;
+      padding: 9px 11px;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.06);
+    }
+
+    .uie-org-dossier-title small {
+      display: block;
+      margin-top: 7px;
+      color: #e8d9bc;
+      text-align: center;
+      font-size: 11px;
+      font-weight: 850;
+    }
+
+    .uie-org-tabs {
+      min-height: 0;
+      overflow: auto;
+      display: grid;
+      gap: 8px;
+      align-content: start;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+    }
+    .uie-org-tabs::-webkit-scrollbar { display: none; }
+
+    .uie-org-tab {
+      min-height: 42px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,247,223,.10);
+      background: rgba(255,247,223,.05);
+      color: #e8d9bc;
+      font-weight: 930;
+      font-size: 12px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 0 12px;
+      cursor: pointer;
+      text-align: left;
+      transition: all .15s ease;
+    }
+    .uie-org-tab:hover { background: rgba(255,247,223,.10); color: #fff7df; }
+    .uie-org-tab.active { color: #15120f; background: #d6b468; border-color: #d6b468; }
+
+    .uie-org-dossier-main {
+      min-height: 0;
+      display: grid;
+      grid-template-rows: auto auto minmax(0, 1fr) auto;
+      gap: 14px;
+      padding: 20px;
+    }
+
+    .uie-org-dossier-top {
+      display: flex;
+      align-items: start;
+      gap: 12px;
+      justify-content: space-between;
+    }
+    .uie-org-dossier-top h3 { margin: 0; color: #fff7df; font-size: 18px; line-height: 1.2; }
+    .uie-org-dossier-top p { margin: 5px 0 0; color: #e8d9bc; font-size: 12px; font-weight: 820; }
+
+    .uie-org-icon-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+
+    .uie-org-hero-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+      gap: 10px;
+    }
+
+    .uie-org-hero-chip {
+      min-height: 70px;
+      padding: 11px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,247,223,.11);
+      background: rgba(255,247,223,.06);
+    }
+    .uie-org-hero-chip span {
+      display: block;
+      color: #d6b468;
+      font-size: 10px;
+      font-weight: 950;
+      letter-spacing: .11em;
+      text-transform: uppercase;
+    }
+    .uie-org-hero-chip b {
+      display: block;
+      margin-top: 6px;
+      color: #fff7df;
+      font-size: 12px;
+      line-height: 1.18;
+      overflow-wrap: anywhere;
+    }
+
+    .uie-org-panel-body {
+      min-height: 0;
+      overflow: auto;
+      padding-right: 4px;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255,247,223,.08) transparent;
+    }
+
+    .uie-org-dossier-section { display: none; }
+    .uie-org-dossier-section.active { display: grid; gap: 16px; align-content: start; }
+
+    .uie-org-form-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+    .uie-org-form-grid.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+    .uie-org-field { display: grid; gap: 6px; }
+    .uie-org-field label {
+      color: #d6b468;
+      font-size: 10px;
+      font-weight: 950;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+    .uie-org-field input,
+    .uie-org-field textarea,
+    .uie-org-field select {
+      width: 100%;
+      min-height: 40px;
+      border-radius: 12px;
+      border: 1px solid rgba(216,183,108,.30);
+      background: rgba(5, 8, 14, .72);
+      color: #edf3f8;
+      padding: 9px 11px;
+      outline: none;
+      font: inherit;
+      font-size: 12px;
+      caret-color: #d6b468;
+      color-scheme: dark;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.06);
+    }
+    .uie-org-field input::placeholder,
+    .uie-org-field textarea::placeholder { color: rgba(237,243,248,.48); opacity: 1; }
+    .uie-org-field select option { background: #101722; color: #edf3f8; }
+    .uie-org-field textarea { min-height: 100px; resize: vertical; line-height: 1.45; }
+
+    .uie-org-location-combo {
+      position: relative;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 40px;
+      gap: 6px;
+      align-items: stretch;
+    }
+    .uie-org-location-combo > input { min-width: 0; }
+    .uie-org-location-toggle {
+      min-height: 40px;
+      border-radius: 12px;
+      border: 1px solid rgba(216,183,108,.30);
+      background: rgba(216,183,108,.16);
+      color: #f4d891;
+      cursor: pointer;
+      display: grid;
+      place-items: center;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.06);
+    }
+    .uie-org-location-menu {
+      position: absolute;
+      z-index: 8;
+      top: calc(100% + 6px);
+      left: 0;
+      right: 0;
+      max-height: min(300px, 42vh);
+      overflow: auto;
+      display: none;
+      padding: 8px;
+      border: 1px solid rgba(216,183,108,.28);
+      border-radius: 12px;
+      background: #101722;
+      color: #edf3f8;
+      box-shadow: 0 18px 44px rgba(0,0,0,.38);
+    }
+    .uie-org-location-combo.is-open .uie-org-location-menu { display: grid; gap: 7px; }
+    .uie-org-location-group { display: grid; gap: 4px; }
+    .uie-org-location-group-title {
+      padding: 4px 8px 2px;
+      color: #d6b468;
+      font-size: 10px;
+      font-weight: 950;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+    .uie-org-location-option {
+      width: 100%;
+      min-height: 34px;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 8px;
+      align-items: center;
+      border: 1px solid rgba(216,183,108,.18);
+      border-radius: 8px;
+      background: rgba(237,243,248,.055);
+      color: #edf3f8;
+      padding: 7px 9px;
+      font: inherit;
+      font-size: 11px;
+      text-align: left;
+      cursor: pointer;
+    }
+    .uie-org-location-option:hover,
+    .uie-org-location-option:focus { background: rgba(216,183,108,.18); outline: none; }
+    .uie-org-location-option b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .uie-org-location-option small { color: rgba(216,183,104,.78); font-size: 10px; font-weight: 850; text-transform: uppercase; }
+
+    .uie-org-member-row [data-org-edit-member] { margin-right: 6px; }
+
+    .uie-org-add-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 10px;
+      align-items: end;
+      padding: 12px;
+      border: 1px solid rgba(255,247,223,.10);
+      border-radius: 16px;
+      background: rgba(255,247,223,.04);
+    }
+    .uie-org-add-row.simple { grid-template-columns: minmax(0, 1fr) auto; }
+    .uie-org-add-row.rules { grid-template-columns: minmax(0, 1fr) auto; }
+    .uie-org-add-row.wide { grid-template-columns: repeat(6, minmax(0, 1fr)) auto; }
+
+    .uie-org-list { display: grid; gap: 8px; }
+
+    .uie-org-row {
+      min-height: 46px;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 12px;
+      align-items: center;
+      padding: 10px 12px;
+      border: 1px solid rgba(255,247,223,.10);
+      border-radius: 14px;
+      background: rgba(255,247,223,.05);
+      color: #fff7df;
+      font-size: 12px;
+    }
+    .uie-org-row small { display: block; margin-top: 3px; color: #e8d9bc; font-size: 11px; line-height: 1.35; }
+
+    .uie-org-member-table { display: grid; gap: 8px; }
+
+    .uie-org-member-row {
+      display: grid;
+      grid-template-columns: minmax(130px, 1.2fr) minmax(95px, .8fr) minmax(95px, .8fr) minmax(90px, .7fr) minmax(120px, 1fr) auto;
+      gap: 10px;
+      align-items: center;
+      padding: 10px 12px;
+      border: 1px solid rgba(255,247,223,.10);
+      border-radius: 14px;
+      background: rgba(255,247,223,.05);
+      color: #fff7df;
+      font-size: 12px;
+    }
+    .uie-org-member-row.head {
+      color: #d6b468;
+      font-size: 10px;
+      font-weight: 950;
+      letter-spacing: .11em;
+      text-transform: uppercase;
+      background: rgba(216,183,108,.08);
+    }
+
+    .uie-org-footer {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      padding-top: 14px;
+      border-top: 1px solid rgba(255,247,223,.10);
+    }
+
+    .uie-org-mini-note {
+      color: #e8d9bc;
+      line-height: 1.45;
+      font-size: 12px;
+      font-weight: 780;
+      margin: 0;
+    }
+
+    /* Org-intel info pills inside the dossier info tab */
+    .uie-org-intel-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+    .uie-org-intel-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 850;
+      border: 1px solid rgba(255,247,223,.12);
+      background: rgba(255,247,223,.06);
+      color: #e8d9bc;
+    }
+    .uie-org-intel-pill.heat { border-color: rgba(255,100,80,.2); background: rgba(255,100,80,.08); color: #ff8a70; }
+    .uie-org-intel-pill.member { border-color: rgba(100,200,150,.2); background: rgba(100,200,150,.08); color: #7edba5; }
+    .uie-org-intel-pill.access { border-color: rgba(160,140,255,.2); background: rgba(160,140,255,.08); color: #b8a8ff; }
+
+    .uie-org-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 20045;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 18px;
+      background: rgba(0,0,0,.62);
+    }
+    .uie-org-modal-card {
+      width: min(720px, 100%);
+      max-height: calc(100vh - 36px);
+      overflow: auto;
+      border: 1px solid rgba(216,183,108,.30);
+      border-radius: 14px;
+      background: #101722;
+      color: #edf3f8;
+      box-shadow: 0 28px 90px rgba(0,0,0,.46);
+      padding: 16px;
+      display: grid;
+      gap: 14px;
+    }
+    .uie-org-modal-card .uie-org-field label,
+    .uie-org-modal-card strong { color: #d6b468 !important; }
+
+    /* Template chooser modal */
+    .uie-org-template-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+      gap: 8px;
+    }
+    .uie-org-template-card {
+      padding: 12px;
+      border: 1px solid rgba(214,180,104,.1);
+      border-radius: 10px;
+      background: rgba(214,180,104,.03);
+      cursor: pointer;
+      text-align: center;
+      transition: all .15s ease;
+    }
+    .uie-org-template-card:hover { border-color: rgba(214,180,104,.3); background: rgba(214,180,104,.08); transform: translateY(-1px); }
+    .uie-org-template-card i { font-size: 24px; color: #d6b468; margin-bottom: 6px; display: block; }
+    .uie-org-template-card .tpl-name { font-size: 12px; font-weight: 900; color: #fff7df; }
+    .uie-org-template-card .tpl-desc { font-size: 9px; color: #a89878; margin-top: 3px; font-weight: 700; }
+
+    @media not all {
+      .uie-org-shell { padding: 14px; }
+      .uie-org-board { grid-template-columns: 1fr; grid-template-rows: auto minmax(0, 1fr) minmax(0, 1fr); }
+      .uie-org-sidebar-panel { flex-direction: row; flex-wrap: wrap; overflow-x: auto; }
+      .uie-org-sidebar-panel .uie-org-filter-chip { width: auto; }
+      .uie-org-snapshot { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .uie-org-hero-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .uie-org-dossier-panel { grid-template-columns: 1fr; grid-template-rows: auto minmax(0, 1fr); }
+      .uie-org-dossier-side { grid-template-rows: auto auto; }
+      .uie-org-tabs { grid-auto-flow: column; grid-auto-columns: max-content; overflow-x: auto; }
+      .uie-org-dossier-sigil { display: none; }
+      .uie-org-form-grid, .uie-org-form-grid.three, .uie-org-add-row.wide, .uie-org-add-row.simple, .uie-org-add-row.rules, .uie-org-member-row { grid-template-columns: 1fr; }
+    }
+
+    @media not all {
+      .uie-org-shell { padding: 8px; gap: 8px; }
+      .uie-org-top { min-height: 48px; grid-template-columns: 1fr auto; }
+      .uie-org-sigil { display: none; }
+      .uie-org-heading h2 { font-size: 22px; line-height: 1.05; }
+      .uie-org-heading p { display: none; }
+      .uie-org-board { grid-template-rows: auto minmax(180px, 42dvh) minmax(0, 1fr); gap: 8px; }
+      .uie-org-panel { border-radius: 8px; }
+      #uie-organization-list { padding: 8px; gap: 8px; }
+      .uie-org-card { border-radius: 10px; }
+      .uie-org-card-inner { grid-template-columns: 34px minmax(0, 1fr); padding: 9px; }
+      .uie-org-emblem { width: 34px; height: 34px; border-radius: 8px; font-size: 13px; }
+      .uie-org-dossier { padding: 8px; align-items: flex-start; overflow: auto; }
+      .uie-org-dossier-panel { width: calc(100vw - 16px); height: auto; max-height: calc(100dvh - 16px); border-radius: 8px; grid-template-rows: auto minmax(0, 1fr); }
+      .uie-org-dossier-side { padding: 10px; gap: 8px; border-right: 0; border-bottom: 1px solid rgba(255,247,223,.12); }
+      .uie-org-dossier-title input { font-size: 18px; padding: 7px 9px; }
+      .uie-org-dossier-main { padding: 10px; gap: 10px; }
+      .uie-org-dossier-top { align-items: center; }
+      .uie-org-dossier-top p { display: none; }
+      .uie-org-hero-grid { grid-template-columns: 1fr; gap: 8px; }
+      .uie-org-hero-chip, .uie-org-stat { min-height: auto; border-radius: 8px; padding: 9px; }
+      .uie-org-tab { min-height: 34px; border-radius: 8px; padding: 0 9px; font-size: 11px; }
+      .uie-org-btn { min-height: 34px; border-radius: 8px; padding: 0 10px; }
+      .uie-org-btn.icon { width: 34px; }
+      .uie-org-field input, .uie-org-field textarea, .uie-org-field select { min-height: 36px; border-radius: 8px; padding: 8px; }
+      .uie-org-modal { padding: 8px; align-items: flex-start; overflow: auto; }
+      .uie-org-modal-card { max-height: calc(100dvh - 16px); border-radius: 8px; padding: 12px; }
+      .uie-org-template-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .uie-org-intel-toolbar { padding: 6px 10px; }
+    }
+  </style>
+
+  <div class="uie-org-shell">
+    <header class="uie-org-top">
+      <div class="uie-org-title">
+        <div class="uie-org-sigil"><i class="fa-solid fa-network-wired"></i></div>
+        <div class="uie-org-heading">
+          <h2>Organizations</h2>
+          <p>Universal groups, crews, orders, companies, councils, cults, teams, families, governments, and alliances.</p>
+        </div>
+      </div>
+      <div class="uie-org-top-actions">
+        <button type="button" class="uie-org-btn icon" id="uie-faction-close" title="Close" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+    </header>
+
+    <main class="uie-org-board">
+      <!-- LEFTMOST Sidebar: Tabs / Filters -->
+      <section class="uie-org-sidebar-panel" id="uie-org-filter-bar">
+        <button type="button" class="uie-org-filter-chip active" data-org-filter="all">All</button>
+        <button type="button" class="uie-org-filter-chip" data-org-filter="joined">Joined</button>
+        <button type="button" class="uie-org-filter-chip" data-org-filter="friendly">Friendly</button>
+        <button type="button" class="uie-org-filter-chip" data-org-filter="hostile">Hostile</button>
+        <button type="button" class="uie-org-filter-chip" data-org-filter="highheat">High Heat</button>
+        <button type="button" class="uie-org-filter-chip" data-org-filter="hashook">Has Hook</button>
+        <button type="button" class="uie-org-filter-chip" data-org-filter="haslocation">Has Location</button>
+      </section>
+
+      <!-- CENTER Panel: Organization Names List (Atlas directory) -->
+      <section class="uie-org-panel uie-org-directory" aria-label="Organization list">
+        <div class="uie-org-panel-head">
+          <span>Organization Atlas</span>
+          <button type="button" class="uie-org-btn primary" id="uie-org-new"><i class="fa-solid fa-plus"></i> New</button>
+        </div>
+
+        <!-- Search bar -->
+        <div class="uie-org-search-wrap">
+          <input type="text" class="uie-org-search-input" id="uie-org-search" placeholder="Search organizations…" autocomplete="off">
+        </div>
+
+        <!-- Compact intel toolbar -->
+        <div class="uie-org-intel-toolbar">
+          <button type="button" class="uie-org-btn ghost" id="uie-org-scan-chat"><i class="fa-solid fa-comments"></i> Scan Chat</button>
+          <button type="button" class="uie-org-btn ghost" id="uie-org-scan-lorebook"><i class="fa-solid fa-book"></i> Scan Lorebook</button>
+          <button type="button" class="uie-org-btn ghost" id="uie-org-review-intel"><i class="fa-solid fa-satellite-dish"></i> Review Intel</button>
+        </div>
+
+        <!-- The actual scrollable list of organization names -->
+        <div id="uie-organization-list"></div>
+      </section>
+
+      <!-- RIGHT Panel: Active Intel (Taller / wider panel) -->
+      <section class="uie-org-panel uie-org-stage" aria-label="Active Intelligence">
+        <div class="uie-org-panel-head">
+          <span>Active Intelligence</span>
+        </div>
+        
+        <div class="uie-org-stage-scrollable">
+          <h4 class="uie-org-section-title"><i class="fa-solid fa-chart-simple"></i> Active Intel Numbers</h4>
+          <!-- Snapshot stats grid -->
+          <div id="uie-org-snapshot" class="uie-org-snapshot"></div>
+
+          <h4 class="uie-org-section-title" style="margin-top: 14px;"><i class="fa-solid fa-bolt"></i> Active Hooks &amp; Events Feed</h4>
+          <!-- Active hooks feed list -->
+          <div id="uie-org-hooks-feed" class="uie-org-hooks-feed"></div>
+          <div id="uie-org-intel-container"></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <datalist id="uie-organization-place-options"></datalist>
+
+  <!-- Dossier modal -->
+  <div class="uie-org-dossier" id="uie-organization-dossier" aria-hidden="true">
+    <div class="uie-org-dossier-panel" role="dialog" aria-modal="true" aria-labelledby="uie-org-dossier-heading">
+      <aside class="uie-org-dossier-side">
+        <div class="uie-org-dossier-sigil" id="uie-org-dossier-sigil-icon"><i class="fa-solid fa-wand-magic-sparkles"></i></div>
+        <div class="uie-org-dossier-title">
+          <input id="uie-org-name" aria-label="Organization name" placeholder="Organization name">
+          <small id="uie-org-subtitle">Dossier</small>
+        </div>
+        <nav class="uie-org-tabs" aria-label="Dossier sections">
+          <button type="button" class="uie-org-tab active" data-org-tab="info"><i class="fa-solid fa-id-badge"></i> Info</button>
+          <button type="button" class="uie-org-tab" data-org-tab="members"><i class="fa-solid fa-users"></i> Members</button>
+          <button type="button" class="uie-org-tab" data-org-tab="influence"><i class="fa-solid fa-map-location-dot"></i> Influence</button>
+          <button type="button" class="uie-org-tab" data-org-tab="rules"><i class="fa-solid fa-scale-balanced"></i> Rules</button>
+          <button type="button" class="uie-org-tab" data-org-tab="history"><i class="fa-solid fa-timeline"></i> Run-ins</button>
+        </nav>
+      </aside>
+
+      <section class="uie-org-dossier-main">
+        <header class="uie-org-dossier-top">
+          <div>
+            <h3 id="uie-org-dossier-heading">Organization Dossier</h3>
+            <p>Change standing, influence, members, assets, rules, and map-backed locations.</p>
+          </div>
+          <div class="uie-org-icon-actions">
+            <button type="button" class="uie-org-btn icon" id="uie-org-dossier-close" title="Close"><i class="fa-solid fa-xmark"></i></button>
+          </div>
+        </header>
+
+        <div id="uie-org-hero-grid" class="uie-org-hero-grid"></div>
+
+        <div class="uie-org-panel-body">
+          <!-- INFO TAB -->
+          <section class="uie-org-dossier-section active" data-org-panel="info">
+            <div class="uie-org-form-grid three">
+              <div class="uie-org-field"><label>Type</label><input id="uie-org-type" placeholder="crew, agency, school, guild, family"></div>
+              <div class="uie-org-field"><label>User Standing / 100</label><input id="uie-org-standing" type="number" min="0" max="100" value="0"></div>
+              <div class="uie-org-field"><label>Influence Scale</label><input id="uie-org-influence" placeholder="one room, citywide, region, global"></div>
+            </div>
+            <div class="uie-org-form-grid three">
+              <div class="uie-org-field"><label>Heat Level</label><input id="uie-org-heat" type="number" min="0" max="100" placeholder="0–100" value="0"></div>
+              <div class="uie-org-field"><label>Membership Status</label><select id="uie-org-membership-status"><option value="">Unknown</option><option value="none">Not a Member</option><option value="initiate">Initiate</option><option value="member">Member</option><option value="officer">Officer</option><option value="leader">Leader</option></select></div>
+              <div class="uie-org-field"><label>Access Level</label><select id="uie-org-access-level"><option value="">Unknown</option><option value="open">Open</option><option value="restricted">Restricted</option><option value="invite-only">Invite Only</option><option value="secret">Secret</option></select></div>
+            </div>
+            <div class="uie-org-form-grid">
+              <div class="uie-org-field"><label>Main Location</label><div class="uie-org-location-combo" data-org-location-combo="uie-org-base"><input id="uie-org-base" list="uie-organization-place-options" placeholder="Must be on the map or added" autocomplete="off"><button type="button" class="uie-org-location-toggle" data-org-location-toggle="uie-org-base" aria-label="Show mapped locations"><i class="fa-solid fa-chevron-down"></i></button><div class="uie-org-location-menu" data-org-location-menu="uie-org-base"></div></div></div>
+              <div class="uie-org-field"><label>Location Kind</label><input id="uie-org-base-type" placeholder="world, region, city, building, room"></div>
+            </div>
+            <div class="uie-org-form-grid">
+              <div class="uie-org-field"><label>Leader Title</label><input id="uie-org-leader-title" placeholder="Guildmaster, director, class president"></div>
+              <div class="uie-org-field"><label>Leader Identity</label><select id="uie-org-leader"></select></div>
+              <div class="uie-org-field"><label>Sub Leaders</label><input id="uie-org-subleaders" placeholder="Comma separated"></div>
+            </div>
+            <div class="uie-org-field"><label>Purpose, Culture, Pressure</label><textarea id="uie-org-notes" placeholder="What they want, protect, oppose, own, fear, and how they treat the user"></textarea></div>
+          </section>
+
+          <!-- MEMBERS TAB -->
+          <section class="uie-org-dossier-section" data-org-panel="members">
+            <div class="uie-org-add-row simple">
+              <div class="uie-org-field"><label>Rank Options</label><input id="uie-org-rank-add" placeholder="Guard, apprentice, classmate, officer"></div>
+              <button type="button" class="uie-org-btn primary" id="uie-org-rank-add-btn"><i class="fa-solid fa-layer-group"></i> Add Rank</button>
+            </div>
+            <div id="uie-org-ranks-list" class="uie-org-list"></div>
+            <button type="button" class="uie-org-btn primary" id="uie-org-member-open"><i class="fa-solid fa-user-plus"></i> Add Member</button>
+            <div id="uie-org-members-list" class="uie-org-member-table"></div>
+          </section>
+
+          <!-- INFLUENCE TAB -->
+          <section class="uie-org-dossier-section" data-org-panel="influence">
+            <p class="uie-org-mini-note">Influence can be huge or tiny, but every named place should exist on the map. If it does not, the existing add-location popup opens and asks where it belongs, how it connects, what assets are there, and which NPCs operate there.</p>
+            <div class="uie-org-add-row simple">
+              <div class="uie-org-field"><label>Controlled Place</label><div class="uie-org-location-combo" data-org-location-combo="uie-org-space-add"><input id="uie-org-space-add" list="uie-organization-place-options" placeholder="City, shop, room, station, district" autocomplete="off"><button type="button" class="uie-org-location-toggle" data-org-location-toggle="uie-org-space-add" aria-label="Show mapped locations"><i class="fa-solid fa-chevron-down"></i></button><div class="uie-org-location-menu" data-org-location-menu="uie-org-space-add"></div></div></div>
+              <button type="button" class="uie-org-btn primary" data-org-add="spaces"><i class="fa-solid fa-location-crosshairs"></i> Assign</button>
+            </div>
+            <div id="uie-org-spaces-list" class="uie-org-list"></div>
+            <div class="uie-org-add-row simple">
+              <div class="uie-org-field"><label>Inventory Asset</label><select id="uie-org-asset-add"></select></div>
+              <button type="button" class="uie-org-btn primary" id="uie-org-asset-track"><i class="fa-solid fa-box-archive"></i> Track</button>
+            </div>
+            <div id="uie-org-assets-list" class="uie-org-list"></div>
+          </section>
+
+          <!-- RULES TAB -->
+          <section class="uie-org-dossier-section" data-org-panel="rules">
+            <div class="uie-org-add-row rules">
+              <div class="uie-org-field"><label>Rule</label><input id="uie-org-law-text" placeholder="No weapons, curfew, clearance required"></div>
+              <button type="button" class="uie-org-btn primary" id="uie-org-law-add"><i class="fa-solid fa-check"></i> Set</button>
+            </div>
+            <div id="uie-org-laws-list" class="uie-org-list"></div>
+          </section>
+
+          <!-- RUN-INS TAB -->
+          <section class="uie-org-dossier-section" data-org-panel="history">
+            <p class="uie-org-mini-note">Run-ins are updated automatically when recent chat mentions this organization. Manual entries are still available for cleanup or backstory.</p>
+            <div class="uie-org-add-row simple">
+              <div class="uie-org-field"><label>Manual User Run-in</label><input id="uie-org-runin-add" placeholder="Warning, favor owed, rescue, arrest, betrayal"></div>
+              <button type="button" class="uie-org-btn primary" data-org-add="runIns"><i class="fa-solid fa-plus"></i> Add</button>
+            </div>
+            <div id="uie-org-runins-list" class="uie-org-list"></div>
+            <div class="uie-org-add-row simple">
+              <div class="uie-org-field"><label>Major Event With User</label><input id="uie-org-event-add" placeholder="Treaty, raid, public scandal, joined forces"></div>
+              <button type="button" class="uie-org-btn primary" data-org-add="majorEvents"><i class="fa-solid fa-plus"></i> Add</button>
+            </div>
+            <div id="uie-org-events-list" class="uie-org-list"></div>
+            <div id="uie-org-dashboard"></div>
+          </section>
+        </div>
+
+        <footer class="uie-org-footer">
+          <button type="button" class="uie-org-btn danger" id="uie-org-delete"><i class="fa-solid fa-trash"></i> Delete</button>
+          <button type="button" class="uie-org-btn" id="uie-org-save"><i class="fa-solid fa-floppy-disk"></i> Save</button>
+        </footer>
+      </section>
+    </div>
+  </div>
+
+  <!-- Template chooser modal -->
+  <div class="uie-org-modal" id="uie-org-template-modal">
+    <div class="uie-org-modal-card" role="dialog" aria-modal="true" aria-label="Choose organization type">
+      <div style="display:flex; align-items:center; gap:10px;">
+        <strong style="color:#d6b468; letter-spacing:.08em; text-transform:uppercase; font-size:12px;">Choose Organization Type</strong>
+        <button type="button" class="uie-org-btn icon" id="uie-org-template-close" style="margin-left:auto;" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <p class="uie-org-mini-note">Select a template to create an organization with starter ranks, rules, hooks, and visual identity.</p>
+      <div id="uie-org-template-grid" class="uie-org-template-grid"></div>
+    </div>
+  </div>
+
+  <!-- Add / Edit member modal -->
+  <div class="uie-org-modal" id="uie-org-member-modal">
+    <div class="uie-org-modal-card" role="dialog" aria-modal="true" aria-label="Add organization member">
+      <div style="display:flex; align-items:center; gap:10px;">
+        <strong id="uie-org-member-title" style="color:#d6b468; letter-spacing:.08em; text-transform:uppercase;">Add Member</strong>
+        <input id="uie-org-member-edit-index" type="hidden" value="">
+        <button type="button" class="uie-org-btn icon" id="uie-org-member-modal-close" style="margin-left:auto;" aria-label="Close add member"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="uie-org-form-grid">
+        <div class="uie-org-field"><label>NPC / Character / User</label><select id="uie-org-member-person"></select></div>
+        <div class="uie-org-field"><label>Established Rank</label><select id="uie-org-member-rank"></select></div>
+      </div>
+      <div id="uie-org-member-custom-wrap" class="uie-org-field" style="display:none;"><label>Group Name</label><input id="uie-org-member-custom-name" placeholder="North Gate Guards, apprentices, classmates"></div>
+      <div class="uie-org-form-grid three">
+        <div class="uie-org-field"><label>New Rank</label><input id="uie-org-member-rank-new" placeholder="Optional rank to add now"></div>
+        <div class="uie-org-field"><label>Role</label><input id="uie-org-member-role" placeholder="guard, medic, broker"></div>
+        <div class="uie-org-field"><label>Count</label><input id="uie-org-member-count" type="number" min="1" step="1" value="1"></div>
+      </div>
+      <div class="uie-org-form-grid">
+        <div class="uie-org-field"><label>Authority</label><input id="uie-org-member-authority" type="number" min="0" max="100" placeholder="0-100"></div>
+        <div class="uie-org-field"><label>Location</label><div class="uie-org-location-combo" data-org-location-combo="uie-org-member-location"><input id="uie-org-member-location" list="uie-organization-place-options" placeholder="Mapped place or new custom place" autocomplete="off"><button type="button" class="uie-org-location-toggle" data-org-location-toggle="uie-org-member-location" aria-label="Show mapped locations"><i class="fa-solid fa-chevron-down"></i></button><div class="uie-org-location-menu" data-org-location-menu="uie-org-member-location"></div></div></div>
+      </div>
+      <div class="uie-org-field"><label>Notes</label><input id="uie-org-member-notes" placeholder="Access, secrets, history"></div>
+      <div style="display:flex; justify-content:flex-end; gap:10px;">
+        <button type="button" class="uie-org-btn" id="uie-org-member-cancel">Cancel</button>
+        <button type="button" class="uie-org-btn primary" id="uie-org-member-add"><i class="fa-solid fa-user-plus"></i> Save Member</button>
+      </div>
+    </div>
+  </div>
+</div>

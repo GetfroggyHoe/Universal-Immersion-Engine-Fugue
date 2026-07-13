@@ -1,0 +1,995 @@
+<style>
+/* --- Mobile Items Overhaul --- */
+@media not all {
+  .inventory-search-input, .mobile-inventory-search, #uie-items-search {
+      width: 100% !important;
+      background: rgba(0, 0, 0, 0.4) !important;
+      border: 1px solid rgba(255, 255, 255, 0.12) !important;
+      color: #fff !important;
+      padding: 12px 16px !important;
+      border-radius: 8px !important;
+      font-size: 16px !important;
+      height: 44px !important;
+      box-sizing: border-box !important;
+  }
+  
+  .inventory-search-row {
+      margin-bottom: 16px !important;
+      display: flex !important;
+      flex-direction: row !important;
+      width: 100% !important;
+  }
+
+  .inventory-grid-view, .mobile-item-grid, #uie-items-grid-inner {
+      display: grid !important;
+      grid-template-columns: repeat(4, 1fr) !important;
+      gap: 12px !important;
+      overflow-y: auto !important;
+      flex: 1 !important;
+      padding-bottom: 20px !important;
+      height: auto !important;
+      min-height: 0 !important;
+  }
+
+  .inventory-item-slot, .mobile-inventory-slot, #uie-items-grid-inner .uie-item {
+      aspect-ratio: 1 / 1 !important;
+      background: rgba(255, 255, 255, 0.03) !important;
+      border: 1px solid rgba(255, 255, 255, 0.08) !important;
+      border-radius: 10px !important;
+      display: flex !important;
+      flex-direction: column !important;
+      align-items: center !important;
+      justify-content: center !important;
+      transition: all 0.15s ease-in-out !important;
+      cursor: pointer !important;
+      width: auto !important;
+      height: auto !important;
+      min-width: 0 !important;
+      min-height: 0 !important;
+      max-width: none !important;
+      max-height: none !important;
+      flex: none !important;
+      padding: 6px !important;
+  }
+
+  .inventory-item-slot .uie-thumb, .mobile-inventory-slot .uie-thumb {
+      width: 100% !important;
+      height: 70% !important;
+      flex: none !important;
+      min-height: 0 !important;
+      border: none !important;
+      background: transparent !important;
+      padding: 0 !important;
+  }
+
+  .inventory-item-slot .uie-item-body, .mobile-inventory-slot .uie-item-body {
+      width: 100% !important;
+      height: 30% !important;
+      flex: none !important;
+      min-height: 0 !important;
+      padding: 0 !important;
+  }
+
+  .inventory-item-slot .uie-item-name, .mobile-inventory-slot .uie-item-name {
+      font-size: 10px !important;
+      line-height: 1.1 !important;
+      text-align: center !important;
+      -webkit-line-clamp: 1 !important;
+      line-clamp: 1 !important;
+  }
+
+  .inventory-item-slot:active, .inventory-item-slot.selected,
+  .mobile-inventory-slot:active, .mobile-inventory-slot.active-select {
+      border-color: #ecc94b !important;
+      background: rgba(236, 201, 75, 0.08) !important;
+      box-shadow: 0 0 10px rgba(236, 201, 75, 0.25) !important;
+  }
+}
+
+  /* ====== Items: Immersive Grid ====== */
+  #uie-items-root{
+    height:100%;
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+    padding:12px;
+  }
+
+  .uie-items-toolbar{
+    display:flex;
+    gap:10px;
+    align-items:center;
+  }
+
+  .uie-chip-select{
+    flex:0 0 auto;
+    min-width:92px;
+    max-width:140px;
+    padding:10px 12px;
+    border-radius:6px;
+    background:rgba(255,255,255,.04);
+    border:1px solid rgba(255,255,255,.08);
+    color:rgba(255,255,255,.88);
+    outline:none;
+  }
+
+  .uie-search{
+    flex:1 1 auto;
+    display:flex;
+    align-items:center;
+    gap:8px;
+    padding:6px 8px;
+    border-radius:10px;
+    background:rgba(0,0,0,.22);
+    border:1px solid rgba(225,193,122,0.18);
+  }
+  .uie-search input{
+    width:100%;
+    background:transparent;
+    border:none;
+    outline:none;
+    color:rgba(255,255,255,.9);
+    font-size:13px;
+  }
+
+  .uie-items-actions{
+    display:flex;
+    gap:10px;
+  }
+
+  .uie-btn{
+    padding:10px 14px;
+    border-radius:6px;
+    background:rgba(255,255,255,.05);
+    border:1px solid rgba(255,255,255,.10);
+    color:rgba(255,255,255,.9);
+    font-weight:700;
+  }
+  .uie-btn:active{ transform: translateY(1px); }
+
+  /* ===== item shelf ===== */
+  #uie-items-grid{
+    flex:1 1 auto;
+    overflow:auto;
+    -webkit-overflow-scrolling:touch;
+    padding-bottom:24px;
+  }
+
+  .uie-grid{
+    display:flex;
+    flex-wrap:wrap;
+    align-items:stretch;
+    gap:12px;
+    border:1px solid rgba(255,255,255,.10);
+    background: rgba(0,0,0,.14);
+  }
+
+  @media (min-width: 700px){
+    .uie-grid{ gap:14px; }
+  }
+
+  .uie-item-persist-markers i{ font-size:11px; filter: drop-shadow(0 0 2px rgba(0,0,0,0.85)); }
+  #uie-item-toggle-star.uie-persist-on,
+  #uie-item-toggle-lock.uie-persist-on{
+    border-color: rgba(203, 163, 92,0.55) !important;
+    background: rgba(203, 163, 92,0.14) !important;
+  }
+  #uie-item-toggle-lock.uie-persist-on{
+    border-color: rgba(137,180,250,0.55) !important;
+    background: rgba(137,180,250,0.12) !important;
+  }
+
+  .uie-item{
+    position:relative;
+    border-radius:0;
+    overflow:hidden;
+    background: rgba(0,0,0,.10);
+    border:1px solid rgba(255,255,255,.12);
+    box-shadow: none;
+    aspect-ratio: 1 / 1;
+    display:flex;
+    flex-direction:column;
+    margin:-1px 0 0 -1px;
+  }
+
+  .uie-item::before{
+    display:none;
+  }
+
+  .uie-thumb{
+    width: 100%;
+    flex: 1 1 auto;
+    min-height: 0;
+    background: rgba(0,0,0,.18);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding: 0;
+  }
+  .uie-thumb img{
+    width:100%;
+    height:100%;
+    object-fit:cover;
+    filter: none;
+  }
+
+  .uie-item-iconbadge{ display:none !important; }
+
+  .uie-item-qty{
+    position:absolute;
+    right:6px;
+    bottom:6px;
+    padding:2px 6px;
+    border-radius:8px;
+    background: rgba(0,0,0,.60);
+    border:1px solid rgba(255,255,255,.14);
+    color: rgba(255,255,255,.92);
+    font-weight:900;
+    font-size: 11px;
+    z-index:2;
+    pointer-events:none;
+  }
+
+  .uie-item-body{
+    padding:6px 8px 8px;
+    background: linear-gradient(180deg, rgba(0,0,0,0.00) 0%, rgba(0,0,0,0.55) 100%);
+  }
+
+  .uie-item-name{
+    font-weight:900;
+    letter-spacing:.2px;
+    color:rgba(255,255,255,.92);
+    font-size:12px;
+    line-height:1.1;
+    display:-webkit-box;
+    -webkit-line-clamp:2;
+    line-clamp:2;
+    -webkit-box-orient:vertical;
+    overflow:hidden;
+  }
+
+  .uie-item-sub{
+    display:none;
+  }
+
+  .uie-pill{
+    padding:4px 8px;
+    border-radius:8px;
+    background:rgba(0,0,0,.22);
+    border:1px solid rgba(255,255,255,.10);
+    color:rgba(255,255,255,.75);
+    font-size:11px;
+    font-weight:800;
+  }
+
+  #uie-items-cat-chips{ display:none !important; }
+
+  /* rarity glow (subtle, not brown) */
+  .rarity-common{ box-shadow: 0 16px 30px rgba(0,0,0,.35); }
+  .rarity-uncommon{ box-shadow: 0 0 0 1px rgba(120,255,170,.18), 0 16px 30px rgba(0,0,0,.35); }
+  .rarity-rare{ box-shadow: 0 0 0 1px rgba(140,190,255,.18), 0 16px 30px rgba(0,0,0,.35); }
+  .rarity-epic{ box-shadow: 0 0 0 1px rgba(190,140,255,.22), 0 16px 30px rgba(0,0,0,.35); }
+  .rarity-legendary{ box-shadow: 0 0 0 1px rgba(255,190,120,.20), 0 16px 30px rgba(0,0,0,.35); }
+
+  .uie-empty{
+    padding:18px;
+    color:rgba(255,255,255,.65);
+  }
+
+
+/* === UIE ITEMS GRID START === */
+/* Items: grid + modern dark glass */
+#uie-view-items {
+  padding: 12px !important;
+}
+
+#uie-view-items input[type="text"],
+#uie-view-items input[type="search"] {
+  width:100% !important;
+  background: rgba(0,0,0,0.22) !important;
+  border: 1px solid rgba(225,193,122,0.18) !important;
+  color: rgba(255,255,255,.92) !important;
+  border-radius: 10px !important;
+  padding: 8px 10px !important;
+  outline:none !important;
+}
+
+#uie-view-items select {
+  background: rgba(255,255,255,.05) !important;
+  border: 1px solid rgba(255,255,255,.10) !important;
+  color: rgba(255,255,255,.92) !important;
+  border-radius: 14px !important;
+  padding: 10px 12px !important;
+  outline:none !important;
+}
+
+#uie-view-items .items-grid,
+#uie-view-items .uie-items-grid,
+#uie-view-items .item-grid {
+  display:flex !important;
+  flex-wrap:wrap !important;
+  align-items:stretch !important;
+  gap: 12px !important;
+  margin-top: 12px !important;
+}
+
+#uie-view-items .item-card,
+#uie-view-items .uie-item,
+#uie-view-items .item {
+  aspect-ratio: 1 / 1 !important;
+  display:flex !important;
+  flex-direction:column !important;
+  gap: 0 !important;
+  padding: 0 !important;
+}
+
+#uie-view-items .item-card:hover,
+#uie-view-items .uie-item:hover,
+#uie-view-items .item:hover {
+  background: rgba(255,255,255,.06) !important;
+  border-color: rgba(255,255,255,.16) !important;
+}
+
+#uie-view-items .item-icon,
+#uie-view-items .uie-item-icon {
+  width: 52px !important;
+  height: 52px !important;
+  border-radius: 14px !important;
+  background: rgba(0,0,0,.20) !important;
+  border: 1px solid rgba(255,255,255,.10) !important;
+  flex: 0 0 52px !important;
+  overflow:hidden !important;
+}
+
+#uie-view-items .item-icon img,
+#uie-view-items .uie-item-icon img {
+  width:100% !important;
+  height:100% !important;
+  object-fit:cover !important;
+  display:block !important;
+}
+
+#uie-view-items .item-name,
+#uie-view-items .uie-item-name {
+  font-weight: 800 !important;
+  font-size: 15px !important;
+  line-height: 1.1 !important;
+  color: rgba(255,255,255,.95) !important;
+}
+
+#uie-view-items .item-meta,
+#uie-view-items .uie-item-meta {
+  font-size: 12px !important;
+  opacity: .75 !important;
+  margin-top: 4px !important;
+}
+
+/* kill any blue selection backgrounds inside items area */
+#uie-view-items .active,
+#uie-view-items .selected {
+  background: rgba(255,255,255,.06) !important;
+}
+/* === UIE ITEMS GRID END === */
+
+</style>
+
+<style>
+#uie-inventory-window #uie-view-items #uie-items-root {
+  padding: 10px !important;
+  gap: 12px !important;
+}
+
+#uie-inventory-window #uie-view-items .uie-items-toolbar {
+  background: rgba(0,0,0,0.20) !important;
+  border: 1px solid rgba(225,193,122,0.18) !important;
+  border-radius: 12px !important;
+  padding: 8px !important;
+}
+
+#uie-inventory-window #uie-view-items .uie-chip-select,
+#uie-inventory-window #uie-view-items .uie-search {
+  background: rgba(0,0,0,0.25) !important;
+  border: 1px solid rgba(225,193,122,0.18) !important;
+  color: rgba(255,255,255,0.90) !important;
+  border-radius: 10px !important;
+  padding: 6px 8px !important;
+}
+
+#uie-inventory-window #uie-view-items .uie-search input {
+  color: rgba(255,255,255,0.92) !important;
+}
+
+#uie-inventory-window #uie-view-items .uie-btn {
+  background: rgba(0,0,0,0.22) !important;
+  border: 1px solid rgba(225,193,122,0.18) !important;
+  color: rgba(203, 163, 92,0.95) !important;
+  font-family: serif !important;
+}
+
+#uie-inventory-window #uie-view-items .uie-item {
+  background: rgba(0,0,0,0.20) !important;
+  border: 1px solid rgba(225,193,122,0.22) !important;
+  box-shadow: 0 16px 30px rgba(0,0,0,.45) !important;
+}
+
+#uie-inventory-window #uie-view-items .uie-thumb {
+  background-image: url("https://files.catbox.moe/k6bhpb.jpg") !important;
+  background-size: 420px 420px !important;
+  background-repeat: repeat !important;
+  border-bottom: 1px solid rgba(225,193,122,0.18) !important;
+}
+
+#uie-inventory-window #uie-view-items .uie-item-name {
+  color: rgba(203, 163, 92,0.95) !important;
+  font-family: serif !important;
+}
+
+#uie-inventory-window #uie-view-items .uie-pill {
+  border: 1px solid rgba(225,193,122,0.18) !important;
+  background: rgba(0,0,0,0.22) !important;
+  color: rgba(255,255,255,0.75) !important;
+}
+
+#uie-inventory-window #uie-view-items .uie-cat-chip{
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  border: 1px solid rgba(225,193,122,0.18);
+  background: rgba(0,0,0,0.22);
+  color: rgba(203, 163, 92,0.95);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+#uie-inventory-window #uie-view-items .uie-cat-chip.active{
+  box-shadow: 0 0 14px rgba(203, 163, 92,0.25);
+  border-color: rgba(203, 163, 92,0.45);
+}
+
+@media not all {
+  #uie-items-cat-chips { display: none !important; }
+  #uie-items-category{
+    flex: 0 0 42px;
+    width: 42px;
+    min-width: 42px;
+    max-width: 42px;
+    padding: 0;
+    border-radius: 999px;
+    text-indent: -9999px;
+    color: transparent;
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 18px 18px;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+  #uie-items-category{
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23f1c40f' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'/%3E%3C/svg%3E");
+  }
+  .uie-search{
+    flex: 0 0 52%;
+    width: 52%;
+    max-width: 52%;
+  }
+}
+
+#uie-inventory-window #uie-view-items #uie-items-grid-inner.uie-grid {
+  --uie-item-card-w: clamp(176px, 15vw, 240px);
+  display: flex !important;
+  flex-wrap: wrap !important;
+  justify-content: flex-start !important;
+  align-content: start !important;
+  align-items: stretch !important;
+  gap: 14px !important;
+  padding: 14px !important;
+  border-radius: 8px !important;
+  background: rgba(2,6,12,0.30) !important;
+  border: 1px solid rgba(255,255,255,0.10) !important;
+}
+#uie-inventory-window #uie-view-items .uie-item {
+  width: var(--uie-item-card-w) !important;
+  flex: 0 0 var(--uie-item-card-w) !important;
+  min-height: 196px !important;
+  aspect-ratio: auto !important;
+  margin: 0 !important;
+  border-radius: 8px !important;
+  border: 1px solid rgba(255,255,255,0.20) !important;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.20), rgba(255,255,255,0.08)),
+    var(--inv-slot-template, none) center / cover no-repeat !important;
+  box-shadow: 0 10px 24px rgba(20,20,24,0.20) !important;
+}
+#uie-inventory-window #uie-view-items .uie-thumb {
+  margin: 9px 9px 0 !important;
+  width: calc(100% - 18px) !important;
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  border-radius: 6px !important;
+  background: rgba(255,255,255,0.16) !important;
+  border: 1px solid rgba(255,255,255,0.16) !important;
+  padding: 6px !important;
+  box-sizing: border-box !important;
+}
+#uie-inventory-window #uie-view-items .uie-thumb img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: contain !important;
+  display: block !important;
+}
+#uie-inventory-window #uie-view-items .uie-item-body {
+  flex: 0 0 31px !important;
+  padding: 4px 7px 6px !important;
+  background: linear-gradient(180deg, rgba(255,255,255,0.12), rgba(36,48,50,0.18)) !important;
+}
+#uie-inventory-window #uie-view-items .uie-item-name {
+  color: var(--inv-theme-text, rgba(255,255,255,.92)) !important;
+  font-family: Inter, system-ui, sans-serif !important;
+  font-size: 11px !important;
+  line-height: 1.15 !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.28) !important;
+}
+</style>
+
+<div id="uie-items-root">
+  <div class="uie-items-toolbar inventory-search-row">
+    <select id="uie-items-category" class="uie-chip-select" title="Category">
+      <option value="all">All</option>
+    </select>
+
+    <div class="uie-search">
+      <input id="uie-items-search" class="inventory-search-input mobile-inventory-search" type="text" placeholder="Search items…" autocomplete="off" />
+    </div>
+
+    <div class="uie-items-actions">
+      <button id="uie-items-select" class="uie-btn">Select</button>
+      <button class="uie-btn" onclick="uie.phone.openBooksGuide('guide-inventory')" title="Inventory Manual"><i class="fa-solid fa-circle-info"></i></button>
+    </div>
+  </div>
+  <div id="uie-items-cat-chips" style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;"></div>
+
+  <div id="uie-items-grid">
+    <div id="uie-items-grid-inner" class="uie-grid inventory-grid-view mobile-item-grid"></div>
+    <div id="uie-items-empty" class="uie-empty" style="display:none;">No items found.</div>
+  </div>
+</div>
+
+<div id="uie-item-modal" style="display:none; position:fixed; inset:0; z-index:2147483647; background:rgba(0,0,0,0.65); align-items:center; justify-content:center;">
+  <div style="width:min(380px, 92vw); max-height:66vh; overflow:auto; border-radius:8px; border:1px solid rgba(225,193,122,0.35); background:rgba(15,10,8,0.92); padding:12px;">
+    <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
+      <div style="font-weight:900; letter-spacing:0.6px; color:#cba35c;" id="uie-item-modal-title">Item</div>
+      <div style="margin-left:auto; cursor:pointer; padding:6px 10px; border-radius:6px; border:1px solid rgba(255,255,255,0.12); background:rgba(0,0,0,0.25);" id="uie-item-modal-close">Close</div>
+    </div>
+    <div style="display:flex; gap:12px; align-items:center;">
+      <div id="uie-item-modal-icon" style="width:52px;height:52px;border-radius:8px;border:1px solid rgba(255,255,255,0.12);background:rgba(0,0,0,0.25);display:grid;place-items:center;flex:0 0 auto;"></div>
+      <div style="flex:1; min-width:0;">
+        <div style="font-weight:900; color:rgba(255,255,255,0.9);" id="uie-item-modal-sub">—</div>
+        <div style="opacity:0.75; font-weight:800; font-size:12px;" id="uie-item-modal-tags">—</div>
+      </div>
+    </div>
+    <div style="margin-top:10px; padding:10px; border-radius:6px; border:1px solid rgba(255,255,255,0.12); background:rgba(0,0,0,0.25); color:rgba(255,255,255,0.85); line-height:1.5;" id="uie-item-modal-desc"></div>
+    <div style="margin-top:10px; padding:10px; border-radius:6px; border:1px solid rgba(255,255,255,0.10); background:rgba(0,0,0,0.18); color:rgba(255,255,255,0.82); font-size:12px; line-height:1.45;" id="uie-item-modal-meta"></div>
+    <div id="uie-item-persist-row" style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-top:12px; padding:10px; border-radius:6px; border:1px solid rgba(255,255,255,0.08); background:rgba(0,0,0,0.2);">
+      <span style="opacity:0.8; font-weight:800; font-size:11px; flex:1 1 100%;">Favorites mark items for quick access. Lock keeps items from being consumed by Use / Use (Chat).</span>
+      <button type="button" id="uie-item-toggle-star" title="Favorite — mark this item for quick access" style="flex:1; min-width:120px; height:36px; border-radius:6px; border:1px solid rgba(203, 163, 92,0.35); background:rgba(0,0,0,0.22); color:#cba35c; font-weight:900; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; gap:8px;"><i class="fa-regular fa-star"></i> Favorite</button>
+      <button type="button" id="uie-item-toggle-lock" title="Lock — keep in inventory after Use or Use (Chat)" style="flex:1; min-width:120px; height:36px; border-radius:6px; border:1px solid rgba(137,180,250,0.4); background:rgba(0,0,0,0.22); color:#89b4fa; font-weight:900; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; gap:8px;"><i class="fa-solid fa-lock-open"></i> Lock</button>
+    </div>
+    <div id="uie-item-currency-actions" style="display:none; margin-top:12px; padding:10px; border-radius:8px; border:1px solid rgba(203, 163, 92,0.25); background:rgba(0,0,0,0.22); flex-direction:column; gap:8px;">
+      <div style="font-size:11px; font-weight:800; opacity:0.85;">Currency / scrip — narrate spending in chat so the AI can track the deal.</div>
+      <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center;">
+        <button type="button" id="uie-item-give-currency-chat" style="flex:1; min-width:140px; height:38px; border-radius:6px; border:1px solid rgba(46,204,113,0.4); background:rgba(46,204,113,0.15); color:#2ecc71; font-weight:900; cursor:pointer;">Give (continue)</button>
+      </div>
+      <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center;">
+        <label style="font-size:12px; opacity:0.9;">Amount</label>
+        <input type="number" id="uie-item-give-currency-amt" min="1" step="1" value="1" style="width:88px; padding:6px 8px; border-radius:6px; border:1px solid rgba(255,255,255,0.14); background:rgba(0,0,0,0.35); color:#fff;">
+        <button type="button" id="uie-item-give-currency-amt-go" style="flex:1; min-width:160px; height:38px; border-radius:6px; border:1px solid rgba(52,152,219,0.4); background:rgba(52,152,219,0.15); color:#3498db; font-weight:900; cursor:pointer;">Give this amount &amp; continue</button>
+      </div>
+    </div>
+    <div style="display:flex; gap:10px; margin-top:12px; flex-wrap:wrap;">
+      <button id="uie-item-use" style="flex:1; min-width:150px; height:40px; border-radius:6px; border:1px solid rgba(46,204,113,0.35); background:rgba(46,204,113,0.18); color:#2ecc71; font-weight:900; cursor:pointer;">Use</button>
+      <button id="uie-item-open" style="display:none; flex:1; min-width:150px; height:40px; border-radius:6px; border:1px solid rgba(76,201,240,0.35); background:rgba(76,201,240,0.15); color:#8bdff5; font-weight:900; cursor:pointer;">Open</button>
+      <button id="uie-item-custom-use" style="flex:1; min-width:150px; height:40px; border-radius:6px; border:1px solid rgba(203, 163, 92,0.35); background:rgba(203, 163, 92,0.18); color:#cba35c; font-weight:900; cursor:pointer;">Custom Use</button>
+      <button id="uie-item-use-chat" style="flex:1; min-width:150px; height:40px; border-radius:6px; border:1px solid rgba(52,152,219,0.35); background:rgba(52,152,219,0.18); color:#3498db; font-weight:900; cursor:pointer;">Use (Chat)</button>
+      <button id="uie-item-send-party" style="flex:1; min-width:150px; height:40px; border-radius:6px; border:1px solid rgba(225,193,122,0.35); background:rgba(0,0,0,0.18); color:#f6e7c8; font-weight:900; cursor:pointer;">Send to Party</button>
+      <button id="uie-item-gift" style="flex:1; min-width:150px; height:40px; border-radius:6px; border:1px solid rgba(233,150,122,0.45); background:rgba(233,150,122,0.12); color:#e9a07a; font-weight:900; cursor:pointer;">Gift to Contact</button>
+      <button id="uie-item-equip" style="display:none; flex:1; min-width:150px; height:40px; border-radius:6px; border:1px solid rgba(77,126,168,0.45); background:rgba(77,126,168,0.16); color:#6a98b8; font-weight:900; cursor:pointer;">Equip</button>
+      <button id="uie-item-custom-equip" style="display:none; flex:1; min-width:150px; height:40px; border-radius:6px; border:1px solid rgba(186,187,241,0.35); background:rgba(186,187,241,0.14); color:#babbf1; font-weight:900; cursor:pointer;">Custom Equip</button>
+      <button id="uie-item-discard" style="flex:1; min-width:150px; height:40px; border-radius:6px; border:1px solid rgba(243,139,168,0.35); background:rgba(243,139,168,0.14); color:#f38ba8; font-weight:900; cursor:pointer;">Discard</button>
+    </div>
+  </div>
+</div>
+
+<div id="uie-item-reader-modal" style="display:none; position:fixed; inset:0; z-index:2147483647; background:rgba(0,0,0,0.72); align-items:center; justify-content:center; padding:14px;">
+  <div style="width:min(760px, 96vw); max-height:min(88vh, 920px); border-radius:10px; border:1px solid rgba(225,193,122,0.32); background:rgba(14,10,8,0.96); display:flex; flex-direction:column; overflow:hidden;">
+    <div style="display:flex; align-items:center; gap:10px; padding:12px; border-bottom:1px solid rgba(255,255,255,0.12);">
+      <div id="uie-item-reader-title" style="font-weight:900; letter-spacing:0.5px; color:#cba35c; flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">Book</div>
+      <button id="uie-item-reader-prev" title="Previous page" style="width:34px;height:34px;border-radius:6px;border:1px solid rgba(255,255,255,0.18);background:rgba(0,0,0,0.32);color:#fff;cursor:pointer;"><i class="fa-solid fa-chevron-left"></i></button>
+      <span id="uie-item-reader-page-indicator" style="min-width:48px;text-align:center;font-size:12px;font-weight:900;color:rgba(255,255,255,0.76);">1/1</span>
+      <button id="uie-item-reader-next" title="Next page" style="width:34px;height:34px;border-radius:6px;border:1px solid rgba(255,255,255,0.18);background:rgba(0,0,0,0.32);color:#fff;cursor:pointer;"><i class="fa-solid fa-chevron-right"></i></button>
+      <button id="uie-item-reader-add-page" title="Add page" style="width:34px;height:34px;border-radius:6px;border:1px solid rgba(203,163,92,0.35);background:rgba(203,163,92,0.14);color:#cba35c;cursor:pointer;"><i class="fa-solid fa-file-circle-plus"></i></button>
+      <button id="uie-item-reader-highlight" title="Highlight selection" style="width:34px;height:34px;border-radius:6px;border:1px solid rgba(246,211,101,0.35);background:rgba(246,211,101,0.14);color:#f6d365;cursor:pointer;"><i class="fa-solid fa-highlighter"></i></button>
+      <button id="uie-item-reader-save" title="Save writing" style="width:34px;height:34px;border-radius:6px;border:1px solid rgba(46,204,113,0.35);background:rgba(46,204,113,0.14);color:#2ecc71;cursor:pointer;"><i class="fa-solid fa-floppy-disk"></i></button>
+      <button id="uie-item-reader-close" style="height:34px; border-radius:6px; border:1px solid rgba(255,255,255,0.18); background:rgba(0,0,0,0.32); color:#fff; font-weight:800; padding:0 12px; cursor:pointer;">Close</button>
+    </div>
+    <div id="uie-item-reader-body" style="padding:14px; overflow:auto; color:rgba(255,255,255,0.9); font-size:14px; line-height:1.55; font-family:Georgia, 'Times New Roman', serif;">
+      <div id="uie-item-reader-page" contenteditable="true" spellcheck="true" style="min-height:52vh; outline:none; white-space:pre-wrap; background:rgba(255,255,255,0.035); border:1px solid rgba(255,255,255,0.08); border-radius:8px; padding:14px;"></div>
+    </div>
+  </div>
+</div>
+
+<div id="uie-container-modal" style="display:none; position:fixed; inset:0; z-index:2147483647; background:rgba(0,0,0,0.72); align-items:center; justify-content:center; padding:14px;">
+  <div style="width:min(440px, 96vw); max-height:min(85vh, 720px); border-radius:10px; border:1px solid rgba(225,193,122,0.35); background:rgba(14,10,8,0.97); display:flex; flex-direction:column; overflow:hidden;">
+    <div style="display:flex; align-items:center; gap:10px; padding:12px; border-bottom:1px solid rgba(255,255,255,0.12); flex-shrink:0;">
+      <div style="flex:1; min-width:0;">
+        <div id="uie-container-modal-title" style="font-weight:900; letter-spacing:0.5px; color:#cba35c; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">Container</div>
+        <div id="uie-container-modal-sub" style="font-size:11px; color:rgba(255,255,255,0.55); margin-top:4px;">—</div>
+      </div>
+      <button type="button" id="uie-container-modal-close" style="height:34px; border-radius:6px; border:1px solid rgba(255,255,255,0.18); background:rgba(0,0,0,0.32); color:#fff; font-weight:800; padding:0 12px; cursor:pointer;">Close</button>
+    </div>
+    <div style="padding:10px 12px; font-size:11px; font-weight:800; color:rgba(203, 163, 92,0.85); letter-spacing:0.6px; flex-shrink:0;">INSIDE</div>
+    <div id="uie-container-contents-list" style="flex:1 1 auto; min-height:120px; max-height:38vh; overflow-y:auto; border-top:1px solid rgba(255,255,255,0.08); border-bottom:1px solid rgba(255,255,255,0.08);"></div>
+    <div style="padding:12px; flex-shrink:0;">
+      <div style="font-size:11px; font-weight:800; color:rgba(203, 163, 92,0.85); letter-spacing:0.6px; margin-bottom:8px;">STOW FROM INVENTORY</div>
+      <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center;">
+        <select id="uie-container-stow-select" style="flex:1; min-width:160px; padding:8px 10px; border-radius:6px; border:1px solid rgba(255,255,255,0.14); background:rgba(0,0,0,0.35); color:#fff; font-weight:700;"></select>
+        <label style="display:flex; align-items:center; gap:6px; color:rgba(255,255,255,0.75); font-size:12px; font-weight:700;">Qty <input id="uie-container-stow-qty" type="number" min="1" step="1" value="1" style="width:56px; padding:6px 8px; border-radius:6px; border:1px solid rgba(255,255,255,0.14); background:rgba(0,0,0,0.35); color:#fff;"></label>
+        <button type="button" id="uie-container-stow-run" style="padding:8px 14px; border-radius:6px; border:1px solid rgba(203, 163, 92,0.4); background:rgba(203, 163, 92,0.14); color:#cba35c; font-weight:900; cursor:pointer; font-size:12px;">Stow</button>
+      </div>
+    </div>
+    <div style="display:flex; flex-wrap:wrap; gap:8px; padding:0 12px 12px; flex-shrink:0;">
+      <button type="button" id="uie-container-loot-all" style="flex:1; min-width:140px; padding:10px 12px; border-radius:6px; border:1px solid rgba(243,139,168,0.45); background:rgba(243,139,168,0.12); color:#f38ba8; font-weight:900; cursor:pointer; font-size:12px;">Take all &amp; discard bag</button>
+    </div>
+  </div>
+</div>
+
+<template id="uie-cat-chip-template">
+    <button class="uie-cat-chip">
+        <i class="fa-solid"></i>
+    </button>
+</template>
+
+<template id="uie-item-card-template">
+    <div class="uie-item inventory-item-slot mobile-inventory-slot">
+        <div class="uie-item-persist-markers" style="position:absolute; top:4px; right:4px; display:flex; gap:4px; z-index:4; pointer-events:none; align-items:center;"></div>
+        <div class="uie-item-qty"></div>
+        <div class="uie-thumb"></div>
+        <div class="uie-item-body">
+          <div class="uie-item-name"></div>
+          <div class="uie-item-sub"></div>
+          <div class="uie-item-notes"></div>
+        </div>
+    </div>
+</template>
+
+<style>
+@media not all {
+  #uie-item-modal{
+    align-items:flex-end !important;
+    justify-content:center !important;
+    padding: 10px 10px 0 10px !important;
+  }
+  #uie-item-modal > div{
+    width: min(520px, 100%) !important;
+    max-height: 72vh !important;
+    border-radius: 18px 18px 0 0 !important;
+    padding: 12px !important;
+  }
+  #uie-item-modal button{
+    min-width: 120px !important;
+    height: 38px !important;
+  }
+}
+</style>
+/* Make the items view look modern + remove boring blue */
+#uie-view-items{
+  padding: 12px !important;
+}
+
+/* Search + dropdown: remove ugly white line */
+#uie-view-items input[type="text"],
+#uie-view-items input[type="search"],
+#uie-view-items input:not([type]){
+  width:100% !important;
+  background: rgba(0,0,0,0.22) !important;
+  border: 1px solid rgba(225,193,122,0.18) !important;
+  color: rgba(255,255,255,.92) !important;
+  border-radius: 10px !important;
+  padding: 8px 10px !important;
+  outline:none !important;
+}
+
+#uie-view-items select{
+  background: rgba(255,255,255,.06) !important;
+  border: 1px solid rgba(255,255,255,.12) !important;
+  color: rgba(255,255,255,.92) !important;
+  border-radius: 14px !important;
+  padding: 10px 12px !important;
+  outline:none !important;
+}
+
+/* If the items module uses legacy containers, keep them on the shelf layout. */
+#uie-view-items .items-grid,
+#uie-view-items .uie-items-grid,
+#uie-view-items .item-grid,
+#uie-view-items .grid,
+#uie-view-items .list{
+  display:flex !important;
+  flex-wrap:wrap !important;
+  align-items:stretch !important;
+  gap: 12px !important;
+  margin-top: 12px !important;
+}
+
+/* If it renders “cards”, “items”, or “rows” - make them look like real grid tiles */
+#uie-view-items .item-card,
+#uie-view-items .uie-item,
+#uie-view-items .item,
+#uie-view-items .row{
+  background: rgba(255,255,255,.045) !important;
+  border: 1px solid rgba(255,255,255,.12) !important;
+  border-radius: 18px !important;
+  padding: 12px !important;
+  min-height: 82px !important;
+  display:flex !important;
+  align-items:center !important;
+  gap: 10px !important;
+}
+
+/* Hover (desktop) */
+#uie-view-items .item-card:hover,
+#uie-view-items .uie-item:hover,
+#uie-view-items .item:hover,
+#uie-view-items .row:hover{
+  background: rgba(255,255,255,.07) !important;
+  border-color: rgba(255,255,255,.18) !important;
+}
+
+/* Icon box support */
+#uie-view-items .item-icon,
+#uie-view-items .uie-item-icon,
+#uie-view-items .icon{
+  width: 56px !important;
+  height: 56px !important;
+  border-radius: 16px !important;
+  background: rgba(0,0,0,.22) !important;
+  border: 1px solid rgba(255,255,255,.12) !important;
+  flex: 0 0 56px !important;
+  overflow:hidden !important;
+}
+
+/* Image inside icon */
+#uie-view-items .item-icon img,
+#uie-view-items .uie-item-icon img,
+#uie-view-items .icon img{
+  width:100% !important;
+  height:100% !important;
+  object-fit:cover !important;
+  display:block !important;
+}
+
+/* Title/meta support */
+#uie-view-items .item-name,
+#uie-view-items .uie-item-name,
+#uie-view-items .name{
+  font-weight: 850 !important;
+  font-size: 15px !important;
+  line-height: 1.15 !important;
+  color: rgba(255,255,255,.95) !important;
+}
+
+#uie-view-items .item-meta,
+#uie-view-items .uie-item-meta,
+#uie-view-items .meta{
+  font-size: 12px !important;
+  opacity: .78 !important;
+  margin-top: 4px !important;
+}
+
+/* Kill “blue selection” and any bright active state inside Items */
+#uie-view-items .active,
+#uie-view-items .selected,
+#uie-view-items .highlight{
+  background: rgba(255,255,255,.06) !important;
+}
+
+/* Final inventory shelf contract: no slot grid, fixed media wells, clamped names. */
+#uie-inventory-window #uie-view-items #uie-items-grid-inner.uie-grid,
+#uie-view-items #uie-items-grid-inner.uie-grid{
+  --uie-item-card-w: clamp(172px, 19vw, 224px);
+  --uie-item-thumb-h: 122px;
+  --uie-item-card-h: 196px;
+  display:flex !important;
+  flex-wrap:wrap !important;
+  align-items:stretch !important;
+  justify-content:flex-start !important;
+  gap:14px !important;
+  margin-top:0 !important;
+  align-content:start !important;
+  min-width:0 !important;
+  padding:14px !important;
+  border-radius:8px !important;
+  border:1px solid rgba(255,255,255,0.10) !important;
+  background:rgba(2, 6, 12, 0.30) !important;
+}
+
+@media (min-width: 760px){
+  #uie-inventory-window #uie-view-items #uie-items-grid-inner.uie-grid,
+  #uie-view-items #uie-items-grid-inner.uie-grid{
+    --uie-item-card-w: clamp(180px, 16vw, 232px);
+    --uie-item-thumb-h: 128px;
+    --uie-item-card-h: 204px;
+  }
+}
+
+@media (min-width: 1120px){
+  #uie-inventory-window #uie-view-items #uie-items-grid-inner.uie-grid,
+  #uie-view-items #uie-items-grid-inner.uie-grid{
+    --uie-item-card-w: clamp(188px, 13vw, 244px);
+    --uie-item-thumb-h: 132px;
+    --uie-item-card-h: 212px;
+  }
+}
+
+#uie-inventory-window #uie-view-items #uie-items-grid-inner .uie-item,
+#uie-view-items #uie-items-grid-inner .uie-item{
+  aspect-ratio:auto !important;
+  box-sizing:border-box !important;
+  contain:layout paint !important;
+  width:var(--uie-item-card-w) !important;
+  height:var(--uie-item-card-h) !important;
+  flex:0 0 var(--uie-item-card-w) !important;
+  min-width:var(--uie-item-card-w) !important;
+  min-height:var(--uie-item-card-h) !important;
+  max-width:var(--uie-item-card-w) !important;
+  max-height:var(--uie-item-card-h) !important;
+  display:flex !important;
+  flex-direction:column !important;
+  align-items:stretch !important;
+  gap:8px !important;
+  padding:10px !important;
+  border-radius:8px !important;
+  overflow:hidden !important;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.075), rgba(255,255,255,0.025)),
+    rgba(4, 8, 14, 0.66) !important;
+  border:1px solid rgba(255,255,255,0.13) !important;
+  box-shadow:0 14px 28px rgba(0,0,0,0.26) !important;
+}
+
+#uie-inventory-window #uie-view-items #uie-items-grid-inner .uie-thumb,
+#uie-view-items #uie-items-grid-inner .uie-thumb{
+  flex:0 0 var(--uie-item-thumb-h) !important;
+  height:var(--uie-item-thumb-h) !important;
+  min-height:var(--uie-item-thumb-h) !important;
+  max-height:var(--uie-item-thumb-h) !important;
+  min-width:0 !important;
+  width:100% !important;
+  max-width:100% !important;
+  border-radius:8px !important;
+  overflow:hidden !important;
+  padding:10px !important;
+  box-sizing:border-box !important;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.05), rgba(0,0,0,0.20)),
+    rgba(0,0,0,0.24) !important;
+  border:1px solid rgba(255,255,255,0.10) !important;
+}
+
+#uie-inventory-window #uie-view-items #uie-items-grid-inner .uie-thumb img,
+#uie-view-items #uie-items-grid-inner .uie-thumb img{
+  width:100% !important;
+  height:100% !important;
+  max-width:100% !important;
+  max-height:100% !important;
+  object-fit:contain !important;
+  object-position:center center !important;
+  display:block !important;
+}
+
+#uie-inventory-window #uie-view-items #uie-items-grid-inner .uie-item-body,
+#uie-view-items #uie-items-grid-inner .uie-item-body{
+  flex:1 1 auto !important;
+  box-sizing:border-box !important;
+  max-height:none !important;
+  min-width:0 !important;
+  overflow:hidden !important;
+  padding:0 2px 2px !important;
+  background:transparent !important;
+}
+
+#uie-inventory-window #uie-view-items #uie-items-grid-inner .uie-item-name,
+#uie-view-items #uie-items-grid-inner .uie-item-name{
+  display:-webkit-box !important;
+  -webkit-line-clamp:2 !important;
+  line-clamp:2 !important;
+  -webkit-box-orient:vertical !important;
+  overflow:hidden !important;
+  overflow-wrap:anywhere !important;
+  word-break:break-word !important;
+  white-space:normal !important;
+  font-size:13px !important;
+  line-height:1.15 !important;
+}
+
+#uie-inventory-window #uie-view-items #uie-items-grid-inner .uie-item-notes,
+#uie-view-items #uie-items-grid-inner .uie-item-notes{
+  margin-top:4px !important;
+  color:rgba(255,255,255,0.62) !important;
+  font-size:11px !important;
+  line-height:1.15 !important;
+  overflow:hidden !important;
+  text-overflow:ellipsis !important;
+  white-space:nowrap !important;
+}
+/* === UIE ITEMS GRID END === */
+
+/* Processed Assets Catalog styles */
+.uie-processed-assets{
+  display:flex;
+  flex-direction:column;
+  gap:14px;
+  margin-top:20px;
+  clear: both;
+  width: 100%;
+}
+.uie-processed-assets-section{
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
+.uie-processed-assets-section h4{
+  margin:0;
+  font-size:12px;
+  letter-spacing:0;
+  color:#e6c27a;
+}
+.uie-processed-assets-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill, minmax(96px, 1fr));
+  gap:8px;
+}
+.uie-processed-asset-card{
+  min-width:0;
+  border:1px solid rgba(215,165,82,0.22);
+  border-radius:6px;
+  background:rgba(24,15,8,0.46);
+  overflow:hidden;
+}
+.uie-processed-asset-img{
+  width:100%;
+  aspect-ratio:1 / 1;
+  display:grid;
+  place-items:center;
+  background:rgba(0,0,0,0.24);
+  padding:6px;
+  box-sizing:border-box;
+}
+.uie-processed-asset-img img{
+  width:100%;
+  height:100%;
+  object-fit:contain;
+  display:block;
+}
+.uie-processed-asset-name,
+.uie-processed-asset-tags,
+.uie-processed-asset-macros{
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  padding:0 7px;
+}
+.uie-processed-asset-name{
+  padding-top:6px;
+  font-size:11px;
+  font-weight:900;
+  color:#f3dfb7;
+}
+.uie-processed-asset-tags{
+  font-size:9px;
+  color:rgba(235,220,196,0.68);
+}
+.uie-processed-asset-macros{
+  padding-bottom:6px;
+  font-size:9px;
+  color:#d8b16a;
+}
+</style>
