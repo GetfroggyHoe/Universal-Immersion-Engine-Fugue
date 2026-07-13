@@ -530,7 +530,15 @@ function safeStructuredClone(v) {
 function parseComfyWorkflowRaw(workflowRaw) {
     const obj = JSON.parse(String(workflowRaw || ""));
     if (obj && typeof obj === "object" && obj.prompt && typeof obj.prompt === "object") return obj.prompt;
+    if (obj && typeof obj === "object" && Array.isArray(obj.nodes) && Array.isArray(obj.links)) {
+        throw new Error("This is a ComfyUI UI workflow export (nodes/links), not an API-format workflow. In ComfyUI, enable Dev Mode (Settings > Enable Dev mode options), then use \"Export (API)\" / \"Save (API Format)\" and paste that JSON instead.");
+    }
     return obj;
+}
+
+function comfyGraphNeedsCheckpoint(graph) {
+    if (!graph || typeof graph !== "object") return true;
+    return Object.values(graph).some(n => /CheckpointLoaderSimple/i.test(String(n?.class_type || "")));
 }
 
 function detectComfyNodeIds(graph) {
@@ -1533,31 +1541,6 @@ async function generateComfyUI({ endpoint, workflowRaw, promptText, negativeProm
     const sampler = String(comfy.sampler || "").trim();
     const scheduler = String(comfy.scheduler || "").trim();
     checkpoint = String(checkpoint || comfy.checkpoint || "").trim();
-    if (!checkpoint) {
-        try {
-            const infoFx = await fetchWithCorsProxyFallback(
-                `${String(endpoint || "").trim().replace(/\/+$/, "").replace(/\/prompt$/i, "")}/object_info`,
-                { method: "GET", headers: comfyAuthHeaders(apiKey) },
-                forceProxy ? { skipDirect: true } : {}
-            );
-            if (infoFx.response.ok) {
-                const info = await infoFx.response.json();
-                checkpoint = String(getComfyEnum(info, "CheckpointLoaderSimple", "ckpt_name")[0] || "").trim();
-            }
-        } catch (_) {}
-    }
-    if (!checkpoint) {
-        try {
-            window.UIE_lastImage = {
-                ok: false,
-                endpoint,
-                mode: "comfy",
-                status: 0,
-                error: "No ComfyUI checkpoint was selected or detected."
-            };
-        } catch (_) {}
-        return null;
-    }
 
     try {
         if (comfyWorkflowCache.raw !== String(workflowRaw || "") || !comfyWorkflowCache.parsed) {
@@ -1575,7 +1558,47 @@ async function generateComfyUI({ endpoint, workflowRaw, promptText, negativeProm
     }
 
     const baseGraph = comfyWorkflowCache.parsed;
-    if (!baseGraph) return null;
+    if (!baseGraph) {
+        try {
+            window.UIE_lastImage = {
+                ok: false,
+                endpoint,
+                mode: "comfy",
+                status: 0,
+                error: comfyWorkflowCache.err || "Could not parse the ComfyUI workflow JSON."
+            };
+        } catch (_) {}
+        if (window.toastr && comfyWorkflowCache.err) toastr.error(comfyWorkflowCache.err, "", { timeOut: 8000 });
+        return null;
+    }
+
+    const needsCheckpoint = comfyGraphNeedsCheckpoint(baseGraph);
+
+    if (needsCheckpoint && !checkpoint) {
+        try {
+            const infoFx = await fetchWithCorsProxyFallback(
+                `${String(endpoint || "").trim().replace(/\/+$/, "").replace(/\/prompt$/i, "")}/object_info`,
+                { method: "GET", headers: comfyAuthHeaders(apiKey) },
+                forceProxy ? { skipDirect: true } : {}
+            );
+            if (infoFx.response.ok) {
+                const info = await infoFx.response.json();
+                checkpoint = String(getComfyEnum(info, "CheckpointLoaderSimple", "ckpt_name")[0] || "").trim();
+            }
+        } catch (_) {}
+    }
+    if (needsCheckpoint && !checkpoint) {
+        try {
+            window.UIE_lastImage = {
+                ok: false,
+                endpoint,
+                mode: "comfy",
+                status: 0,
+                error: "No ComfyUI checkpoint was selected or detected."
+            };
+        } catch (_) {}
+        return null;
+    }
 
     const ids = comfyWorkflowCache.ids || {};
     if (!positiveNodeId) positiveNodeId = String(ids.positiveNodeId || "");
