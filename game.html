@@ -13558,6 +13558,7 @@ ${String(uiStyle.customCss || "")}
             win.each(function () {
                 if (this && this !== document.body) document.body.appendChild(this);
             });
+            win.prop("hidden", false).removeAttr("aria-hidden");
             win.stop(true, true).css({ display: displayMode, "pointer-events": "auto", "z-index": 2147483647 });
             if (!animate) {
                 win.css("opacity", 1);
