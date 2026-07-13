@@ -121,4 +121,3 @@ npm run sync:ui
 - **Font Awesome** - interface icons.
 - **Bundled and user-supplied assets** - artwork in `assets/` remains credited according to its accompanying source notes. Please keep those notes with any asset you add or redistribute.
 - **Perchance AI** and **SillyTavern** - thanks for helping demonstrate what imaginative AI roleplay tools can become.
-# Universal-Immersion-Engine-Fugue

@@ -173,7 +173,7 @@ export async function loadTemplates() {
     }
 
     try { setTimeout(() => { void applyI18nBatch(document); }, 0); } catch (_) {}
-    try { setTimeout(() => { void ensureProcessedAssetLibrary({ injectFood: true }); }, 0); } catch (_) {}
+    try { setTimeout(() => { void ensureProcessedAssetLibrary(); }, 0); } catch (_) {}
 
     // Standalone windows are embedded or loaded on demand. Diary is small and user-facing enough
     // to mount eagerly so the menu button never opens against a missing template.

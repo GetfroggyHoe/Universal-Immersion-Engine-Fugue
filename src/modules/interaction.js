@@ -1371,8 +1371,9 @@ async function openWindow(selector) {
 
     win.css("z-index", highestZ + 1);
 
-    // Ensure it's a direct child of body to avoid stacking context traps
-    if (win[0].parentElement !== document.body) {
+    // Unmanaged legacy windows remain body children. Managed major modals are
+    // owned by the shared desktop canvas and must never be detached from it.
+    if (win[0].dataset.modalViewportManaged !== "true" && win[0].parentElement !== document.body) {
         document.body.appendChild(win[0]);
     }
 
@@ -1383,18 +1384,22 @@ async function openWindow(selector) {
 
     // One layout path at every viewport: preserve each window's desktop geometry,
     // then only clamp an already-dragged window back into the visible viewport.
-    ensureVisibleOnScreen(win, 8);
+    if (win[0].dataset.modalViewportManaged !== "true") ensureVisibleOnScreen(win, 8);
 
-    // Ensure on-screen: clamp pixel position, never force translate centering
-    try {
-        const rect = win[0].getBoundingClientRect();
-        if (rect.top < 0 || rect.left < 0 || rect.bottom > window.innerHeight || rect.right > window.innerWidth) {
-            const w = rect.width || win.outerWidth() || 320;
-            const h = rect.height || win.outerHeight() || 420;
-            const pos = clampToViewportPx(rect.left, rect.top, w, h, 8);
-            win.css({ left: `${pos.x}px`, top: `${pos.y}px`, right: "auto", bottom: "auto", transform: "none", position: "fixed" });
-        }
-    } catch (_) {}
+    // Only legacy unmanaged windows use pixel clamping. Shared modal canvases
+    // retain desktop coordinates and are fitted as a single composition.
+    if (win[0].dataset.modalViewportManaged !== "true") {
+        try {
+            const rect = win[0].getBoundingClientRect();
+            if (rect.top < 0 || rect.left < 0 || rect.bottom > window.innerHeight || rect.right > window.innerWidth) {
+                const w = rect.width || win.outerWidth() || 320;
+                const h = rect.height || win.outerHeight() || 420;
+                const pos = clampToViewportPx(rect.left, rect.top, w, h, 8);
+                win.css({ left: `${pos.x}px`, top: `${pos.y}px`, right: "auto", bottom: "auto", transform: "none", position: "fixed" });
+            }
+        } catch (_) {}
+    }
+    window.UIE_updateModalScales?.();
 
     // Close main menu
     $("#uie-main-menu").hide();

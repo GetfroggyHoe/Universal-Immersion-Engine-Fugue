@@ -288,7 +288,7 @@ function buildAssetMacroRegistry(manifest) {
   return registry;
 }
 
-export async function ensureProcessedAssetLibrary({ injectFood = false } = {}) {
+export async function ensureProcessedAssetLibrary() {
   const manifest = await loadPakBackedManifest();
   if (!manifest) return null;
 
@@ -338,22 +338,14 @@ export async function ensureProcessedAssetLibrary({ injectFood = false } = {}) {
     delete s.inventory.processedAssetInjectedVersion;
   }
 
-  if (injectFood || s.inventory.processedFoodInjectedVersion !== ASSET_LIBRARY_VERSION) {
-    delete s.inventory.processedFoodInjectedVersion;
-    const foodRecords = Array.isArray(manifest.food) ? manifest.food : [];
-    s.inventory.items.push(...foodRecords.map(buildFoodItem));
-    s.inventory.processedFoodInjectedVersion = ASSET_LIBRARY_VERSION;
-  }
-
-  if (s.inventory.processedAssetInjectedVersion !== ASSET_LIBRARY_VERSION) {
-    delete s.inventory.processedAssetInjectedVersion;
-    const assetRecords = [
-      ...(Array.isArray(manifest.misc) ? manifest.misc : []),
-      ...(Array.isArray(manifest.itemsEquipment) ? manifest.itemsEquipment : []),
-    ];
-    s.inventory.assets.push(...assetRecords.map(buildCatalogAsset));
-    s.inventory.processedAssetInjectedVersion = ASSET_LIBRARY_VERSION;
-  }
+  // The processed manifest is a visual/macro catalog, not player inventory.
+  // Older builds copied the whole catalog into items/assets on startup. Keep
+  // the library available through the globals above, but migrate those seeded
+  // records out and never recreate them. Real inventory entries are added only
+  // by gameplay, explicit user creation, import, or state mutation.
+  delete s.inventory.processedFoodInjectedVersion;
+  delete s.inventory.processedAssetInjectedVersion;
+  s.inventory.assetLibrary.autoInjection = false;
 
   saveSettings();
   return manifest;

@@ -1,0 +1,223 @@
+:root {
+  --z-game-world: 0;
+  --z-game-hud: 100;
+  --z-game-controls: 200;
+  --z-game-popover: 500;
+  --z-major-modal: 2147483600;
+  --z-modal-content: 2147483601;
+  --z-modal-popover: 2147483602;
+}
+
+.game-modal-overlay {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100dvw !important;
+  height: 100dvh !important;
+  padding:
+    max(8px, env(safe-area-inset-top))
+    max(8px, env(safe-area-inset-right))
+    max(8px, env(safe-area-inset-bottom))
+    max(8px, env(safe-area-inset-left)) !important;
+  display: none;
+  overflow: hidden !important;
+  box-sizing: border-box !important;
+  background: rgba(3, 6, 12, 0.72);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: var(--z-major-modal) !important;
+  pointer-events: auto !important;
+  isolation: isolate;
+}
+
+.game-modal-overlay.is-open {
+  display: block !important;
+}
+
+.game-modal-viewport {
+  position: relative !important;
+  width: 100% !important;
+  height: 100% !important;
+  display: grid !important;
+  place-items: center !important;
+  overflow: visible !important;
+  pointer-events: none !important;
+}
+
+.game-modal-desktop-canvas {
+  position: absolute !important;
+  top: 50% !important;
+  left: 50% !important;
+  width: calc(var(--modal-design-width) * 1px) !important;
+  height: calc(var(--modal-design-height) * 1px) !important;
+  min-width: calc(var(--modal-design-width) * 1px) !important;
+  min-height: calc(var(--modal-design-height) * 1px) !important;
+  max-width: none !important;
+  max-height: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  flex: 0 0 auto !important;
+  transform: translate(-50%, -50%) scale(var(--modal-scale, 1)) !important;
+  transform-origin: center center !important;
+  overflow: visible !important;
+  pointer-events: auto !important;
+  z-index: var(--z-modal-content) !important;
+  box-sizing: border-box !important;
+  contain: layout style;
+}
+
+.game-modal-desktop-canvas > .game-modal-scaled-root {
+  position: absolute !important;
+  inset: 0 !important;
+  top: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  max-width: none !important;
+  max-height: none !important;
+  margin: 0 !important;
+  transform: none !important;
+  transform-origin: center center !important;
+  zoom: 1 !important;
+  box-sizing: border-box !important;
+  z-index: 1 !important;
+  pointer-events: auto !important;
+}
+
+/* Inventory's desktop composition is 1100 x 850 inside a 28px frame. */
+.game-modal-desktop-canvas[data-modal-selector="#uie-inventory-window"]
+  > #uie-inventory-window {
+  display: flex;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 28px !important;
+  overflow: visible !important;
+}
+
+.game-modal-desktop-canvas[data-modal-selector="#uie-inventory-window"]
+  > #uie-inventory-window > .uie-inv-panel {
+  position: relative !important;
+  width: 1100px !important;
+  height: 850px !important;
+  min-width: 1100px !important;
+  min-height: 850px !important;
+  max-width: 1100px !important;
+  max-height: 850px !important;
+  flex: 0 0 1100px !important;
+  overflow: hidden !important;
+}
+
+/* Inventory popovers are anchored to the inventory root/canvas, never body. */
+.game-modal-desktop-canvas[data-modal-selector="#uie-inventory-window"]
+  #uie-inv-editor,
+.game-modal-desktop-canvas[data-modal-selector="#uie-inventory-window"]
+  #uie-class-reset-modal,
+.game-modal-desktop-canvas[data-modal-selector="#uie-inventory-window"]
+  #uie-create-station-overlay,
+.game-modal-desktop-canvas[data-modal-selector="#uie-inventory-window"]
+  #uie-rebirth-modal {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.game-modal-desktop-canvas[data-modal-selector="#uie-inventory-window"]
+  #uie-inv-sparkle-menu,
+.game-modal-desktop-canvas[data-modal-selector="#uie-inventory-window"]
+  #uie-inv-gear-menu {
+  position: absolute !important;
+  max-width: none !important;
+}
+
+/* Chat Log: fixed desktop header/tabs/actions; only transcript content scrolls. */
+.game-modal-desktop-canvas[data-modal-selector="#chatlog-modal"] > #chatlog-modal {
+  display: block;
+  padding: 0 !important;
+  overflow: hidden !important;
+}
+
+.game-modal-desktop-canvas[data-modal-selector="#chatlog-modal"] .chatlog-panel {
+  width: 100% !important;
+  height: 100% !important;
+  max-height: none !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+}
+
+.game-modal-desktop-canvas[data-modal-selector="#chatlog-modal"] .chatlog-window-head,
+.game-modal-desktop-canvas[data-modal-selector="#chatlog-modal"] .chatlog-tabbar,
+.game-modal-desktop-canvas[data-modal-selector="#chatlog-modal"] .chatlog-toolbar {
+  flex: 0 0 auto !important;
+}
+
+.game-modal-desktop-canvas[data-modal-selector="#chatlog-modal"] .chatlog-window-head {
+  min-height: 66px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  box-sizing: border-box !important;
+}
+
+.game-modal-desktop-canvas[data-modal-selector="#chatlog-modal"] .chatlog-tabbar {
+  margin: 0 !important;
+  padding: 10px 12px !important;
+  gap: 8px !important;
+  overflow: visible !important;
+}
+
+.game-modal-desktop-canvas[data-modal-selector="#chatlog-modal"] .chatlog-subpanel.active {
+  min-height: 0 !important;
+  flex: 1 1 auto !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+}
+
+.game-modal-desktop-canvas[data-modal-selector="#chatlog-modal"] .chatlog-scroll {
+  min-height: 0 !important;
+  max-height: none !important;
+  flex: 1 1 auto !important;
+  overflow: auto !important;
+}
+
+.game-modal-desktop-canvas[data-modal-selector="#chatlog-modal"] .chatlog-toolbar {
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  overflow: visible !important;
+}
+
+body.game-major-modal-open #hud,
+body.game-major-modal-open #vn-ui,
+body.game-major-modal-open #uie-launcher,
+body.game-major-modal-open #room-hotspot-layer,
+body.game-major-modal-open #room-components-layer {
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+body.game-major-modal-open {
+  overflow: hidden !important;
+}
+
+#uie-rotate-device-blocker {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483647;
+  display: none;
+  place-items: center;
+  padding: 28px;
+  box-sizing: border-box;
+  background: #050811;
+  color: #f8fbff;
+  text-align: center;
+  font: 800 18px/1.4 Inter, system-ui, sans-serif;
+}
+
+@media (pointer: coarse) and (orientation: portrait) {
+  #uie-rotate-device-blocker { display: grid; }
+}

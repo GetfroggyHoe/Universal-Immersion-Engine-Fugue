@@ -1674,13 +1674,14 @@ function renderFallbackItemsGrid() {
 }
 
 function portalInventoryOverlaysToBody() {
+  const inventoryRoot = document.getElementById("uie-inventory-window");
+  if (!inventoryRoot) return;
   const ids = ["#uie-inv-editor"];
   for (const sel of ids) {
     const el = document.querySelector(sel);
     if (!el) continue;
-    if (el.dataset.uiePortaled === "1") continue;
-    document.body.appendChild(el);
-    el.dataset.uiePortaled = "1";
+    if (!inventoryRoot.contains(el)) inventoryRoot.appendChild(el);
+    el.dataset.uiePortaled = "inventory-root";
   }
 }
 
@@ -1688,10 +1689,9 @@ function portalInventoryOverlaysToBody() {
     const menu = document.getElementById(menuId);
     const anchor = document.getElementById(anchorId);
     if (!menu || !anchor) return;
-    if (menu.dataset.uiePortaled !== "1") {
-      document.body.appendChild(menu);
-      menu.dataset.uiePortaled = "1";
-    }
+    const inventoryRoot = document.getElementById("uie-inventory-window");
+    if (inventoryRoot && !inventoryRoot.contains(menu)) inventoryRoot.appendChild(menu);
+    menu.dataset.uiePortaled = "inventory-root";
     const nextOpen = menu.style.display !== "block";
     const otherMenus = ["uie-inv-sparkle-menu", "uie-inv-gear-menu"].filter(x => x !== menuId);
     for (const oid of otherMenus) {
@@ -1704,33 +1704,13 @@ function portalInventoryOverlaysToBody() {
       o.style.display = "none";
     }
     if (!nextOpen) { menu.style.display = "none"; return; }
-    menu.style.position = "fixed";
+    menu.style.position = "absolute";
     menu.style.zIndex = "2147483647";
     menu.style.pointerEvents = "auto";
     menu.style.display = "block";
-    const place = () => {
-      const r = anchor.getBoundingClientRect();
-      const rect = menu.getBoundingClientRect();
-      const vw = window.innerWidth || document.documentElement.clientWidth || 0;
-      const vh = window.innerHeight || document.documentElement.clientHeight || 0;
-      const pad = 8;
-      const w = rect.width || 260;
-      const h = rect.height || 220;
-      const badAnchor = (!Number.isFinite(r.left) || !Number.isFinite(r.top) || (r.left === 0 && r.top === 0 && r.width === 0 && r.height === 0));
-
-      let top = badAnchor ? Math.round((vh - h) / 2) : Math.round(r.bottom + 8);
-      if (!badAnchor && top + h > vh - pad) top = Math.round(r.top - h - 8);
-      top = Math.max(pad, Math.min(top, vh - h - pad));
-
-      let left = badAnchor ? Math.round((vw - w) / 2) : Math.round(r.left);
-      if (!badAnchor && left + w > vw - pad) left = Math.round(r.right - w);
-      left = Math.max(pad, Math.min(left, vw - w - pad));
-
-      menu.style.top = `${top}px`;
-      menu.style.left = `${left}px`;
-      menu.style.right = "auto";
-    };
-    try { requestAnimationFrame(place); } catch (_) { setTimeout(place, 0); }
+    menu.style.top = "70px";
+    menu.style.right = "124px";
+    menu.style.left = "auto";
   };
 
 const createStation = { open: false, parent: null, next: null };
@@ -1798,51 +1778,28 @@ function openCreateStation() {
 
   // Desktop: Toggle dropdown
   {
-      if (menu.parentElement !== document.body) {
-          document.body.appendChild(menu);
-      }
-      menu.dataset.uiePortaled = "1";
+      const inventoryRoot = document.getElementById("uie-inventory-window");
+      if (inventoryRoot && !inventoryRoot.contains(menu)) inventoryRoot.appendChild(menu);
+      menu.dataset.uiePortaled = "inventory-root";
 
       if (menu.style.display === "block") {
           closeCreateStation();
       } else {
-          const btn = document.getElementById("uie-inv-sparkle");
-          const vw = window.innerWidth || document.documentElement.clientWidth || 0;
-          const vh = window.innerHeight || document.documentElement.clientHeight || 0;
-          const pad = 10;
           resetCreateStationMenuStyles(menu);
-          menu.style.position = "fixed";
+          menu.style.position = "absolute";
           menu.style.zIndex = "2147483655";
           menu.style.pointerEvents = "auto";
-          menu.style.width = `min(420px, calc(100vw - ${pad * 2}px))`;
-          menu.style.maxWidth = `calc(100vw - ${pad * 2}px)`;
-          menu.style.maxHeight = `calc(100dvh - ${pad * 2}px)`;
+          menu.style.width = "420px";
+          menu.style.maxWidth = "420px";
+          menu.style.maxHeight = "760px";
           menu.style.height = "auto";
           menu.style.transform = "none";
           menu.style.margin = "0";
           menu.style.display = "block";
-
-          const place = () => {
-              const ar = btn?.getBoundingClientRect?.() || null;
-              const mr = menu.getBoundingClientRect();
-              const w = mr.width || Math.min(420, Math.max(220, vw - pad * 2));
-              const h = mr.height || Math.min(Math.max(240, vh - pad * 2), 760);
-              const badAnchor = !ar || !Number.isFinite(ar.left) || !Number.isFinite(ar.top) || (ar.left === 0 && ar.top === 0 && ar.width === 0 && ar.height === 0);
-
-              let left = badAnchor ? Math.round((vw - w) / 2) : Math.round(ar.right - w);
-              let top = badAnchor ? Math.round((vh - h) / 2) : Math.round(ar.bottom + 10);
-
-              if (!badAnchor && top + h > vh - pad) top = Math.round(ar.top - h - 10);
-              left = Math.max(pad, Math.min(left, vw - w - pad));
-              top = Math.max(pad, Math.min(top, vh - h - pad));
-
-              menu.style.top = `${top}px`;
-              menu.style.left = `${left}px`;
-              menu.style.right = "auto";
-              menu.style.bottom = "auto";
-          };
-
-          try { requestAnimationFrame(place); } catch (_) { setTimeout(place, 0); }
+          menu.style.top = "70px";
+          menu.style.right = "40px";
+          menu.style.bottom = "auto";
+          menu.style.left = "auto";
           createStation.open = true;
       }
       return;
@@ -1960,7 +1917,7 @@ export function initInventory() {
   ensureModel(s);
   ensureInventoryUi(s);
   try {
-    void ensureProcessedAssetLibrary({ injectFood: true }).then(async () => {
+    void ensureProcessedAssetLibrary().then(async () => {
       try { updateVitals(); } catch (_) {}
       try { (await import("./features/items.js")).render?.(); } catch (_) {}
     });

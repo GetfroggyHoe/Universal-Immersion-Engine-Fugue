@@ -2364,6 +2364,7 @@
             .ui-toast { padding: 13px 15px; font-size: 14px; }
         }
     </style>
+    <link rel="stylesheet" href="./src/styles/modalViewport.css">
 </head>
 <body>
     <div id="loading">
@@ -6539,7 +6540,7 @@
             const rootWidth = Math.max(0, rootRect.width);
             if (!rootWidth) return;
             const set = (el, prop, value) => el.style.setProperty(prop, value, "important");
-            const uiZoom = 0.75;
+            const uiZoom = 0.90;
 
             if (hud) {
                 set(hud, "transform-origin", "top left");
@@ -13610,11 +13611,7 @@ ${String(uiStyle.customCss || "")}
                 const quickBag = await importUieModule("features/quickBag.js");
                 quickBag?.hideQuickBag?.();
             } catch (_) {}
-            try {
-                const el = win.get(0);
-                if (el && el.parentElement !== document.body) document.body.appendChild(el);
-            } catch (_) {}
-            win.css({ position: "fixed", inset: "0", top: "0", left: "0", right: "0", bottom: "0", transform: "none", "z-index": 2147483642, "pointer-events": "auto" });
+            window.UIE_updateModalScales?.();
             $(".uie-window").each(function () {
                 blurManagedFocusInside(this);
                 $(this).hide();
@@ -16728,40 +16725,6 @@ function getMainProviderPreset(providerRaw = "") {
             }
         }
 
-        function fitStartupDesktopCard() {
-            const startup = document.getElementById("startup-modal");
-            const card = startup?.querySelector(".modal-card");
-            if (!card || getComputedStyle(startup).display === "none") return;
-
-            // Preserve the desktop card's exact proportions. Small viewports
-            // scale the complete card uniformly; they never independently
-            // clamp its height or substitute a mobile/modal layout.
-            card.style.setProperty("width", "680px", "important");
-            card.style.setProperty("max-width", "none", "important");
-            card.style.setProperty("height", "auto", "important");
-            card.style.setProperty("max-height", "none", "important");
-            card.style.setProperty("overflow", "visible", "important");
-            card.style.setProperty("transform-origin", "center center", "important");
-            card.style.setProperty("scale", "1", "important");
-
-            const viewport = window.visualViewport;
-            const viewportWidth = viewport?.width ?? window.innerWidth;
-            const viewportHeight = viewport?.height ?? window.innerHeight;
-            const naturalWidth = card.offsetWidth;
-            const naturalHeight = Math.max(card.offsetHeight, card.scrollHeight);
-            const gap = 14;
-            const fit = Math.min(
-                1,
-                (viewportWidth - gap * 2) / naturalWidth,
-                (viewportHeight - gap * 2) / naturalHeight
-            );
-            card.style.setProperty("scale", String(Math.max(0.1, fit)), "important");
-        }
-
-        window.addEventListener("resize", () => requestAnimationFrame(fitStartupDesktopCard), { passive: true });
-        window.addEventListener("orientationchange", () => requestAnimationFrame(fitStartupDesktopCard), { passive: true });
-        window.visualViewport?.addEventListener("resize", () => requestAnimationFrame(fitStartupDesktopCard), { passive: true });
-
         function showStartupOrMainApiFlow(force = false) {
             if (window.__uieGameplayActive === true && force !== true) return;
             const newGameOverlay = document.getElementById("uie-newgame-overlay");
@@ -16801,7 +16764,7 @@ function getMainProviderPreset(providerRaw = "") {
                     card.style.visibility = "visible";
                     card.style.opacity = "1";
                 }
-                requestAnimationFrame(fitStartupDesktopCard);
+                window.UIE_updateModalScales?.();
             }
         }
 
@@ -31395,5 +31358,9 @@ function getMainProviderPreset(providerRaw = "") {
     </template>
 </div>
 
+<script type="module">
+  import { initModalViewportSystem } from "./src/modules/modalViewport.js";
+  initModalViewportSystem();
+</script>
 </body>
 </html>

@@ -69,7 +69,7 @@ function bindHandlers() {
 export async function init() {
   const settings = getSettings();
   if (!settings) return;
-  await ensureProcessedAssetLibrary({ injectFood: true });
+  await ensureProcessedAssetLibrary();
   bindHandlers();
   const list = [...(settings.inventory?.assets || [])].sort((a, b) => {
     const ac = String(a?.category || a?.type || "").localeCompare(String(b?.category || b?.type || ""));
