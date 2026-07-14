@@ -552,8 +552,28 @@ function detectComfyNodeIds(graph) {
         if (/SaveImage/i.test(ct)) save.push(id);
         if (/PreviewImage/i.test(ct)) preview.push(id);
     }
-    const positiveNodeId = clip.length ? String(clip[0]) : "";
-    const negativeNodeId = clip.length > 1 ? String(clip[1]) : "";
+
+    // Prefer tracing the actual graph wiring: find a sampler/guider node whose
+    // inputs.positive / inputs.negative point at other nodes (KSampler, CFGGuider,
+    // etc. all use this convention). Node-id order is arbitrary and unrelated to
+    // positive/negative role, so falling back to it first silently swaps prompts
+    // whenever the negative node happens to have a lower id than the positive one.
+    let positiveNodeId = "";
+    let negativeNodeId = "";
+    for (const n of Object.values(g)) {
+        const inputs = n?.inputs;
+        if (!inputs || typeof inputs !== "object") continue;
+        const pos = inputs.positive;
+        const neg = inputs.negative;
+        if (Array.isArray(pos) && Array.isArray(neg) && g[pos[0]] && g[neg[0]]) {
+            positiveNodeId = String(pos[0]);
+            negativeNodeId = String(neg[0]);
+            break;
+        }
+    }
+
+    if (!positiveNodeId) positiveNodeId = clip.length ? String(clip[0]) : "";
+    if (!negativeNodeId) negativeNodeId = clip.length > 1 ? String(clip[1]) : "";
     const outputNodeId = save.length ? String(save[0]) : preview.length ? String(preview[0]) : "";
     return { positiveNodeId, negativeNodeId, outputNodeId };
 }
