@@ -3953,6 +3953,7 @@
             const btn = document.getElementById("q-img-gen");
             const panel = document.getElementById("img-gen-dropdown-panel");
             if (!btn || !panel || !panel.classList.contains("open")) return;
+            if (panel.parentElement !== document.body) document.body.appendChild(panel);
             const r = btn.getBoundingClientRect();
             const estH = Math.min(400, Math.max(120, panel.scrollHeight || 200));
             const spaceAbove = r.top;
@@ -3991,6 +3992,7 @@
             const btn = document.getElementById("q-expression");
             const panel = document.getElementById("expression-dd-panel");
             if (!btn || !panel || !panel.classList.contains("open")) return;
+            if (panel.parentElement !== document.body) document.body.appendChild(panel);
             const r = btn.getBoundingClientRect();
             const estH = Math.min(320, Math.max(160, panel.scrollHeight || 220));
             const spaceAbove = r.top;
@@ -4015,6 +4017,7 @@
             const btn = document.getElementById("q-persona-quick");
             const panel = document.getElementById("persona-quick-panel");
             if (!btn || !panel || !panel.classList.contains("open")) return;
+            if (panel.parentElement !== document.body) document.body.appendChild(panel);
             const r = btn.getBoundingClientRect();
             const estH = Math.min(680, Math.max(220, panel.scrollHeight || 320));
             const spaceAbove = r.top;
@@ -4047,6 +4050,7 @@
             const btn = document.getElementById("q-visibility-menu");
             const panel = document.getElementById("q-visibility-panel");
             if (!btn || !panel || !panel.classList.contains("open")) return;
+            if (panel.parentElement !== document.body) document.body.appendChild(panel);
             const r = btn.getBoundingClientRect();
             const estH = Math.min(220, Math.max(100, panel.scrollHeight || 150));
             const spaceAbove = r.top;
