@@ -16130,7 +16130,7 @@ ${String(uiStyle.customCss || "")}
 
         function renderPromptProfiles() {
             const s = ensureUiSettings();
-            const list = $("#pp-list");
+            const list = $("#uie-settings-window").find("#pp-list");
             list.empty();
             s.aiPromptProfiles.forEach((p, idx) => {
                 const ord =
@@ -19836,11 +19836,11 @@ function getMainProviderPreset(providerRaw = "") {
             let pendingStPromptImportReplace = false;
             $(document).on("click", "#pp-st-import-merge", () => {
                 pendingStPromptImportReplace = false;
-                $("#cfg-st-prompts-file").trigger("click");
+                $("#uie-settings-window").find("#cfg-st-prompts-file").trigger("click");
             });
             $(document).on("click", "#pp-st-import-replace", () => {
                 pendingStPromptImportReplace = true;
-                $("#cfg-st-prompts-file").trigger("click");
+                $("#uie-settings-window").find("#cfg-st-prompts-file").trigger("click");
             });
             $(document).on("change", "#cfg-st-prompts-file", async (ev) => {
                 const input = ev.target;
@@ -19881,9 +19881,10 @@ function getMainProviderPreset(providerRaw = "") {
             });
 
             $(document).on("click", "#pp-add", () => {
-                const name = String($("#pp-name").val() || "").trim();
-                const type = String($("#pp-type").val() || "story");
-                const content = String($("#pp-content").val() || "").trim();
+                const win = $("#uie-settings-window");
+                const name = String(win.find("#pp-name").val() || "").trim();
+                const type = String(win.find("#pp-type").val() || "story");
+                const content = String(win.find("#pp-content").val() || "").trim();
                 if (!name || !content) return;
                 const s = ensureUiSettings();
                 const maxLen = 500000;
@@ -19895,7 +19896,7 @@ function getMainProviderPreset(providerRaw = "") {
                     content: content.length > maxLen ? content.slice(0, maxLen) : content,
                 });
                 Core.saveSettings();
-                $("#pp-name,#pp-content").val("");
+                win.find("#pp-name,#pp-content").val("");
                 renderPromptProfiles();
             });
 
