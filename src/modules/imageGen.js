@@ -692,6 +692,11 @@ async function fetchWithCorsProxyFallback(targetUrl, options, opts = {}) {
     const skipDirect = opts.skipDirect === true || /nvidia\.com/i.test(String(targetUrl || "")) || (standaloneLocal && remoteTarget);
     const isLocalHost = /^https?:\/\/(localhost|127\.0\.0\.1|0\.0\.0\.0)(:\d+)?(\/|$)/i.test(String(targetUrl || ""));
     let hasLocalProxy404 = false;
+    if (/\/prompt$|\/history|comfy/i.test(String(targetUrl || ""))) {
+        console.log("[UIE-Comfy] fetchWithCorsProxyFallback routing", {
+            targetUrl, currentHost, pageOrigin: window.location?.origin, standaloneLocal, remoteTarget, skipDirect, isLocalHost, method: options?.method || "GET", optsSkipDirect: opts.skipDirect,
+        });
+    }
 
     const tryServerForward = async (endpoint) => {
         try {
@@ -711,13 +716,20 @@ async function fetchWithCorsProxyFallback(targetUrl, options, opts = {}) {
             let r = null;
             try {
                 r = await fetch(String(endpoint || ""), { method: "POST", headers: hdr, body: JSON.stringify(payload), credentials: "same-origin" });
-            } catch (_) {}
+                console.log(`[UIE-Comfy] tryServerForward relative ${endpoint} -> status ${r.status}`);
+            } catch (e) {
+                console.warn(`[UIE-Comfy] tryServerForward relative ${endpoint} threw`, e);
+            }
 
             // 2. Try port 8091 absolute endpoint if relative failed or returned !ok or 404/502, and port is not 8091
             if ((!r || r.status === 404 || r.status === 502) && window.location.port !== "8091") {
+                console.warn(`[UIE-Comfy] relative ${endpoint} failed/404/502 (page is on port ${window.location.port}), trying hardcoded http://127.0.0.1:8091${endpoint} -- this is WRONG if your dev-server is not on port 8091`);
                 try {
                     r = await fetch(`http://127.0.0.1:8091${endpoint}`, { method: "POST", headers: hdr, body: JSON.stringify(payload) });
-                } catch (_) {}
+                    console.log(`[UIE-Comfy] tryServerForward :8091 fallback ${endpoint} -> status ${r.status}`);
+                } catch (e) {
+                    console.warn(`[UIE-Comfy] tryServerForward :8091 fallback ${endpoint} threw`, e);
+                }
             }
 
             if (!r) return null;
@@ -738,6 +750,9 @@ async function fetchWithCorsProxyFallback(targetUrl, options, opts = {}) {
     };
 
     const runProxyFallback = async (lastErr) => {
+        if (/\/prompt$|\/history|comfy/i.test(String(targetUrl || ""))) {
+            console.log("[UIE-Comfy] runProxyFallback engaged, initial reason:", lastErr?.message || lastErr);
+        }
         const candidates = buildCorsProxyCandidates(targetUrl);
         for (const ep of ["/api/proxy", "/api/extra/proxy", "/api/cors-proxy", "/api/corsProxy"]) {
             const r = await tryServerForward(ep);
@@ -1367,6 +1382,23 @@ async function generateImageAPIOnce(prompt, options = {}) {
             // For local ComfyUI always use proxy-first to avoid CORS/403 from browser
             const useProxy = isLocalTarget;
 
+            console.log("[UIE-Comfy] Starting request", {
+                comfyBaseSetting: comfyBase,
+                endpointUsed: endpoint2,
+                isLocalTarget,
+                useProxy,
+                workflowSource: img?.comfy?.workflow ? "settings" : "default-fallback",
+                workflowChars: wfRaw.length,
+                detectedIds: ids,
+                overrideIds: {
+                    positive: String(img?.comfy?.positiveNodeId || "").trim(),
+                    negative: String(img?.comfy?.negativeNodeId || "").trim(),
+                    output: String(img?.comfy?.outputNodeId || "").trim(),
+                },
+                checkpoint: String(img?.comfy?.checkpoint || "").trim(),
+                promptChars: finalPrompt.length,
+            });
+
             const out = await generateComfyUI({
                 endpoint: endpoint2,
                 workflowRaw: wfRaw,
@@ -1381,8 +1413,10 @@ async function generateImageAPIOnce(prompt, options = {}) {
                 preferredWidth: isBackground ? 1280 : null,
                 preferredHeight: isBackground ? 720 : null,
             });
+            console.log("[UIE-Comfy] generateComfyUI finished", { gotImage: !!out, ms: Date.now() - startedAt });
             try { window.UIE_lastImage = { ok: !!out, ms: Date.now() - startedAt, endpoint: endpoint2, mode: "comfy" }; } catch (_) {}
             if (out) return out;
+            console.warn("[UIE-Comfy] No image returned, falling back to Pollinations/SVG. Check window.UIE_lastImage and preceding [UIE-Comfy] logs for the real cause.");
             return await pollinationsFallback("ComfyUI returned no image");
         }
 
@@ -1559,6 +1593,7 @@ async function generateComfyUI({ endpoint, workflowRaw, promptText, negativeProm
 
     const baseGraph = comfyWorkflowCache.parsed;
     if (!baseGraph) {
+        console.error("[UIE-Comfy] Workflow JSON failed to parse:", comfyWorkflowCache.err || "(no error message)");
         try {
             window.UIE_lastImage = {
                 ok: false,
@@ -1573,6 +1608,7 @@ async function generateComfyUI({ endpoint, workflowRaw, promptText, negativeProm
     }
 
     const needsCheckpoint = comfyGraphNeedsCheckpoint(baseGraph);
+    console.log("[UIE-Comfy] Workflow parsed OK", { nodeCount: Object.keys(baseGraph).length, needsCheckpoint, checkpointBeforeDetect: checkpoint });
 
     if (needsCheckpoint && !checkpoint) {
         try {
@@ -1588,6 +1624,7 @@ async function generateComfyUI({ endpoint, workflowRaw, promptText, negativeProm
         } catch (_) {}
     }
     if (needsCheckpoint && !checkpoint) {
+        console.error("[UIE-Comfy] Aborting: graph has a CheckpointLoaderSimple node but no checkpoint was configured or auto-detected.");
         try {
             window.UIE_lastImage = {
                 ok: false,
@@ -1604,6 +1641,7 @@ async function generateComfyUI({ endpoint, workflowRaw, promptText, negativeProm
     if (!positiveNodeId) positiveNodeId = String(ids.positiveNodeId || "");
     if (!negativeNodeId) negativeNodeId = String(ids.negativeNodeId || "");
     if (!outputNodeId) outputNodeId = String(ids.outputNodeId || "");
+    console.log("[UIE-Comfy] Node IDs resolved", { positiveNodeId, negativeNodeId, outputNodeId, checkpoint });
 
     const normalizeBase = (u) => String(u || "").trim().replace(/\/+$/, "").replace(/\/prompt$/i, "");
     const base = normalizeBase(endpoint);
@@ -1702,6 +1740,7 @@ async function generateComfyUI({ endpoint, workflowRaw, promptText, negativeProm
     }
 
     const proxyOpts = forceProxy ? { skipDirect: true } : {};
+    console.log("[UIE-Comfy] POSTing to", promptUrl, { forceProxy, client_id });
     const fx = await fetchWithCorsProxyFallback(promptUrl, {
         method: "POST",
         headers,
@@ -1709,32 +1748,49 @@ async function generateComfyUI({ endpoint, workflowRaw, promptText, negativeProm
     }, proxyOpts);
 
     const res = fx.response;
+    console.log("[UIE-Comfy] /prompt response", { status: res.status, ok: res.ok, via: fx?.via, requestUrl: fx?.requestUrl });
     if (!res.ok) {
         const err = await res.text();
-        console.error("ComfyUI Error:", err);
+        console.error("[UIE-Comfy] ComfyUI Error:", err);
         try { window.UIE_lastImage = { ok: false, endpoint, mode: "comfy", status: res.status, error: String(err || res.statusText || "ComfyUI prompt failed").slice(0, 280), via: fx?.via }; } catch (_) {}
         if (window.toastr) toastr.error("ComfyUI prompt failed");
         return null;
     }
     const data = await res.json();
+    console.log("[UIE-Comfy] /prompt response body", data);
     const prompt_id = String(data?.prompt_id || "");
-    if (!prompt_id) return null;
+    if (!prompt_id) {
+        console.error("[UIE-Comfy] No prompt_id in response -- ComfyUI accepted the connection but did not queue a job.", data);
+        return null;
+    }
 
     const sleep = (ms) => new Promise(r => setTimeout(r, ms));
     const deadline = Date.now() + 120_000;
+    let pollCount = 0;
 
     while (Date.now() < deadline) {
         await sleep(1000);
+        pollCount++;
         let h;
         try {
             const hrFx = await fetchWithCorsProxyFallback(`${historyUrl}/${encodeURIComponent(prompt_id)}`, { method: "GET" }, proxyOpts);
             const hr = hrFx.response;
-            if (!hr.ok) continue;
+            if (!hr.ok) { console.warn("[UIE-Comfy] history poll non-OK", hr.status); continue; }
             h = await hr.json();
-        } catch (_) {
+        } catch (e) {
+            console.warn("[UIE-Comfy] history poll fetch failed", e);
             continue;
         }
         const job = h?.[prompt_id];
+        if (pollCount === 1 || pollCount % 5 === 0) {
+            console.log(`[UIE-Comfy] poll #${pollCount}`, { found: !!job, status: job?.status, hasOutputs: !!job?.outputs });
+        }
+        const statusStr = String(job?.status?.status_str || "").toLowerCase();
+        if (statusStr === "error") {
+            console.error("[UIE-Comfy] ComfyUI execution errored", job.status);
+            try { window.UIE_lastImage = { ok: false, endpoint, mode: "comfy", status: 0, error: `ComfyUI execution error: ${JSON.stringify(job.status.messages || job.status).slice(0, 260)}` }; } catch (_) {}
+            return null;
+        }
         const outputs = job?.outputs && typeof job.outputs === "object" ? job.outputs : null;
         if (!outputs) continue;
 
@@ -1759,6 +1815,7 @@ async function generateComfyUI({ endpoint, workflowRaw, promptText, negativeProm
             const type = target.type;
             const query = `filename=${encodeURIComponent(fname)}&subfolder=${encodeURIComponent(sub)}&type=${encodeURIComponent(type)}`;
             const url = `${viewUrl}?${query}`;
+            console.log("[UIE-Comfy] Found output image, fetching", { fname, sub, type, pollCount });
             const r = await fetchWithCorsProxyFallback(url, { method: "GET" }, proxyOpts);
             const blob = await r.response.blob();
             return new Promise(resolve => {
@@ -1768,6 +1825,7 @@ async function generateComfyUI({ endpoint, workflowRaw, promptText, negativeProm
             });
         }
     }
+    console.error(`[UIE-Comfy] Timed out after ${pollCount} polls (120s) waiting for prompt_id=${prompt_id} to produce outputs.`);
     return null;
 }
 
