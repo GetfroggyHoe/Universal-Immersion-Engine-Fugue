@@ -794,7 +794,10 @@ function togglePetChatPanel() {
 
     sendBtn.addEventListener("click", onSend);
     sendInput.addEventListener("keydown", function(e) {
-        if (e.key === "Enter") onSend();
+        if (e.key === "Enter") {
+            e.stopPropagation();
+            onSend();
+        }
     });
 
     scrollToBottom();
