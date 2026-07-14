@@ -19593,6 +19593,61 @@ function getMainProviderPreset(providerRaw = "") {
                     btn.prop("disabled", false);
                 }
             });
+            $(document).on("click", "#cfg-turbo-model-refresh", async function (e) {
+                e.preventDefault();
+                const url = String($("#cfg-turbo-url").val() || "").trim();
+                const key = String($("#cfg-turbo-key").val() || "").trim();
+                if (!url) {
+                    showToast("Enter Turbo API URL first.", 2800);
+                    return;
+                }
+                let mod;
+                try {
+                    mod = await importUieModule("apiClient.js");
+                } catch (err) {
+                    showToast(`API module: ${String(err?.message || err)}`, 4200);
+                    return;
+                }
+                if (!mod || typeof mod.listTurboModels !== "function") {
+                    showToast("listTurboModels is not available in this build.", 3600);
+                    return;
+                }
+                const btn = $(this);
+                btn.prop("disabled", true);
+                try {
+                    const res = await mod.listTurboModels({ url, key });
+                    if (!res?.ok || !Array.isArray(res.models)) {
+                        showToast(`Model list failed: ${String(res?.error || "unknown")}`, 4500);
+                        return;
+                    }
+                    const cur = String($("#cfg-turbo-model").val() || "").trim();
+                    const sel = $("#cfg-turbo-model-select");
+                    sel.empty();
+                    sel.append(`<option value="">Custom - use field below</option>`);
+                    let found = false;
+                    for (const m of res.models) {
+                        const id = String(m?.id || "").trim();
+                        if (!id) continue;
+                        const label = String(m?.label || id).replace(/</g, "");
+                        sel.append(
+                            `<option value="${id.replace(/"/g, "&quot;")}">${label.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</option>`
+                        );
+                        if (id === cur) found = true;
+                    }
+                    if (cur && !found) {
+                        sel.prepend(
+                            `<option value="${cur.replace(/"/g, "&quot;")}" selected>${cur.replace(/</g, "&lt;").replace(/>/g, "&gt;")} (saved)</option>`
+                        );
+                    } else if (cur && found) {
+                        sel.val(cur);
+                    }
+                    showToast(`Loaded ${res.models.length} models from endpoint.`, 3200);
+                } catch (err) {
+                    showToast(`Refresh error: ${String(err?.message || err)}`, 4200);
+                } finally {
+                    btn.prop("disabled", false);
+                }
+            });
             $(document).on("click", "#cfg-main-new", () => {
                 const provider = String($("#cfg-main-provider").val() || "openrouter").trim() || "openrouter";
                 const preset = getMainProviderPreset(provider);
