@@ -712,7 +712,7 @@ async function fetchWithCorsProxyFallback(targetUrl, options, opts = {}) {
     const skipDirect = opts.skipDirect === true || /nvidia\.com/i.test(String(targetUrl || "")) || (standaloneLocal && remoteTarget);
     const isLocalHost = /^https?:\/\/(localhost|127\.0\.0\.1|0\.0\.0\.0)(:\d+)?(\/|$)/i.test(String(targetUrl || ""));
     let hasLocalProxy404 = false;
-    if (/\/prompt$|\/history|comfy/i.test(String(targetUrl || ""))) {
+    if (!opts.quiet && /\/prompt$|\/history|comfy/i.test(String(targetUrl || ""))) {
         console.log("[UIE-Comfy] fetchWithCorsProxyFallback routing", {
             targetUrl, currentHost, pageOrigin: window.location?.origin, standaloneLocal, remoteTarget, skipDirect, isLocalHost, method: options?.method || "GET", optsSkipDirect: opts.skipDirect,
         });
@@ -736,7 +736,7 @@ async function fetchWithCorsProxyFallback(targetUrl, options, opts = {}) {
             let r = null;
             try {
                 r = await fetch(String(endpoint || ""), { method: "POST", headers: hdr, body: JSON.stringify(payload), credentials: "same-origin" });
-                console.log(`[UIE-Comfy] tryServerForward relative ${endpoint} -> status ${r.status}`);
+                if (!opts.quiet) console.log(`[UIE-Comfy] tryServerForward relative ${endpoint} -> status ${r.status}`);
             } catch (e) {
                 console.warn(`[UIE-Comfy] tryServerForward relative ${endpoint} threw`, e);
             }
@@ -770,7 +770,7 @@ async function fetchWithCorsProxyFallback(targetUrl, options, opts = {}) {
     };
 
     const runProxyFallback = async (lastErr) => {
-        if (/\/prompt$|\/history|comfy/i.test(String(targetUrl || ""))) {
+        if (!opts.quiet && /\/prompt$|\/history|comfy/i.test(String(targetUrl || ""))) {
             console.log("[UIE-Comfy] runProxyFallback engaged, initial reason:", lastErr?.message || lastErr);
         }
         const candidates = buildCorsProxyCandidates(targetUrl);
@@ -1760,6 +1760,7 @@ async function generateComfyUI({ endpoint, workflowRaw, promptText, negativeProm
     }
 
     const proxyOpts = forceProxy ? { skipDirect: true } : {};
+    const proxyOptsQuiet = { ...proxyOpts, quiet: true };
     console.log("[UIE-Comfy] POSTing to", promptUrl, { forceProxy, client_id });
     const fx = await fetchWithCorsProxyFallback(promptUrl, {
         method: "POST",
@@ -1793,7 +1794,7 @@ async function generateComfyUI({ endpoint, workflowRaw, promptText, negativeProm
         pollCount++;
         let h;
         try {
-            const hrFx = await fetchWithCorsProxyFallback(`${historyUrl}/${encodeURIComponent(prompt_id)}`, { method: "GET" }, proxyOpts);
+            const hrFx = await fetchWithCorsProxyFallback(`${historyUrl}/${encodeURIComponent(prompt_id)}`, { method: "GET" }, proxyOptsQuiet);
             const hr = hrFx.response;
             if (!hr.ok) { console.warn("[UIE-Comfy] history poll non-OK", hr.status); continue; }
             h = await hr.json();
