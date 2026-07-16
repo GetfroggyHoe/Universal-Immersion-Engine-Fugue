@@ -2120,7 +2120,11 @@ async function generateLocationWithAI() {
   }
 
   const btn = document.getElementById("ng-location-generate-btn");
-  if (btn) btn.disabled = true;
+  const btnLabel = btn?.textContent || "✨ Generate Starting Surroundings";
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = "✨ Generating...";
+  }
 
   try {
     const worldDescription = document.getElementById("ng-world-description")?.value?.trim() || newGameState.worldScope.description || "";
@@ -2141,11 +2145,18 @@ Keep the response atmospheric, immersive, and strictly consistent with the infer
       window.__uieSkipAiConfirmOnce = true;
     }
     const result = await generateContent(prompt);
-    document.getElementById("ng-location-description").value = result || "";
+    const descEl = document.getElementById("ng-location-description");
+    if (descEl) descEl.value = result || "";
+    if (typeof window.showToast === "function") {
+      window.showToast(result ? "Starting surroundings generated." : "AI returned no output.", 3200);
+    }
   } catch (err) {
     alert("Failed to generate location: " + err.message);
   } finally {
-    if (btn) btn.disabled = false;
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = btnLabel;
+    }
   }
 }
 

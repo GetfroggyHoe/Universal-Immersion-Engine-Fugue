@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+python/__pycache__/
+python/visuals/**/__pycache__/
+scripts/__pycache__/
+
+# Node
+node_modules/
+npm-debug.log*
+
+# Local settings / secrets (chat/image/TTS provider keys live here once Settings is saved)
+data/uie_game_state.json
+data/uie_browser_pages.json
+
+# Runtime save/campaign state (changes on every play session)
+data/uie_living_world.sqlite3
+data/uie_instavibe_feed.json
+data/uie_instavibe_state.json
+data/voice_refs/
+
+# Runtime-generated art (produced during play, not shipped source)
+data/generated_assets/generated/
+assets/generated/
+
+# Editor / OS cruft
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.log
