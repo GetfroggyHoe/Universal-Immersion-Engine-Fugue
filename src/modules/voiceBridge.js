@@ -755,6 +755,16 @@ export class PocketVoiceEngine {
             if (!registry) return;
             publishVoiceRegistry(registry);
           }).catch(() => {});
+          if (data?.available === false) {
+            const warning = Array.isArray(data?.warnings) ? String(data.warnings[0] || "") : "";
+            publishTtsState({
+              status: "Voice assets not installed",
+              provider: "pocket",
+              progress: 1,
+              error: warning,
+            });
+            return data;
+          }
           publishTtsState({ status: "Ready", provider: "pocket", progress: 1, error: "" });
           return data;
         })
@@ -809,7 +819,11 @@ export class PocketVoiceEngine {
 
   synthesize(characterId, dialogueText, options = {}) {
     const task = async () => {
-      await this.initialize(options);
+      const runtime = await this.initialize(options);
+      if (runtime?.available === false) {
+        const warning = Array.isArray(runtime?.warnings) ? String(runtime.warnings[0] || "") : "";
+        throw new Error(warning || "Local TTS assets are not installed. Voice generation is unavailable until a voice bundle is added.");
+      }
       const reference = this.resolveReference(characterId, options);
       const audio = getRuntimeSettings()?.audio || {};
       const requestedRecipe = String(options.voice_recipe || options.voiceRecipe || options.voice || findRuntimeVoiceRecipe(characterId) || "").trim();

@@ -43,9 +43,27 @@ if exist "%ROOT%.venv\Scripts\python.exe" (
   set "PY_CMD=%ROOT%venv\Scripts\python.exe"
   set "PYTHON=%ROOT%venv\Scripts\python.exe"
 ) else (
-  where py >nul 2>nul && set "PY_CMD=py -3" && set "PYTHON=py"
+  where py >nul 2>nul
+  if not errorlevel 1 (
+    for %%V in (3.13 3.12 3.11 3.10) do (
+      if not defined PY_CMD (
+        py -%%V -c "import sys" >nul 2>nul
+        if not errorlevel 1 (
+          set "PY_CMD=py -%%V"
+          set "PYTHON=py"
+        )
+      )
+    )
+  )
   if not defined PY_CMD (
-    where python >nul 2>nul && set "PY_CMD=python" && set "PYTHON=python"
+    where python >nul 2>nul
+    if not errorlevel 1 (
+      python -c "import sys; raise SystemExit(0 if sys.version_info[:2] >= (3,10) and sys.version_info[:2] <= (3,13) else 1)" >nul 2>nul
+      if not errorlevel 1 (
+        set "PY_CMD=python"
+        set "PYTHON=python"
+      )
+    )
   )
 )
 
@@ -65,8 +83,16 @@ if not defined PY_CMD (
         set "PY_CMD=%ProgramFiles%\Python313\python.exe"
         set "PYTHON=%ProgramFiles%\Python313\python.exe"
       )
-      if not defined PY_CMD where py >nul 2>nul && set "PY_CMD=py -3" && set "PYTHON=py"
-      if not defined PY_CMD where python >nul 2>nul && set "PY_CMD=python" && set "PYTHON=python"
+      if not defined PY_CMD (
+        where py >nul 2>nul
+        if not errorlevel 1 (
+          py -3.13 -c "import sys" >nul 2>nul
+          if not errorlevel 1 (
+            set "PY_CMD=py -3.13"
+            set "PYTHON=py"
+          )
+        )
+      )
     )
   )
 )

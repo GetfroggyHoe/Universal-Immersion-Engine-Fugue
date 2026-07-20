@@ -1995,12 +1995,7 @@ async def startup() -> None:
 
 
 def voice_runtime_health() -> dict[str, Any]:
-    """Validate local voice engines without loading their large models.
-
-    Startup succeeds when at least one bundled voice engine is usable. Optional
-    engines that are not installed are reported as warnings instead of blocking
-    the entire game.
-    """
+    """Cheap readiness check: validate packages/assets without loading either model."""
     try:
         import importlib.util
 
@@ -2016,7 +2011,6 @@ def voice_runtime_health() -> dict[str, Any]:
         )
         missing_pocket_assets = [name for name in pocket_assets if not (POCKET_TTS_ONNX_MODEL_DIR / name).exists()]
         pocket_ready = not missing_modules and not missing_pocket_assets and bool(POCKET_PRESET_VOICES)
-
         kokoro_model = next((path for path in (
             KOKORO_MODEL_DIR / "kokoro-v1.0.int8.onnx",
             KOKORO_MODEL_DIR / "kokoro-v1.0.onnx",
@@ -2028,44 +2022,19 @@ def voice_runtime_health() -> dict[str, Any]:
         ) if path.exists()), None)
         kokoro_package = importlib.util.find_spec("kokoro_onnx") is not None or importlib.util.find_spec("kokoro") is not None
         kokoro_ready = bool(kokoro_package and kokoro_model and kokoro_voices)
-        voice_ready = pocket_ready or kokoro_ready
-
-        pocket_issues = []
-        if missing_modules:
-            pocket_issues.append(f"Missing Python voice packages: {', '.join(missing_modules)}")
-        if missing_pocket_assets:
-            pocket_issues.append(f"Missing Pocket TTS assets: {', '.join(missing_pocket_assets)}")
-        if not POCKET_PRESET_VOICES:
-            pocket_issues.append("No Pocket TTS voice embeddings were found.")
-
-        kokoro_issue = "Kokoro package or bundled model assets are missing."
-        warnings = []
-        if not pocket_ready:
-            warnings.extend(pocket_issues)
-        if not kokoro_ready:
-            warnings.append(kokoro_issue)
-
+        errors = []
+        if missing_modules: errors.append(f"Missing Python voice packages: {', '.join(missing_modules)}")
+        if missing_pocket_assets: errors.append(f"Missing Pocket TTS assets: {', '.join(missing_pocket_assets)}")
+        if not POCKET_PRESET_VOICES: errors.append("No Pocket TTS voice embeddings were found.")
+        if not kokoro_ready: errors.append("Kokoro package or bundled model assets are missing.")
         return {
-            # Voice assets are optional at service startup. `ok` means the
-            # health probe completed; `available` says whether TTS can run.
-            "ok": True,
-            "available": voice_ready,
-            "degraded": not voice_ready,
+            "ok": pocket_ready,
             "pocket": {"ready": pocket_ready, "voices": len(POCKET_PRESET_VOICES)},
             "kokoro": {"ready": kokoro_ready},
-            "errors": [],
-            "warnings": warnings,
+            "errors": errors,
         }
     except Exception as exc:
-        return {
-            "ok": True,
-            "available": False,
-            "degraded": True,
-            "pocket": {"ready": False, "voices": 0},
-            "kokoro": {"ready": False},
-            "errors": [],
-            "warnings": [str(exc)],
-        }
+        return {"ok": False, "pocket": {"ready": False, "voices": 0}, "kokoro": {"ready": False}, "errors": [str(exc)]}
 
 
 @app.get("/health")
@@ -2626,13 +2595,9 @@ def refresh_creator_voice_watch() -> dict[str, Any]:
 
 @app.get("/audio/voices")
 def audio_voices() -> dict[str, Any]:
-    health = voice_runtime_health()
-    pocket_ready = bool(health.get("pocket", {}).get("ready"))
-    voices = [*POCKET_PRESET_VOICES, POCKET_CUSTOM_REFERENCE] if pocket_ready else []
-    kokoro_ready = bool(health.get("kokoro", {}).get("ready"))
+    voices = [*POCKET_PRESET_VOICES, POCKET_CUSTOM_REFERENCE]
+    kokoro_ready = kokoro_available()
     return {
-        "available": bool(health.get("available")),
-        "warnings": health.get("warnings", []),
         "engines": [
             {
                 "id": "pocket",
@@ -2644,8 +2609,6 @@ def audio_voices() -> dict[str, Any]:
                 "runs_in_backend": True,
                 "supports_file_pick_voice_cloning": True,
                 "local_only": True,
-                "available": pocket_ready,
-                "install_hint": "" if pocket_ready else "Place the Pocket TTS ONNX bundle and voice embeddings under models/Pocket-tts.",
             },
             {
                 "id": "kokoro",
@@ -2779,6 +2742,7 @@ def get_pocket_model(language: str = "english") -> Any:
                 models_dir=str(POCKET_TTS_ONNX_MODEL_DIR),
                 language=lang,
                 precision="int8",
+                device="cpu",
                 predefined_voice_dir=str(POCKET_TTS_ONNX_VOICE_DIR),
             )
         except Exception as exc:

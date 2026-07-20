@@ -37,19 +37,7 @@ let backendProcess = null;
 let selectedBasePython = null;
 let backendStartupState = "pending";
 let backendStartupError = "";
-const REQUIRED_BACKEND_PACKAGES = [
-  "websockets>=12,<16",
-  "wsproto>=1.2,<2",
-  "numpy>=1.26,<3",
-  "scipy>=1.11,<2",
-  "onnxruntime>=1.16,<2",
-  "sentencepiece>=0.2,<1",
-  "soundfile>=0.12,<1",
-  "safetensors>=0.4,<1",
-  "kokoro-onnx>=0.5,<1",
-];
-const BACKEND_INSTALL_SCHEMA = "uie-backend-v6-voicebridge-runtime";
-const CORE_IMPORT_CHECK = "import fastapi, uvicorn, pydantic, pydantic_core, websockets, wsproto, numpy, scipy, onnxruntime, soundfile, sentencepiece, kokoro_onnx; from uvicorn.protocols.websockets.wsproto_impl import WSProtocol; import python.pocket_tts_onnx; import python.uie_backend";
+const CORE_IMPORT_CHECK = "import fastapi, uvicorn, pydantic, pydantic_core; import python.uie_backend";
 const PYTHON_VERSION_CHECK = "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')";
 
 async function askYesNo(question, defaultYes = false) {
@@ -340,7 +328,7 @@ function ensureProotBasePackages() {
   }
 
   const aptInstall = runProot(
-    ["/usr/bin/apt-get", "install", "-y", "python3", "python3-pip", "python3-venv", "ca-certificates", "libgomp1", "libsndfile1", "espeak-ng"],
+    ["/usr/bin/apt-get", "install", "-y", "python3", "python3-pip", "python3-venv", "ca-certificates"],
     { bindApp: false, cleanEnv: false, inherit: true, timeout: 900_000 },
   );
   if (!commandSucceeded(aptInstall)) {
@@ -451,10 +439,7 @@ async function prepareProotDebian() {
   ensureProotVenv();
 
   const requirements = await fs.readFile(requirementsPath);
-  const fingerprint = crypto.createHash("sha256")
-    .update(requirements)
-    .update("\n" + BACKEND_INSTALL_SCHEMA + "\n" + REQUIRED_BACKEND_PACKAGES.join("\n"))
-    .digest("hex");
+  const fingerprint = crypto.createHash("sha256").update(requirements).digest("hex");
   const prootMarker = path.join(rootDir, "data", ".proot-requirements.sha256");
   await fs.mkdir(path.dirname(prootMarker), { recursive: true });
 
@@ -465,18 +450,17 @@ async function prepareProotDebian() {
 
   let guestImports = runProot([PROOT_PYTHON, "-c", PROOT_IMPORT_CHECK]);
   if (installedFingerprint !== fingerprint || !commandSucceeded(guestImports)) {
-    console.log("[backend] Installing/updating FastAPI, WebSocket, and VoiceBridge dependencies inside Debian...");
+    console.log("[backend] Installing/updating FastAPI dependencies inside Debian...");
     const pipInstall = runProot(
       [
         PROOT_PYTHON, "-m", "pip", "install",
         "--disable-pip-version-check", "--no-input",
         "-r", `${PROOT_APP_DIR}/python/requirements-backend.txt`,
-        ...REQUIRED_BACKEND_PACKAGES,
       ],
       { inherit: true, timeout: 1_800_000 },
     );
     if (!commandSucceeded(pipInstall)) {
-      throw new Error("Backend or VoiceBridge dependency installation failed inside Debian. See the package error above.");
+      throw new Error("Backend dependency installation failed inside Debian. See the package error above.");
     }
     await fs.writeFile(prootMarker, `${fingerprint}\n`);
     guestImports = runProot([PROOT_PYTHON, "-c", PROOT_IMPORT_CHECK]);
@@ -491,10 +475,7 @@ async function prepareProotDebian() {
   const validateCode = [
     "import sys, sysconfig",
     "sys.path.insert(0, '/app')",
-    "import fastapi, pydantic, pydantic_core, uvicorn, websockets, wsproto",
-    "import numpy, scipy, onnxruntime, soundfile, sentencepiece, kokoro_onnx",
-    "from uvicorn.protocols.websockets.wsproto_impl import WSProtocol",
-    "import python.pocket_tts_onnx",
+    "import fastapi, pydantic, pydantic_core, uvicorn",
     "import python.uie_backend",
     "print('Interpreter:', sys.executable)",
     "print('Platform:', sys.platform)",
@@ -503,15 +484,6 @@ async function prepareProotDebian() {
     "print('Pydantic:', pydantic.__version__)",
     "print('pydantic-core:', pydantic_core.__version__)",
     "print('Uvicorn:', uvicorn.__version__)",
-    "print('WebSockets:', websockets.__version__)",
-    "print('NumPy:', numpy.__version__)",
-    "print('SciPy:', scipy.__version__)",
-    "print('ONNX Runtime:', onnxruntime.__version__)",
-    "import importlib.metadata as metadata",
-    "print('SoundFile:', metadata.version('soundfile'))",
-    "print('SentencePiece:', metadata.version('sentencepiece'))",
-    "print('Kokoro ONNX:', metadata.version('kokoro-onnx'))",
-    "print('wsproto:', metadata.version('wsproto'))",
   ].join("; ");
   const validation = runProot([PROOT_PYTHON, "-c", validateCode], { inherit: true });
   if (!commandSucceeded(validation)) {
@@ -524,7 +496,7 @@ async function prepareProotDebian() {
     throw new Error("Installed backend packages have incompatible dependencies.");
   }
 
-  console.log("[backend] PRoot Debian backend and VoiceBridge runtime are ready.");
+  console.log("[backend] PRoot Debian backend is ready.");
 }
 
 async function prepareBackendVenv() {
@@ -539,10 +511,7 @@ async function prepareBackendVenv() {
     throw new Error("Backend startup failed: python/requirements-backend.txt is missing.");
   }
   const requirements = await fs.readFile(requirementsPath);
-  const fingerprint = crypto.createHash("sha256")
-    .update(requirements)
-    .update("\n" + BACKEND_INSTALL_SCHEMA + "\n" + REQUIRED_BACKEND_PACKAGES.join("\n"))
-    .digest("hex");
+  const fingerprint = crypto.createHash("sha256").update(requirements).digest("hex");
   const probe = runPython(venvPython, ["-c", "import sys; print(sys.prefix)"]);
   const venvVersion = probe.status === 0 ? parsedPythonVersion(runPython(venvPython, ["-c", PYTHON_VERSION_CHECK])) : null;
   const pipProbe = probe.status === 0 ? runPython(venvPython, ["-m", "pip", "--version"]) : probe;
@@ -599,7 +568,7 @@ async function prepareBackendVenv() {
         console.log("[backend] Installation progress will appear below. This happens only when the core requirements change.");
         const pip = runPython(
           venvPython,
-          ["-m", "pip", "install", "--disable-pip-version-check", "--no-input", "-r", requirementsPath, ...REQUIRED_BACKEND_PACKAGES],
+          ["-m", "pip", "install", "--disable-pip-version-check", "--no-input", "-r", requirementsPath],
           { inherit: true },
         );
         if (pip.error || pip.status !== 0) {
@@ -615,7 +584,7 @@ async function prepareBackendVenv() {
     }
   }
   const validated = runPython(venvPython, ["-c", `${CORE_IMPORT_CHECK}; print('FastAPI backend dependencies ready')`]);
-  if (validated.status !== 0) throw new Error("Backend dependency validation failed: FastAPI, Uvicorn, or WebSocket support could not be imported from .venv.");
+  if (validated.status !== 0) throw new Error("Backend dependency validation failed: FastAPI or Uvicorn could not be imported from .venv.");
   console.log("[backend] Running pip check...");
   runPython(venvPython, ["-m", "pip", "check"], { inherit: true });
 }
@@ -846,112 +815,17 @@ async function isBackendRunning(portNumber = activeBackendPort) {
   return requestUrl(`http://${backendHost}:${portNumber}/health`);
 }
 
-async function isBackendWebSocketRunning(portNumber = activeBackendPort) {
-  return new Promise((resolve) => {
-    const socket = net.connect({ host: backendHost, port: portNumber });
-    const key = crypto.randomBytes(16).toString("base64");
-    let response = "";
-    let settled = false;
-    const finish = (value) => {
-      if (settled) return;
-      settled = true;
-      clearTimeout(timer);
-      socket.destroy();
-      resolve(value);
-    };
-    const timer = setTimeout(() => finish(false), 2_000);
-    socket.once("connect", () => {
-      socket.write([
-        "GET /ws/stream HTTP/1.1",
-        `Host: ${backendHost}:${portNumber}`,
-        "Upgrade: websocket",
-        "Connection: Upgrade",
-        `Sec-WebSocket-Key: ${key}`,
-        "Sec-WebSocket-Version: 13",
-        "",
-        "",
-      ].join("\r\n"));
-    });
-    socket.on("data", (chunk) => {
-      response += chunk.toString("latin1");
-      if (response.includes("\r\n\r\n")) {
-        finish(/^HTTP\/1\.[01] 101\b/.test(response));
-      }
-    });
-    socket.once("error", () => finish(false));
-    socket.once("end", () => finish(/^HTTP\/1\.[01] 101\b/.test(response)));
-  });
-}
-
 async function selectBackendPort() {
   const candidates = [configuredBackendPort, 28102, 28000, 28001, 28002]
     .filter((value, index, arr) => Number.isFinite(value) && value > 0 && arr.indexOf(value) === index);
   for (const candidate of candidates) {
-    if (!(await isBackendRunning(candidate))) continue;
-    if (await isBackendWebSocketRunning(candidate)) {
-      return { port: candidate, alreadyRunning: true };
-    }
-    console.warn(`Backend on port ${candidate} answers /health but failed the WebSocket handshake; it will not be reused.`);
+    if (await isBackendRunning(candidate)) return { port: candidate, alreadyRunning: true };
   }
   for (const candidate of candidates) {
     if (!(await tcpPortOpen(backendHost, candidate))) return { port: candidate, alreadyRunning: false };
-    console.warn(`FastAPI backend port ${candidate} is occupied or stale; trying next port.`);
+    console.warn(`FastAPI backend port ${candidate} is occupied but did not answer /health; trying next port.`);
   }
   return { port: candidates[0] || configuredBackendPort, alreadyRunning: false };
-}
-
-async function stopExistingTermuxBackendProcesses(portNumber) {
-  if (!isTermux) return;
-
-  const signalMatchingBackends = (signalNumber) => {
-    const code = [
-      "import os, signal",
-      `sig = ${signalNumber}`,
-      "killed = []",
-      "for entry in os.listdir('/proc'):",
-      "    if not entry.isdigit():",
-      "        continue",
-      "    pid = int(entry)",
-      "    if pid == os.getpid():",
-      "        continue",
-      "    try:",
-      "        cmd = open(f'/proc/{pid}/cmdline', 'rb').read()",
-      "    except Exception:",
-      "        continue",
-      "    if b'uvicorn' not in cmd or b'python.uie_backend:app' not in cmd:",
-      "        continue",
-      "    try:",
-      "        os.kill(pid, sig)",
-      "        killed.append(pid)",
-      "    except (ProcessLookupError, PermissionError):",
-      "        pass",
-      "print(' '.join(map(str, killed)))",
-    ].join("\\n");
-    return runProot([PROOT_PYTHON, "-c", code], { bindApp: false });
-  };
-
-  const terminated = signalMatchingBackends(15);
-  const terminatedPids = String(terminated?.stdout || "").trim();
-  if (terminatedPids) {
-    console.log(`[backend] Restarting stale UIE backend process(es): ${terminatedPids}`);
-  }
-
-  const gracefulDeadline = Date.now() + 5_000;
-  while (Date.now() < gracefulDeadline) {
-    if (!(await isBackendRunning(portNumber))) return;
-    await wait(200);
-  }
-
-  signalMatchingBackends(9);
-  const forcedDeadline = Date.now() + 2_000;
-  while (Date.now() < forcedDeadline) {
-    if (!(await isBackendRunning(portNumber))) return;
-    await wait(100);
-  }
-
-  throw new Error(
-    `An older UIE backend is still occupying port ${portNumber}. Close the previous Termux session and launch UIE again.`,
-  );
 }
 
 async function startBackendIfNeeded() {
@@ -959,16 +833,9 @@ async function startBackendIfNeeded() {
     backendStartupState = "disabled";
     return false;
   }
-  let selected = await selectBackendPort();
+  const selected = await selectBackendPort();
   activeBackendPort = selected.port;
   process.env.UIE_BACKEND_PORT = String(activeBackendPort);
-  if (selected.alreadyRunning && isTermux) {
-    // A backend that was started before an installer update keeps its old
-    // imports in memory. Restart it after dependency validation so newly
-    // installed transports such as websockets are actually loaded.
-    await stopExistingTermuxBackendProcesses(activeBackendPort);
-    selected = { port: activeBackendPort, alreadyRunning: false };
-  }
   if (selected.alreadyRunning) {
     console.log(`FastAPI audio/living backend already running: http://${backendHost}:${activeBackendPort}`);
     backendStartupState = "ready";
@@ -1002,11 +869,10 @@ async function startBackendIfNeeded() {
       "-m", "uvicorn", "python.uie_backend:app",
       "--host", backendHost,
       "--port", String(activeBackendPort),
-      "--ws", "wsproto",
     ]);
   } else {
     console.log(`Starting FastAPI audio/living backend: http://${backendHost}:${activeBackendPort}`);
-    backendProcess = spawn(pythonCmd, ["-m", "uvicorn", "python.uie_backend:app", "--host", backendHost, "--port", String(activeBackendPort), "--ws", "wsproto"], {
+    backendProcess = spawn(pythonCmd, ["-m", "uvicorn", "python.uie_backend:app", "--host", backendHost, "--port", String(activeBackendPort)], {
       cwd: rootDir,
       stdio: "inherit",
       shell: false,
@@ -1038,16 +904,16 @@ async function startBackendIfNeeded() {
   const timeoutMs = Math.max(5_000, Number(process.env.UIE_BACKEND_START_TIMEOUT_MS || 25_000));
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
-    if (await isBackendRunning(activeBackendPort) && await isBackendWebSocketRunning(activeBackendPort)) {
+    if (await isBackendRunning(activeBackendPort)) {
       backendStartupState = "ready";
-      console.log(`FastAPI audio/living backend ready with WebSocket support: http://${backendHost}:${activeBackendPort}`);
+      console.log(`FastAPI audio/living backend ready: http://${backendHost}:${activeBackendPort}`);
       return true;
     }
     if (backendStartupState === "error") throw new Error(backendStartupError || "FastAPI backend failed during startup.");
     await wait(200);
   }
   backendStartupState = "error";
-  backendStartupError = `FastAPI backend did not pass HTTP and WebSocket readiness checks within ${Math.round(timeoutMs / 1000)} seconds.`;
+  backendStartupError = `FastAPI backend did not answer /health within ${Math.round(timeoutMs / 1000)} seconds.`;
   stopBackend();
   throw new Error(backendStartupError);
 }

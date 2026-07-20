@@ -194,9 +194,16 @@ export function initNavigation() {
     }
     injectNavHudStyles();
     renderNavHud();
-    showDirectionalNavigationHelpOnce();
-    updateNavVisibility();
+    // Bind physical keyboard input before any first-run UI is mounted. A bad
+    // tutorial overlay must never prevent the navigation controller itself
+    // from initializing.
     bindImmersiveInputController();
+    try {
+        showDirectionalNavigationHelpOnce();
+    } catch (error) {
+        console.warn("[Navigation] Tutorial could not be shown:", error);
+    }
+    updateNavVisibility();
     try {
         import("./map.js").then(async function(m) {
             if (typeof m.initMap === "function") await m.initMap();
@@ -459,14 +466,24 @@ function isTextEntryTarget(target) {
 }
 
 function isBlockingOverlayOpen() {
-    return Array.from(document.querySelectorAll(".modal-overlay, .uie-overlay, .uie-window, [role='dialog']"))
+    // Persistent UIE windows are not necessarily modal. Treat only explicit
+    // overlays/aria-modal dialogs as blockers, otherwise a visible HUD window
+    // can disable the physical arrow keys for the entire session.
+    return Array.from(document.querySelectorAll(".modal-overlay, .uie-overlay, [aria-modal='true'], [role='dialog']"))
         .some(function(el) {
             if (el.id === "uie-barrier-inspection") return false;
+            const explicitlyModal = el.matches?.(".modal-overlay, .uie-overlay, [aria-modal='true']")
+                || el.getAttribute?.("aria-modal") === "true";
+            if (!explicitlyModal) return false;
+
             let current = el;
             while (current && current !== document.documentElement) {
                 if (current.hidden || current.getAttribute?.("aria-hidden") === "true") return false;
                 const style = window.getComputedStyle?.(current);
-                if (style?.display === "none" || style?.visibility === "hidden") return false;
+                if (style?.display === "none" || style?.visibility === "hidden" || style?.opacity === "0") return false;
+                // A decorative overlay with pointer-events:none cannot block
+                // interaction and should not suppress keyboard navigation.
+                if (current === el && style?.pointerEvents === "none") return false;
                 current = current.parentElement;
             }
             return true;
@@ -614,8 +631,17 @@ function bindImmersiveInputController() {
     immersiveInputBound = true;
 
     window.addEventListener("keydown", function(event) {
-        if (isTextEntryTarget(event.target) || isBlockingOverlayOpen()) return;
         const key = String(event.key || "").toLowerCase();
+        const tutorial = document.getElementById("uie-nav-tutorial-modal");
+        if (tutorial) {
+            if (key === "enter" || key === " " || key === "spacebar" || key === "escape") {
+                event.preventDefault();
+                event.stopPropagation();
+                tutorial.querySelector("#uie-nav-tutorial-close-btn")?.click();
+            }
+            return;
+        }
+        if (isTextEntryTarget(event.target) || isBlockingOverlayOpen()) return;
         
         if (key === "m") {
             event.preventDefault();
@@ -646,9 +672,10 @@ function bindImmersiveInputController() {
         
         if (direction) {
             event.preventDefault();
-            activateDirection(direction);
+            event.stopPropagation();
+            void activateDirection(direction);
         }
-    });
+    }, true);
 
     document.addEventListener("click", function(event) {
         const target = event.target;
@@ -1073,26 +1100,27 @@ export function showNavigationTutorialPopup(force = false) {
             if (localStorage.getItem(tutorialKey) === "1") return;
         } catch (_) {}
     }
-    try {
-        localStorage.setItem(tutorialKey, "1");
-        localStorage.setItem(NAV_HELP_KEY, "1");
-    } catch (_) {}
 
-    // Remove any existing one
     document.getElementById("uie-nav-tutorial-modal")?.remove();
 
     const modal = document.createElement("div");
     modal.id = "uie-nav-tutorial-modal";
     modal.className = "uie-nav-tutorial-modal";
+    modal.setAttribute("role", "dialog");
+    modal.setAttribute("aria-modal", "true");
+    modal.setAttribute("aria-labelledby", "uie-nav-tutorial-title");
     modal.style.cssText = `
         position: fixed;
         inset: 0;
-        z-index: 100000;
+        z-index: 2147483647;
         background: rgba(4, 8, 16, 0.85);
         backdrop-filter: blur(12px);
         display: flex;
         align-items: center;
         justify-content: center;
+        pointer-events: auto;
+        touch-action: manipulation;
+        isolation: isolate;
         animation: uieFadeIn 0.3s ease forwards;
     `;
 
@@ -1108,13 +1136,14 @@ export function showNavigationTutorialPopup(force = false) {
         color: #eaf8ff;
         font-family: 'Inter', system-ui, sans-serif;
         text-align: center;
+        pointer-events: auto;
         transform: scale(0.9);
         animation: uieScaleUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
     `;
 
     card.innerHTML = `
         <div style="font-size: 42px; margin-bottom: 16px; color: #6fd3ff;">🧭</div>
-        <h2 style="font-size: 24px; font-weight: 800; margin: 0 0 12px 0; color: #fff; letter-spacing: -0.5px;">Spatial Navigation</h2>
+        <h2 id="uie-nav-tutorial-title" style="font-size: 24px; font-weight: 800; margin: 0 0 12px 0; color: #fff; letter-spacing: -0.5px;">Spatial Navigation</h2>
         <p style="font-size: 14px; line-height: 1.6; opacity: 0.85; margin: 0 0 24px 0;">
             Move with arrow keys on desktop or a directional swipe on mobile. Swipe to move—do not scroll the scene.
         </p>
@@ -1144,17 +1173,18 @@ export function showNavigationTutorialPopup(force = false) {
             <div style="display: flex; align-items: flex-start; gap: 12px; border-top: 1px solid rgba(255, 255, 255, 0.08); padding-top: 12px; margin-top: 2px;">
                 <span style="font-size: 16px; color: #ffe066;">💡</span>
                 <div>
-                    <strong style="display: block; font-size: 13px; color: #ffe066;">Two-Swipe Confirmation</strong>
-                    <span style="font-size: 12px; opacity: 0.8;">The first swipe shows the destination name. Repeat the same swipe to travel there.</span>
+                    <strong style="display: block; font-size: 13px; color: #ffe066;">Two-Press Confirmation</strong>
+                    <span style="font-size: 12px; opacity: 0.8;">The first arrow press or swipe shows the destination. Repeat the same direction to travel there.</span>
                 </div>
             </div>
         </div>
 
-        <button id="uie-nav-tutorial-close-btn" style="
+        <button type="button" id="uie-nav-tutorial-close-btn" style="
             background: linear-gradient(135deg, #0088cc, #0055aa);
             color: #fff;
             border: none;
             padding: 12px 36px;
+            min-height: 44px;
             font-size: 14px;
             font-weight: 700;
             border-radius: 8px;
@@ -1163,10 +1193,11 @@ export function showNavigationTutorialPopup(force = false) {
             transition: all 0.2s ease;
             outline: none;
             width: 100%;
+            pointer-events: auto;
+            touch-action: manipulation;
         ">Got it, let's go!</button>
     `;
 
-    // Add keyframe animations if not present
     if (!document.getElementById("uie-nav-tutorial-animations")) {
         const style = document.createElement("style");
         style.id = "uie-nav-tutorial-animations";
@@ -1184,33 +1215,64 @@ export function showNavigationTutorialPopup(force = false) {
                 box-shadow: 0 6px 20px rgba(0, 136, 204, 0.6) !important;
                 transform: translateY(-1px);
             }
-            #uie-nav-tutorial-close-btn:active {
-                transform: translateY(1px);
-            }
+            #uie-nav-tutorial-close-btn:active { transform: translateY(1px); }
             .uie-nav-tutorial-modal { padding: 12px; box-sizing: border-box; }
             .uie-nav-tutorial-card { box-sizing: border-box; max-height: calc(100dvh - 24px); overflow: auto; }
-            @media (min-width: 99999px) {
+            @media (max-width: 640px), (max-height: 620px) {
                 .uie-nav-tutorial-modal { align-items: center !important; justify-content: center !important; padding: 12px !important; }
                 .uie-nav-tutorial-card { width: min(420px, calc(100vw - 24px)) !important; max-height: calc(100dvh - 24px) !important; padding: 18px !important; border-radius: 14px !important; }
                 .uie-nav-tutorial-card > div:first-child { font-size: 30px !important; margin-bottom: 8px !important; }
                 .uie-nav-tutorial-card h2 { font-size: 20px !important; margin-bottom: 8px !important; }
                 .uie-nav-tutorial-card p { font-size: 13px !important; line-height: 1.4 !important; margin-bottom: 14px !important; }
                 .uie-nav-tutorial-card > div:nth-of-type(2) { gap: 10px !important; padding: 12px !important; margin-bottom: 14px !important; }
-                #uie-nav-tutorial-close-btn { position: sticky; bottom: 0; min-height: 44px; padding: 10px 18px !important; }
+                #uie-nav-tutorial-close-btn { position: sticky; bottom: 0; padding: 10px 18px !important; }
             }
         `;
         document.head.appendChild(style);
     }
 
     modal.appendChild(card);
-    mountGameplayLayer(modal);
+    // First-run dialogs must live at document level. The gameplay overlay root
+    // may intentionally use pointer-events:none or a landscape transform, which
+    // made this visible button impossible to click on some builds.
+    document.body.appendChild(modal);
 
-    card.querySelector("#uie-nav-tutorial-close-btn").onclick = function() {
+    const closeButton = card.querySelector("#uie-nav-tutorial-close-btn");
+    let closing = false;
+    const closeTutorial = function() {
+        if (closing) return;
+        closing = true;
+        try {
+            localStorage.setItem(tutorialKey, "1");
+            localStorage.setItem(NAV_HELP_KEY, "1");
+        } catch (_) {}
+        try { document.activeElement?.blur?.(); } catch (_) {}
+        modal.style.pointerEvents = "none";
         modal.style.animation = "uieFadeIn 0.2s ease reverse forwards";
         card.style.animation = "uieScaleUp 0.2s ease reverse forwards";
-        setTimeout(function() { modal.remove(); }, 200);
+        setTimeout(function() {
+            modal.remove();
+            try { window.focus(); } catch (_) {}
+        }, 200);
     };
+
+    closeButton?.addEventListener("click", function(event) {
+        event.preventDefault();
+        event.stopPropagation();
+        closeTutorial();
+    });
+    // pointerup covers WebViews where a transformed ancestor swallowed click.
+    closeButton?.addEventListener("pointerup", function(event) {
+        if (event.pointerType === "touch" || event.pointerType === "pen") {
+            event.preventDefault();
+            closeTutorial();
+        }
+    });
     modal.addEventListener("click", function(event) {
-        if (event.target === modal) card.querySelector("#uie-nav-tutorial-close-btn")?.click();
+        if (event.target === modal) closeTutorial();
+    });
+
+    requestAnimationFrame(function() {
+        try { closeButton?.focus({ preventScroll: true }); } catch (_) { closeButton?.focus?.(); }
     });
 }
