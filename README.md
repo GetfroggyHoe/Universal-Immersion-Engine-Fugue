@@ -16,6 +16,8 @@ Create/update .venv and install the missing Python packages now? [Y/n]:
 
 Press Enter or answer `Y`. The launcher creates `.venv` inside the UIE folder, downloads only the packages in `python/requirements-backend.txt`, validates them, and then starts the game. It does not change global Python and does not delete or move game saves. If Node.js, Python, or Linux `venv` support is missing, the launcher first asks to install it automatically and then continues setup in the same run. You can also trigger environment setup manually with `npm run backend:install`.
 
+Player Home — Claim houses, apartments, camps, ships, vehicles, caves, and other map locations as your residence. Manage multiple homes, assign a primary home, organize rooms and storage, track household members, and connect homes directly to NPC schedules, Social, Lineage, travel, and the living world.
+
 ## Requirements
 
 - Node.js 18 or newer.
