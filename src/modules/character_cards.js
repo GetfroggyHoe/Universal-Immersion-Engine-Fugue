@@ -1164,7 +1164,7 @@ function downloadJsonFile(filename, obj) {
     URL.revokeObjectURL(url);
 }
 
-function normalizeImportToCardArray(parsed) {
+function normalizeImportToCardArray(parsed) {
     if (!parsed || typeof parsed !== "object") return [];
     if (parsed.kind === "uie.character_card" && parsed.card && typeof parsed.card === "object") {
         return [parsed.card];
@@ -1181,8 +1181,100 @@ function normalizeImportToCardArray(parsed) {
     if (parsed.name || parsed.char_name) return [parsed];
     const d0 = parsed.data && typeof parsed.data === "object" ? parsed.data : null;
     if (d0 && String(d0.name || d0.char_name || "").trim()) return [parsed];
-    return [];
-}
+    return [];
+}
+
+function decodeUtf8Base64(value) {
+    const normalized = String(value || "").trim().replace(/^data:application\/json;base64,/i, "").replace(/-/g, "+").replace(/_/g, "/");
+    if (!normalized) return "";
+    const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, "=");
+    const binary = atob(padded);
+    const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0));
+    return new TextDecoder("utf-8").decode(bytes);
+}
+
+function parseCardPayloadText(value) {
+    const raw = String(value || "").trim();
+    if (!raw) return null;
+    try { return JSON.parse(raw); } catch (_) {}
+    try { return JSON.parse(decodeUtf8Base64(raw)); } catch (_) {}
+    return null;
+}
+
+async function inflatePngText(bytes) {
+    if (typeof DecompressionStream !== "function") throw new Error("Compressed PNG card metadata is not supported by this browser.");
+    const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream("deflate"));
+    return new TextDecoder("utf-8").decode(await new Response(stream).arrayBuffer());
+}
+
+async function readPngTextChunk(type, bytes) {
+    const zero = bytes.indexOf(0);
+    if (zero < 1) return null;
+    const keyword = new TextDecoder("latin1").decode(bytes.slice(0, zero)).trim().toLowerCase();
+    if (!/^(chara|ccv3)$/.test(keyword)) return null;
+    if (type === "tEXt") return new TextDecoder("latin1").decode(bytes.slice(zero + 1));
+    if (type === "zTXt") return inflatePngText(bytes.slice(zero + 2));
+    if (type === "iTXt") {
+        let cursor = zero + 1;
+        const compressed = bytes[cursor] === 1;
+        cursor += 2;
+        const languageEnd = bytes.indexOf(0, cursor);
+        if (languageEnd < 0) return null;
+        cursor = languageEnd + 1;
+        const translatedEnd = bytes.indexOf(0, cursor);
+        if (translatedEnd < 0) return null;
+        const payload = bytes.slice(translatedEnd + 1);
+        return compressed ? inflatePngText(payload) : new TextDecoder("utf-8").decode(payload);
+    }
+    return null;
+}
+
+async function parsePngCharacterCard(buffer) {
+    const bytes = new Uint8Array(buffer);
+    const signature = [137, 80, 78, 71, 13, 10, 26, 10];
+    if (bytes.length < 20 || !signature.every((value, index) => bytes[index] === value)) throw new Error("This file is not a valid PNG character card.");
+    const view = new DataView(buffer);
+    const candidates = [];
+    let offset = 8;
+    while (offset + 12 <= bytes.length) {
+        const length = view.getUint32(offset, false);
+        const type = new TextDecoder("ascii").decode(bytes.slice(offset + 4, offset + 8));
+        const dataStart = offset + 8;
+        const dataEnd = dataStart + length;
+        if (dataEnd + 4 > bytes.length) break;
+        if (["tEXt", "zTXt", "iTXt"].includes(type)) {
+            const text = await readPngTextChunk(type, bytes.slice(dataStart, dataEnd));
+            if (text) candidates.push(text);
+        }
+        offset = dataEnd + 4;
+        if (type === "IEND") break;
+    }
+    for (const candidate of candidates) {
+        const parsed = parseCardPayloadText(candidate);
+        if (normalizeImportToCardArray(parsed).length) return parsed;
+    }
+    throw new Error("No SillyTavern/Chub character metadata was found in this PNG.");
+}
+
+function fileAsDataUrl(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result || ""));
+        reader.onerror = () => reject(reader.error || new Error("Unable to read image."));
+        reader.readAsDataURL(file);
+    });
+}
+
+async function readCharacterCardFile(file) {
+    const isPng = file?.type === "image/png" || /\.png$/i.test(String(file?.name || ""));
+    if (!isPng) return JSON.parse(await file.text());
+    const parsed = await parsePngCharacterCard(await file.arrayBuffer());
+    const portrait = await fileAsDataUrl(file);
+    normalizeImportToCardArray(parsed).forEach((card) => {
+        if (!String(card.avatar || card.image || "").trim()) card.avatar = portrait;
+    });
+    return parsed;
+}
 
 /** Character Card / v2 PNG JSON use `description` (often under `data`); stored as `bio`. */
 function getImportedDescriptionText(obj) {
@@ -1308,6 +1400,14 @@ function normalizeImportedCharacterCardShape(card) {
         const n = String(data.name || data.char_name || "").trim();
         if (n) card.name = n;
     }
+    if (data) {
+        for (const field of ["description", "personality", "scenario", "first_mes", "mes_example", "system_prompt", "post_history_instructions", "creator", "character_version"]) {
+            if (card[field] == null && data[field] != null) card[field] = data[field];
+        }
+        if (!Array.isArray(card.alternate_greetings) && Array.isArray(data.alternate_greetings)) card.alternate_greetings = [...data.alternate_greetings];
+        if (!Array.isArray(card.tags) && Array.isArray(data.tags)) card.tags = [...data.tags];
+        if (!card.extensions && data.extensions && typeof data.extensions === "object") card.extensions = JSON.parse(JSON.stringify(data.extensions));
+    }
     smartParseCharacterDescription(card);
 }
 
@@ -1390,9 +1490,9 @@ export function renderCardManager() {
             <div class="cm-title"><i class="fa-solid fa-address-card" aria-hidden="true"></i><span>Character Cards</span></div>
             <div class="cm-toolbar">
                 <button type="button" class="cm-icon-btn" id="btn-cc-generate" title="Generate character with AI" aria-label="Generate character with AI"><i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i></button>
-                <button type="button" class="cm-icon-btn" id="btn-cc-import" title="Import card JSON (file)" aria-label="Import card JSON"><i class="fa-solid fa-file-import" aria-hidden="true"></i></button>
+                <button type="button" class="cm-icon-btn" id="btn-cc-import" title="Import SillyTavern, Chub, or UIE card" aria-label="Import character card"><i class="fa-solid fa-file-import" aria-hidden="true"></i></button>
                 <button type="button" class="cm-icon-btn" id="btn-cc-export-all" title="Export all cards JSON" aria-label="Export all cards JSON"><i class="fa-solid fa-file-export" aria-hidden="true"></i></button>
-                <input type="file" id="cc-import-file" accept=".json,application/json" style="display:none" />
+                <input type="file" id="cc-import-file" accept=".json,.png,application/json,image/png" style="display:none" />
                 <button type="button" id="btn-cc-new" class="cm-action-btn is-primary"><i class="fa-solid fa-plus" aria-hidden="true"></i><span>New Card</span></button>
                 <button type="button" id="btn-cc-close" class="cm-icon-btn is-danger" title="Close character cards" aria-label="Close character cards"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
             </div>
@@ -1484,14 +1584,16 @@ export function renderCardManager() {
             cards: all.map((c) => cardPayloadForExport(c))
         });
     });
-    $("#cc-import-file").on("change", function () {
+    $("#cc-import-file").on("change", async function () {
         const f = this.files && this.files[0];
         this.value = "";
         if (!f) return;
-        const reader = new FileReader();
-        reader.onload = () => {
+        const reader = new FileReader();
+        reader.onload = async () => {
             try {
-                const parsed = JSON.parse(String(reader.result || "null"));
+                const parsed = (f.type === "image/png" || /\.png$/i.test(f.name || ""))
+                    ? await readCharacterCardFile(f)
+                    : JSON.parse(String(reader.result || "null"));
                 const rawList = normalizeImportToCardArray(parsed);
                 if (!rawList.length) {
                     alert("No character cards found in file.");
@@ -1554,6 +1656,11 @@ export function renderCardManager() {
             }
         }
         saveSettings();
+        if (index < 0) {
+            import("./npcManagementModal.js")
+                .then((mod) => mod.syncActiveCharacterCardsToNpcs?.({ source: "character_card_added_to_game" }))
+                .catch((error) => console.warn("[CharacterCards] NPC registration failed:", error));
+        }
         renderCardManager();
         return;
 
@@ -1608,7 +1715,7 @@ function renderCardEditor(card) {
             <div class="ce-header-actions">
                 <button type="button" id="btn-ce-import" class="ce-header-btn" title="Import JSON into this card"><i class="fa-solid fa-file-import"></i> Import</button>
                 <button type="button" id="btn-ce-export" class="ce-header-btn" title="Export this card as JSON"><i class="fa-solid fa-file-export"></i> Export</button>
-                <input type="file" id="ce-import-file" accept=".json,application/json" style="display:none" />
+                <input type="file" id="ce-import-file" accept=".json,.png,application/json,image/png" style="display:none" />
                 <div class="ce-dropdown" style="position:relative; display:inline-block;">
                 <button type="button" id="btn-ce-genimg" class="ce-header-btn" title="AI generate card art" aria-label="AI generate card art"><i class="fa-solid fa-wand-magic-sparkles"></i> AI Gen</button>
                     <div id="ce-genimg-dropdown" style="display:none; position:absolute; right:0; top:45px; background:#fcf5eb; border:2.5px solid #5c3a21; border-radius:4px; box-shadow:0 4px 12px rgba(0,0,0,0.15); z-index:2147483647; min-width:200px;">
@@ -2766,14 +2873,16 @@ Format as a single paragraph prompt suitable for image generation APIs.`;
     });
 
     $("#btn-ce-import").on("click", () => $("#ce-import-file").trigger("click"));
-    $("#ce-import-file").on("change", function () {
+    $("#ce-import-file").on("change", async function () {
         const f = this.files && this.files[0];
         this.value = "";
         if (!f) return;
         const reader = new FileReader();
-        reader.onload = () => {
+        reader.onload = async () => {
             try {
-                const parsed = JSON.parse(String(reader.result || "null"));
+                const parsed = (f.type === "image/png" || /\.png$/i.test(f.name || ""))
+                    ? await readCharacterCardFile(f)
+                    : JSON.parse(String(reader.result || "null"));
                 const list = normalizeImportToCardArray(parsed);
                 const one = list[0];
                 if (!one) {

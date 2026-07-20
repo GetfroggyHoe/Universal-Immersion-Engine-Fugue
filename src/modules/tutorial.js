@@ -68,11 +68,12 @@ const TUTORIAL_TARGETS = [
       { text: "Welcome to character creation! The tabs at the top divide your setup into simple sections.", highlight: ".uie-newgame-tab" },
       { text: HELPER_CAPABILITY_LINE, highlight: ".uie-newgame-tab" },
       { text: "First, type your character's name in this input box.", highlight: "#ng-char-name" },
-      { text: "Choose your starting Job Class here. This sets your starting stats and items!", highlight: "#ng-char-class" },
-      { text: "Adjust or customize your starting vitals (like HP or Mana bars) in this section.", highlight: "#ng-vitals-custom-checkboxes" },
-      { text: "Head to the Appearance tab to write your description and backstory.", highlight: ".uie-newgame-tab[data-tab='appearance']" },
-      { text: "Under the Location tab, write your starting spot or click Generate to let the AI build a starter room!", highlight: ".uie-newgame-tab[data-tab='location']" },
-      { text: "When you are ready, click the gold Start Game button to spawn your world!", highlight: "#uie-newgame-start-btn" }
+      { text: "Choose a Job Class, then review the level, primary bars, and base stats that define the starting character.", highlight: "#ng-char-class" },
+      { text: "Appearance controls portrait and visual identity. Currency & Groups configures money, memberships, and starting organizations.", highlight: ".uie-newgame-tab[data-tab='appearance'], .uie-newgame-tab[data-tab='currency']" },
+      { text: "Life Trackers, Items & Equipment, and Skills build the starting mechanical loadout.", highlight: ".uie-newgame-tab[data-tab='trackers'], .uie-newgame-tab[data-tab='inventory'], .uie-newgame-tab[data-tab='skills']" },
+      { text: "Quests, Lorebook, Assets, and NPCs seed objectives, canon, property, cast, relationships, schedules, and party choices.", highlight: ".uie-newgame-tab[data-tab='quests'], .uie-newgame-tab[data-tab='lorebook'], .uie-newgame-tab[data-tab='assets'], .uie-newgame-tab[data-tab='npcs']" },
+      { text: "Starting Location defines the world, region, room, exits, and opening scene. Check it before launch.", highlight: ".uie-newgame-tab[data-tab='location']" },
+      { text: "When ready, Start Game validates the setup, installs the campaign state, and sends the opening story beat through Main API.", highlight: "#uie-newgame-start-btn" }
     ]
   },
   {
@@ -571,6 +572,173 @@ const TUTORIAL_TARGETS = [
     ]
   },
   {
+    selector: "#uie-you-window",
+    title: "You — Player Dossier",
+    guideId: "guide-you-world",
+    steps: [
+      { text: "You is a read-focused snapshot of the active player record.", highlight: "" },
+      { text: "Review identity, status effects, stats, and lineage. Edit source data in Persona, Stats, Inventory, or Social.", highlight: "#uie-you-core-grid" },
+      { text: "Refresh after changing another system so the dossier redraws from shared campaign state.", highlight: "#uie-you-refresh" }
+    ]
+  },
+  {
+    selector: "#uie-world-window",
+    title: "World Simulation",
+    guideId: "guide-you-world",
+    steps: [
+      { text: "World Simulation summarizes active campaign and living-world state.", highlight: "#uie-world-content" },
+      { text: "Scan / Update State refreshes the view from current state and the available backend.", highlight: "#uie-world-update" },
+      { text: "Project changes the target location or dimension and can synthesize a matching backdrop.", highlight: "#uie-world-input" },
+      { text: "Use Project only when you intend to change the active location.", highlight: "#uie-world-gen" }
+    ]
+  },
+  {
+    selector: "#uie-chatbox-window",
+    title: "Chatbox",
+    guideId: "guide-chatbox",
+    steps: [
+      { text: "Chatbox is a compact alternate view of the current story conversation.", highlight: "" },
+      { text: "Its transcript and composer share the active story session with the main view.", highlight: "#uie-chatbox-list, #uie-chatbox-composer" },
+      { text: "Inventory and Map are shortcuts into shared campaign systems.", highlight: "#uie-chatbox-open-inv, #uie-chatbox-open-map" },
+      { text: "Options configures character chat boxes and launcher/gear presentation.", highlight: "#uie-chatbox-gear" }
+    ]
+  },
+  {
+    selector: "#uie-shop-window",
+    title: "Shop",
+    guideId: "guide-shop-trade",
+    steps: [
+      { text: "Shop opens automatically when you enter a recognized commercial location. Each location owns its shopkeeper, greeting, and persistent catalog.", highlight: "#uie-shopkeeper-panel" },
+      { text: "The shopkeeper is a full NPC registered with Character Cards, NPC Management, and Social. Their profile is uncovered through Social, not from a Shop profile button.", highlight: "#uie-shopkeeper-name" },
+      { text: "Switch between Buy and Sell. Search narrows the visible catalog or sellable inventory without changing stock.", highlight: "#uie-shop-mode-buy, #uie-shop-mode-sell" },
+      { text: "Buy shows rarity, category, price, and stock. A purchase updates currency, inventory, and this shop's remaining stock.", highlight: "#uie-shop-items" },
+      { text: "Ask for a kind of item, then Restock. Model-generated context stock falls back to a smart local specialty catalog when needed.", highlight: "#uie-shop-keywords" }
+    ]
+  },
+  {
+    selector: "#uie-player-home-window",
+    title: "Player Home",
+    guideId: "guide-player-home",
+    steps: [
+      { text: "The Home hub opens when you enter your registered primary home or another residence the campaign explicitly marks as yours. Other people's homes do not trigger it.", highlight: "#uie-home-name" },
+      { text: "Home actions open the real Kitchen, Inventory storage, Wardrobe, Activities, Assets, Social, Map, and phone Homestead systems.", highlight: ".uie-home-actions" },
+      { text: "Visitors can ring the doorbell through deterministic game logic—no AI is required. Answer, let them in, turn them away, or ignore the ring.", highlight: "#uie-home-doorbell" },
+      { text: "Let In moves that NPC into the current home scene. Home arrivals and door choices are saved in Recent Home Events.", highlight: "#uie-home-events" }
+    ]
+  },
+  {
+    selector: "#uie-trade-window",
+    title: "Trade",
+    guideId: "guide-shop-trade",
+    steps: [
+      { text: "Trade exchanges items and currency with a selected campaign character.", highlight: "#uie-trade-npc" },
+      { text: "Build your offer with gold, item, and quantity, then review its value.", highlight: "#uie-trade-gold" },
+      { text: "Check their requested item, flags, and status before accepting.", highlight: "#uie-trade-their-item" },
+      { text: "Accept commits both sides; Clear resets the draft.", highlight: "#uie-trade-accept" }
+    ]
+  },
+  {
+    selector: "#uie-schedules-window",
+    title: "Character Schedules",
+    guideId: "guide-schedules",
+    steps: [
+      { text: "Schedules shows recurring NPC routines against the current game clock.", highlight: "#uie-schedules-clock" },
+      { text: "Each card summarizes a character's current activity and schedule entries.", highlight: "#uie-schedules-list" },
+      { text: "Calendar is for dated events; Activities advances time; Schedules describes recurring routines.", highlight: "" }
+    ]
+  },
+  {
+    selector: "#uie-tracker-window",
+    title: "Social Chronicle",
+    guideId: "guide-you-world",
+    steps: [
+      { text: "Social Chronicle is a tracked-character dossier and relationship-history view.", highlight: "" },
+      { text: "Select a known character to inspect their details and relationship context.", highlight: "#sd-details-name" },
+      { text: "Use the family-tree view to inspect recorded genealogical connections.", highlight: "#uie-tracker-window" }
+    ]
+  },
+  {
+    selector: "#uie-mmo-chat-window",
+    title: "Simulated Server Chat",
+    guideId: "guide-mmo",
+    steps: [
+      { text: "Server Chat simulates Global, Trade, LFG, and Local channels; it does not contact real users.", highlight: "#uie-mmo-chat-list" },
+      { text: "Write a message or use the bolt to generate a world-flavor pulse.", highlight: "#uie-mmo-chat-input" },
+      { text: "Pause stops live pulses, while AI flavor controls ambient chatter.", highlight: "#uie-mmo-chat-pause" }
+    ]
+  },
+  {
+    selector: "#uie-lfg-window",
+    title: "Looking For Group",
+    guideId: "guide-mmo",
+    steps: [
+      { text: "LFG is an in-world simulated party board, not a real matchmaking service.", highlight: "#uie-lfg-listings" },
+      { text: "Filter open listings by role and refresh for a new board snapshot.", highlight: "#uie-lfg-filter-role" },
+      { text: "Create your post with an activity, role, and note.", highlight: "#uie-lfg-post-form" }
+    ]
+  },
+  {
+    selector: "#uie-library-window",
+    title: "Archive",
+    guideId: "guide-archive-access",
+    steps: [
+      { text: "Archive stores generated in-world books and documents.", highlight: "" },
+      { text: "It is separate from reusable character cards and Lorebook canon.", highlight: "#uie-library-window .uie-content" },
+      { text: "Use the pen control to generate a new in-world document when a model is available.", highlight: "#uie-lib-gen-btn" }
+    ]
+  },
+  {
+    selector: "#uie-focused-doms-modal",
+    title: "Focused DOM Workspace",
+    guideId: "guide-archive-access",
+    steps: [
+      { text: "Focused DOMs are dedicated task and dossier workspaces for prioritized locations or roles.", highlight: "#uie-focused-doms-modal" },
+      { text: "Choose a dossier and use its local controls to complete focused actions.", highlight: "#uie-focus-workspace-body" },
+      { text: "Close to return to Map; completed actions remain in shared campaign state.", highlight: "[data-map-modal-close]" }
+    ]
+  },
+  {
+    selector: "#uie-sprites-window",
+    title: "Sprites Manager",
+    guideId: "guide-sprites",
+    steps: [
+      { text: "Sprites Manager organizes character libraries, expression images, and stage presentation.", highlight: "" },
+      { text: "Choose a library, then map imported or generated images to expression states.", highlight: "#uie-sprites-window input, #uie-sprites-window select" },
+      { text: "Save so dialogue and expression detection can reuse the library on stage.", highlight: "#uie-sprites-window button" }
+    ]
+  },
+  {
+    selector: "#uie-debug-window",
+    title: "Debug and Diagnostics",
+    guideId: "guide-debug",
+    steps: [
+      { text: "Debug exposes diagnostics, connection checks, state reports, and recovery tools.", highlight: "" },
+      { text: "Run diagnostics and export/copy the report before applying repairs.", highlight: "#uie-debug-window button" },
+      { text: "Export current data before clear, reset, import, or state-replacement operations.", highlight: "#uie-debug-window" }
+    ]
+  },
+  {
+    selector: "#uie-launcher-options-window",
+    title: "Launcher Options",
+    guideId: "guide-launcher-portability",
+    steps: [
+      { text: "Launcher Options customizes the floating launcher's appearance and saved icons.", highlight: "" },
+      { text: "Save applies and keeps the selected icon settings.", highlight: "#uie-launcher-opt-save" },
+      { text: "Delete removes a saved icon. Visibility and position reset live in Settings > Edit UI.", highlight: "#uie-launcher-opt-delete" }
+    ]
+  },
+  {
+    selector: "#uie-atmosphere-window",
+    title: "Atmosphere Console",
+    guideId: "guide-atmosphere",
+    steps: [
+      { text: "Atmosphere controls scene weather, visual mood, filters, and presentation modes.", highlight: "#uie-atmosphere-window" },
+      { text: "Choose weather and visual presets, or tune the fields and switches manually.", highlight: "#uie-atmosphere-window .atmo-weather" },
+      { text: "Use the clock controls when you intend to advance authoritative game time.", highlight: "#uie-atmosphere-window .atmo-clock" },
+      { text: "Presentation filters alone do not move the player or replace Calendar/Map state.", highlight: "#uie-atmosphere-window .atmo-content" }
+    ]
+  },
+  {
     selector: "#uie-settings-window",
     title: "Settings Window",
     guideId: "guide-settings",
@@ -614,7 +782,7 @@ const TUTORIAL_TARGETS = [
     guideId: "guide-helper",
     steps: [
       { text: "Helper Pet Settings controls the floating companion: character art, name, personality, voice, tutorial tools, and visibility.", highlight: "" },
-      { text: "I can help you: explain the current window, guide New Game setup, open Help / Manual, restart tutorials, answer system questions, and generate inventory items, kits, skills, quests, or status effects.", highlight: "#uie-pet-restart-tutorials" },
+      { text: "I can explain the current window, guide New Game setup, open Help / Manual, restart tutorials, and answer system questions locally. Pet Chat does not change game state.", highlight: "#uie-pet-restart-tutorials" },
       { text: "Pick the guide character here. The choice changes the floating pet art but keeps the tutorial logic the same.", highlight: "#uie-pet-type-select" },
       { text: "Name and personality change how the pet labels itself and how chat guidance is worded.", highlight: "#uie-pet-name" },
       { text: "Explain Screen runs the same modal-specific tutorial logic used by Tutorial Mode.", highlight: "#uie-pet-explain-screen" },
@@ -627,7 +795,7 @@ const TUTORIAL_TARGETS = [
     guideId: "guide-helper",
     steps: [
       { text: `Pet Chat is the out-of-character assistant. ${HELPER_CAPABILITY_LINE}`, highlight: "" },
-      { text: "Type a question or a creation request. The pet can explain systems or generate items, kits, skills, quests, and status effects.", highlight: "#uie-pet-chat-input" },
+      { text: "Type a question about a screen, control, or workflow. For creation, I point you to the explicit editor; Pet Chat itself is read-only.", highlight: "#uie-pet-chat-input" },
       { text: "Send the message to get guidance based on the Help Manual and the same tutorial target registry used by the modal walkthrough.", highlight: "#uie-pet-chat-send" }
     ]
   },
@@ -785,7 +953,7 @@ const TUTORIAL_TARGETS = [
   {
     selector: "#uie-factions-window",
     title: "Organizations",
-    guideId: "guide-factions",
+    guideId: "guide-organizations",
     steps: [
       { text: "Organizations is your Power Network. Every guild, gang, school, council, company, cult, family, or crew you interact with shows up here.", highlight: "" },
       { text: "Each card shows the organization emblem, type, location, standing bar, heat badge, active hooks, leader, and member count at a glance.", highlight: "#uie-organization-list" },
@@ -883,6 +1051,48 @@ export function getVisibleTarget() {
       return depth(b.el) - depth(a.el);
     });
     return visibleTargets[0];
+  }
+
+  // Keep Tutorial Mode useful for extension modules and newly added dialogs even
+  // before they receive a hand-authored walkthrough. Registered targets above
+  // always win; this fallback describes the topmost visible focused surface.
+  const genericSurfaces = Array.from(document.querySelectorAll([
+    ".uie-window",
+    ".modal-overlay",
+    "[role='dialog']",
+    "[aria-modal='true']",
+    "[id$='-modal']",
+    "[id$='-overlay']"
+  ].join(","))).filter((el) => {
+    if (!isVisible(el)) return false;
+    if (el.closest("#uie-helper-tutorial-panel, #uie-helper-pet-container, #uie-pet-chat-panel")) return false;
+    return !TUTORIAL_TARGETS.some((target) => {
+      try { return el.matches(target.selector); } catch (_) { return false; }
+    });
+  });
+  if (genericSurfaces.length) {
+    genericSurfaces.sort((a, b) => {
+      const az = Number.parseInt(window.getComputedStyle(a).zIndex, 10);
+      const bz = Number.parseInt(window.getComputedStyle(b).zIndex, 10);
+      return (Number.isFinite(bz) ? bz : 0) - (Number.isFinite(az) ? az : 0);
+    });
+    const el = genericSurfaces[0];
+    const heading = el.querySelector("h1, h2, h3, [role='heading'], [aria-label]");
+    const rawTitle = heading?.textContent?.trim() || heading?.getAttribute?.("aria-label") || el.getAttribute("aria-label") || el.id || "Focused Window";
+    const title = rawTitle.replace(/\s+/g, " ").slice(0, 80);
+    const escapedId = window.CSS?.escape ? window.CSS.escape(el.id || "") : String(el.id || "").replace(/[^a-zA-Z0-9_-]/g, "\\$&");
+    const selector = el.id ? `#${escapedId}` : ".uie-window, .modal-overlay, [role='dialog']";
+    return {
+      selector,
+      el,
+      title,
+      guideId: "guide-modal-tutorials",
+      steps: [
+        { text: `${title} is the active focused window. Read its heading and current status before changing campaign state.`, highlight: "" },
+        { text: "Work from top to bottom: choose a tab or section, complete the visible fields, then review the result or preview.", highlight: `${selector} [role='tab'], ${selector} input, ${selector} select, ${selector} textarea` },
+        { text: "Use the labeled primary action to apply changes, or Close / Cancel to leave without committing a draft.", highlight: `${selector} button` }
+      ]
+    };
   }
   return {
     selector: "body",

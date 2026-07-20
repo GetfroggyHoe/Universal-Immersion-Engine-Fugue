@@ -1223,13 +1223,10 @@ function setEditMode(on) {
 
 function isMobileLayout() {
   try {
-    if (window.matchMedia("(max-width: 900px), (pointer: coarse)").matches) return true;
+    return window.matchMedia("(orientation: portrait) and (max-width: 900px)").matches;
   } catch (_) {
-    // continue
+    return false;
   }
-  try { if (isMobileUI()) return true; } catch (_) {}
-  try { return Number(navigator?.maxTouchPoints || 0) > 0; } catch (_) {}
-  return false;
 }
 
 function setFullscreen(on) {
@@ -1335,7 +1332,7 @@ export function applyInventoryUi() {
     if (configuredTheme === "modern") configuredTheme = "lifesim";
     if (configuredTheme === "auto") {
       if (/\b(future|futuristic|cyber|sci[-\s]?fi|space|holographic|holo)\b/.test(modeText)) configuredTheme = "futuristic";
-      else if (/\b(fantasy|rpg|medieval|magic|kingdom|guild|high.fantasy)\b/.test(modeText)) configuredTheme = "warm";
+      else if (/\b(fantasy|rpg|medieval|magic|kingdom|guild|high.fantasy)\b/.test(modeText)) configuredTheme = "fantasy";
       else configuredTheme = "lifesim";
       ui.inventoryTheme = configuredTheme;
     }
@@ -1553,7 +1550,9 @@ async function ensureRouteLoaded(route) {
   const view = document.querySelector(route.view);
   if (!view) return;
 
+  let isFirstLoad = false;
   if (!view.dataset.uieLoaded) {
+    isFirstLoad = true;
     try {
         const html = await loadFeatureTemplate(route.template);
         if (html) {
@@ -1570,11 +1569,13 @@ async function ensureRouteLoaded(route) {
 
   try {
       const mod = await import(route.module);
-      if (route.init && typeof mod[route.init] === "function") {
+      if (isFirstLoad && route.init && typeof mod[route.init] === "function") {
         await mod[route.init](route.initArg);
       }
       if (typeof mod.render === "function") {
         mod.render();
+      } else if (!isFirstLoad && route.init && typeof mod[route.init] === "function") {
+        await mod[route.init](route.initArg);
       }
   } catch (e) {
       console.error(`[UIE] Failed to load module ${route.module}`, e);
@@ -1901,7 +1902,9 @@ function closeInventoryTransientOverlays() {
 export function initInventory() {
   const root = getRoot();
   if (!root) return;
-  if (root !== document.body) document.body.appendChild(root);
+  if (window.UIE_mountGameplayOverlay?.(root, "#uie-inventory-window") !== true) {
+    (document.getElementById("game-overlay-root") || document.body).appendChild(root);
+  }
   root.style.position = "fixed";
   root.style.inset = "0";
   root.style.top = "0";
@@ -1930,7 +1933,7 @@ export function initInventory() {
   const $gear = $("#uie-inv-gear-menu");
   const $sparkle = $("#uie-inv-sparkle-menu");
 
-  setFullscreen(s.inventoryDesktopFullscreen !== false);
+   setFullscreen(true);
 
   $(document).off("uie:updateVitals.uieInvSync").on("uie:updateVitals.uieInvSync", handleExternalVitalsUpdate);
   try {
@@ -2006,9 +2009,41 @@ export function initInventory() {
     .on("click.uieInvPencil", "#uie-inv-pencil", function (e) {
       e.preventDefault();
       e.stopPropagation();
+      const menu = document.getElementById("uie-inv-edit-menu");
+      if (menu) menu.style.display = menu.style.display === "none" ? "block" : "none";
+    });
+
+  $win.off("click.uieInvToggleEdit", "#uie-inv-toggle-edit")
+    .on("click.uieInvToggleEdit", "#uie-inv-toggle-edit", function (e) {
+      e.preventDefault(); e.stopPropagation();
       setEditMode(!isEditMode());
+      $(this).find("span").text(isEditMode() ? "Turn edit mode off" : "Turn edit mode on");
       updateVitals();
-      notify("success", isEditMode() ? "Edit mode on" : "Edit mode off", "Inventory", "inventory");
+    });
+
+  $win.off("click.uieInvPickBackground", "#uie-inv-pick-background")
+    .on("click.uieInvPickBackground", "#uie-inv-pick-background", async function (e) {
+      e.preventDefault(); e.stopPropagation();
+      const image = await pickLocalImage();
+      if (!image) return;
+      const s2 = getSettings();
+      ensureModel(s2); ensureInventoryUi(s2);
+      Object.assign(s2.inventory.ui.tabBackgrounds, { itemsDesktop:image, itemsMobile:image, items:image });
+      saveSettings(); applyInventoryUi();
+      const menu = document.getElementById("uie-inv-edit-menu");
+      if (menu) menu.style.display = "none";
+      notify("success", "Items background updated", "Inventory", "image");
+    });
+
+  $win.off("click.uieInvClearBackground", "#uie-inv-clear-background")
+    .on("click.uieInvClearBackground", "#uie-inv-clear-background", function (e) {
+      e.preventDefault(); e.stopPropagation();
+      const s2 = getSettings();
+      ensureModel(s2); ensureInventoryUi(s2);
+      Object.assign(s2.inventory.ui.tabBackgrounds, { itemsDesktop:"", itemsMobile:"", items:"" });
+      saveSettings(); applyInventoryUi();
+      const menu = document.getElementById("uie-inv-edit-menu");
+      if (menu) menu.style.display = "none";
     });
 
   $win.off("change.uieInvInput", ".uie-inv-input")
@@ -2189,7 +2224,9 @@ export function initInventory() {
   $win.off("click.uieInvCloseMenus")
     .on("click.uieInvCloseMenus", function (e) {
       if ($(e.target).closest("#uie-create-station-overlay, #uie-inv-sparkle-menu").length) return;
-      if ($(e.target).closest("#uie-inv-pencil, #uie-inv-sparkle, #uie-inv-sparkle-menu, #uie-inv-gear, #uie-inv-gear-menu").length) return;
+      if ($(e.target).closest("#uie-inv-pencil, #uie-inv-edit-menu, #uie-inv-sparkle, #uie-inv-sparkle-menu, #uie-inv-gear, #uie-inv-gear-menu").length) return;
+      const editMenu = document.getElementById("uie-inv-edit-menu");
+      if (editMenu) editMenu.style.display = "none";
       const sm = document.getElementById("uie-inv-sparkle-menu");
       if (sm && sm.style.display !== "none") closeCreateStation();
       const gm = document.getElementById("uie-inv-gear-menu");

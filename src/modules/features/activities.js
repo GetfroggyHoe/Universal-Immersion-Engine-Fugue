@@ -3,6 +3,7 @@ import { getSettings, saveSettings } from "../core.js";
 import { notify } from "../notifications.js";
 import { injectRpEvent } from "./rp_log.js";
 import { addInventoryItemWithStack } from "../inventoryItems.js";
+import { mutateStatusEffects } from "../statusFx.js";
 
 let timer = null;
 let currentActivity = null; // { id, name, startTime, duration, type }
@@ -80,6 +81,24 @@ function setActiveTab(next) {
     if (partyBtn) {
         partyBtn.classList.remove("active");
     }
+}
+
+function applyActivityStatusEffects(target, activity, messages = []) {
+    const rewards = activity?.rewards && typeof activity.rewards === "object" ? activity.rewards : {};
+    const add = [
+        ...(Array.isArray(activity?.statusEffects) ? activity.statusEffects : []),
+        ...(Array.isArray(rewards.statusEffects) ? rewards.statusEffects : [])
+    ];
+    const remove = [
+        ...(Array.isArray(activity?.removeStatusEffects) ? activity.removeStatusEffects : []),
+        ...(Array.isArray(activity?.curesStatusEffects) ? activity.curesStatusEffects : []),
+        ...(Array.isArray(rewards.removeStatusEffects) ? rewards.removeStatusEffects : []),
+        ...(Array.isArray(rewards.curesStatusEffects) ? rewards.curesStatusEffects : [])
+    ];
+    const result = mutateStatusEffects(target, { add, remove });
+    result.added.forEach((effect) => messages.push(`Status: ${effect.name}`));
+    result.removed.forEach((effect) => messages.push(`Cured: ${effect.name}`));
+    return result.changed;
 }
 
 function setSelectedPartyMember(id) {
@@ -267,6 +286,7 @@ function completeFinishedPartyAssignments(s = getSettings()) {
             remaining.push(assignment);
         }
     }
+    applyActivityStatusEffects(m, act, msg);
     if (changed) {
         s.activities.partyAssignments = remaining;
         saveSettings();
@@ -635,6 +655,8 @@ function completeActivity() {
             });
         }
     }
+    if (!s.character || typeof s.character !== "object") s.character = {};
+    applyActivityStatusEffects(s.character, act, msg);
 
     if (act.progress && typeof act.progress === "object" && typeof window.__UIE_applyProgressDelta === "function") {
         try {

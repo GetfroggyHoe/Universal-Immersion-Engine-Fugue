@@ -3,6 +3,7 @@ import { injectRpEvent } from "./features/rp_log.js";
 import { customConfirm } from "./popups.js";
 import { requestOrganizationAssets } from "./backendBridge.js";
 import { consumeOrganizationIntel, removePendingIntelById } from "./organizationIntelBus.js";
+import { issueCredential, resolveCredentialWorldMode } from "./credentialSystem.js";
 
 let selectedId = "";
 let selectedLawPlace = "";
@@ -1293,6 +1294,21 @@ function joinOrganization(orgId = "") {
   const affiliations = new Set(normalizeTextList(s.character.organizationAffiliations));
   affiliations.add(org.name);
   s.character.organizationAffiliations = Array.from(affiliations);
+  const orgKey = normalizeKey(org.id || org.name || "organization");
+  const fantasy = resolveCredentialWorldMode(s) === "fantasy";
+  issueCredential(s, {
+    type: fantasy ? (String(org.category || org.type || "").toLowerCase() === "guild" ? "guild_seal" : "faction_insignia") : "membership_card",
+    issueKey: `organization:${org.id}:membership`,
+    issuerId: String(org.id || orgKey),
+    issuerName: org.name,
+    holderId: "player",
+    holderName: userName,
+    title: "Member",
+    permissions: [`${orgKey}.member_entry`, ...(org.controlledSpaces || []).map((place) => `${normalizeKey(place)}.member_entry`)],
+    linkedLocationIds: [org.base, ...(org.controlledSpaces || [])].filter(Boolean),
+    appearance: { templateId: fantasy ? "fantasy_faction_seal" : "modern_membership_01", accent: fantasy ? "#b91c1c" : "#cba35c" },
+    security: fantasy ? { hologram: false, scanDifficulty: 65 } : { qrValue: `uie:organization:${org.id}`, hologram: true, scanDifficulty: 72 }
+  });
   saveSettings();
   renderOrganizations();
   if ($("#uie-organization-dossier").attr("aria-hidden") === "false") renderDossier();
@@ -1962,8 +1978,14 @@ function startRunInAutoSync() {
 export function renderFactions() { renderOrganizations(); }
 
 export function openFactions(mode = "") {
-  initFactions();
-  $("#uie-factions-window").css("display", "flex");
+  try {
+    initFactions();
+    $("#uie-factions-window").css("display", "flex");
+  } catch (error) {
+    console.error("Unable to open Organizations", error);
+    try { window.toastr?.error?.("Organizations could not open. Your saved data was left unchanged."); } catch (_) {}
+    return;
+  }
   if (mode === "laws" && currentOrganization()) {
     openDossier(currentOrganization().id);
     activateDossierTab("rules");

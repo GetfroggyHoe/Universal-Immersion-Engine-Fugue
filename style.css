@@ -6,7 +6,7 @@
 
 * {
     scrollbar-width: thin !important;
-    scrollbar-color: rgba(203, 163, 92, 0.78) rgba(18, 13, 10, 0.28) !important;
+    scrollbar-color: #94a3b8 #eef2f6 !important;
 }
 
 *::-webkit-scrollbar {
@@ -15,18 +15,18 @@
 }
 
 *::-webkit-scrollbar-track {
-    background: linear-gradient(180deg, rgba(18, 13, 10, 0.28), rgba(6, 8, 13, 0.22)) !important;
+    background: #eef2f6 !important;
     border-radius: 999px !important;
 }
 
 *::-webkit-scrollbar-thumb {
-    background: linear-gradient(180deg, #d6b16b, #8e5431) !important;
-    border: 2px solid rgba(10, 8, 8, 0.72) !important;
+    background: linear-gradient(180deg, #cbd5e1, #94a3b8) !important;
+    border: 2px solid #f8fafc !important;
     border-radius: 999px !important;
 }
 
 *::-webkit-scrollbar-thumb:hover {
-    background: linear-gradient(180deg, #ffd58a, #a86638) !important;
+    background: linear-gradient(180deg, #94a3b8, #64748b) !important;
 }
 
 html,
@@ -76,6 +76,37 @@ textarea {
 
 .reply-input-shell #user-input {
     padding-right: 42px !important;
+}
+
+.reply-send-column {
+    display: flex;
+    flex: 0 0 52px;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 6px;
+}
+
+.reply-send-utilities {
+    display: flex;
+    min-height: 28px;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+
+.reply-image-attach {
+    position: relative;
+    width: 30px;
+    height: 28px;
+    display: inline-grid;
+    place-items: center;
+    padding: 0;
+    border: 1px solid rgba(255, 255, 255, 0.32);
+    border-radius: 8px;
+    background: #171b23;
+    color: #eef4ff;
+    cursor: pointer;
 }
 
 .reply-keyboard-toggle {
@@ -151,7 +182,7 @@ textarea {
 @keyframes uie-text-dissolve { to{filter:blur(.8px);opacity:.8} }
 @keyframes uie-pose-enter { from{opacity:.55;transform:translateY(7px) scale(.985)}to{opacity:1;transform:none} }
 @media (prefers-reduced-motion: reduce) { .uie-effect-tremble,.uie-effect-glitch,.uie-effect-blur-dissolve,.uie-pose-transition{animation:none!important;} }
-@media (orientation: landscape) and (max-height: 620px) { .floating-portrait-keyboard{position:fixed;right:max(8px,env(safe-area-inset-right));bottom:max(8px,env(safe-area-inset-bottom));width:min(390px,48vw);height:min(300px,calc(100dvh - 16px));max-height:calc(100dvh - 16px);z-index:2147483000;} .virtual-key-grid{gap:3px}.reply-keyboard-key{height:28px}.reply-keyboard-predictions{min-height:25px} }
+@media not all { .floating-portrait-keyboard{position:fixed;right:max(8px,env(safe-area-inset-right));bottom:max(8px,env(safe-area-inset-bottom));width:min(390px,48vw);height:min(300px,calc(100dvh - 16px));max-height:calc(100dvh - 16px);z-index:2147483000;} .virtual-key-grid{gap:3px}.reply-keyboard-key{height:28px}.reply-keyboard-predictions{min-height:25px} }
 
 .reply-keyboard-grip {
     flex: 1;
@@ -195,13 +226,13 @@ textarea {
 
 .reply-keyboard-mini,
 .reply-keyboard-key {
-    border: 1px solid rgba(12, 18, 28, 0.35);
+    border: 1px solid rgba(0, 20, 60, 0.85);
     border-radius: 8px;
-    background: rgba(38, 44, 56, 0.92);
-    color: #e8ecf2;
+    background: rgba(5, 12, 35, 0.97);
+    color: #e0ecff;
     font-weight: 800;
     cursor: pointer;
-    box-shadow: 0 2px 0 rgba(0, 0, 0, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    box-shadow: 0 2px 0 rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.07);
 }
 
 .reply-keyboard-mini {
@@ -226,9 +257,10 @@ textarea {
 
 .reply-keyboard-key:hover,
 .reply-keyboard-mini:hover {
-    background: rgba(58, 66, 82, 0.95);
-    color: #fff;
+    background: rgba(10, 30, 80, 0.99);
+    color: #a8d4ff;
     transform: translateY(-1px);
+    box-shadow: 0 3px 0 rgba(0, 0, 0, 0.7), 0 0 8px rgba(60, 130, 255, 0.2);
 }
 
 .reply-keyboard-bottom {
@@ -252,31 +284,6 @@ textarea {
     flex-wrap: nowrap;
     overflow-x: auto;
     scrollbar-width: thin;
-}
-
-.modal-card,
-.modal-content,
-.modal-panel,
-.modal-window,
-.uie-modal-card,
-.life-modal .box {
-    font-size: 1.08em;
-}
-
-.modal-card,
-.modal-content,
-.modal-panel,
-.modal-window,
-.uie-modal-card {
-    max-width: min(96vw, 1300px) !important;
-}
-
-.uie-window:not(#uie-party-window):not(#uie-party-member-modal):not(#uie-main-menu):not(#uie-map-window):not(#uie-phone-window):not(#uie-inventory-window) {
-    font-size: 1.08em;
-    width: min(1040px, 96vw) !important;
-    height: min(845px, 92vh) !important;
-    max-width: 96vw !important;
-    max-height: 92vh !important;
 }
 
 #nav-row .nav-btn {
@@ -870,7 +877,7 @@ textarea {
         max-width: 100% !important;
         margin-left: 0 !important;
         gap: 4px !important;
-        overflow-x: auto !important;
+        overflow-x: visible;!important;
         overflow-y: hidden !important;
         padding-bottom: 0 !important;
         scrollbar-width: none !important;
@@ -960,7 +967,7 @@ textarea {
     }
 }
 
-input:not(#user-input),
+input:not(#user-input):not(#next-beat-input),
 textarea:not(#user-input),
 select,
 [contenteditable="true"] {
@@ -972,7 +979,7 @@ select,
     color-scheme: dark !important;
 }
 
-input:not(#user-input)::placeholder,
+input:not(#user-input):not(#next-beat-input)::placeholder,
 textarea:not(#user-input)::placeholder {
     color: rgba(255, 250, 240, 0.66) !important;
     opacity: 1 !important;
@@ -1299,6 +1306,14 @@ textarea:not(#user-input)::placeholder {
     pointer-events: auto;
 }
 
+/* Crisp light treatment for prompt targeting and next-beat controls. */
+#next-beat-container{align-items:center!important;gap:8px!important;background:#090b10!important;color:#f7f9fc!important;border:0!important;border-radius:10px!important;padding:0!important;box-shadow:none!important}
+#next-beat-input{min-width:0!important;flex:1!important;background:#090b10!important;color:#f7f9fc!important;border:0!important;outline:0!important;font-weight:600!important}
+#next-beat-input::placeholder{color:#8d96a5!important}
+#next-beat-delete{width:30px!important;height:30px!important;min-width:30px!important;display:grid!important;place-items:center!important;align-self:center!important;background:#fff!important;color:#111827!important;border:1px solid #dbe2ea!important;border-radius:6px!important;line-height:1!important;padding:0!important}
+#next-beat-delete:hover{background:#f1f5f9!important;color:#b42318!important}
+#target-select,.target-select{background:#090b10!important;color:#f7f9fc!important;border:0!important;border-radius:8px!important}
+
 /* Room hotspot and component layers */
 #room-hotspot-layer {
     pointer-events: none;
@@ -1491,98 +1506,45 @@ textarea:not(#user-input)::placeholder {
 }
 
 /* Android retains desktop proportions while using the measured root bounds. */
-html.uie-landscape-required:not(.uie-portrait) #uie-quick-bag-overlay {
-    left: var(--ui-left-safe) !important;
-    top: var(--ui-top-safe) !important;
-    right: auto !important;
-    bottom: auto !important;
-    width: clamp(330px, 35vw, 500px) !important;
-    max-height: calc(100% - var(--ui-top-safe) - var(--desktop-nav-reserved-height) - var(--ui-bottom-gap)) !important;
-    padding: var(--ui-inner-gap) !important;
-    overflow: hidden !important;
-    gap: var(--ui-inner-gap) !important;
-}
-
-html.uie-landscape-required:not(.uie-portrait) .quick-bag-header,
-html.uie-landscape-required:not(.uie-portrait) .quick-bag-tabs-row,
-html.uie-landscape-required:not(.uie-portrait) .quick-bag-equip-strip,
-html.uie-landscape-required:not(.uie-portrait) .quick-bag-footer-btn {
-    flex: 0 0 auto;
-}
-
-html.uie-landscape-required:not(.uie-portrait) .quick-bag-grid {
-    flex: 1 1 auto;
-    min-height: 0;
-    max-height: none;
-    padding: 2px;
-}
-
-html.uie-landscape-required:not(.uie-portrait) #vn-ui {
-    padding: var(--ui-inner-gap) var(--ui-left-safe) var(--ui-bottom-gap) var(--ui-left-safe) !important;
-}
-
-html.uie-landscape-required:not(.uie-portrait) #message-box-wrap,
-html.uie-landscape-required:not(.uie-portrait) #input-row {
-    max-width: min(960px, calc(100% - (var(--ui-left-safe) + var(--ui-right-safe)))) !important;
-}
-
-html.uie-landscape-required:not(.uie-portrait) #reply-tools {
-    /* Preserve the reference's lower-center composer anchor without reserving
-       a fixed desktop-only 280px on a 740–915px landscape viewport. */
-    margin-left: clamp(0px, 8vw, 140px) !important;
-    max-width: min(42vw, 420px) !important;
-}
-
-html.uie-landscape-required:not(.uie-portrait) #nav-row {
-    min-height: var(--desktop-nav-height);
-    height: var(--desktop-nav-height);
-    margin: var(--ui-panel-gap) auto 0 !important;
-    padding: 6px var(--ui-inner-gap);
-    overflow-x: auto;
-    overflow-y: hidden;
-}
-
-@media (orientation: landscape) and (max-height: 600px) {
+@media not all {
     :root { --hud-row-height: 30px; }
     #hud { width: clamp(200px, 24vw, 240px) !important; }
 }
 
-@media (orientation: landscape) and (max-width: 900px) {
-    html.uie-landscape-required:not(.uie-portrait) #uie-quick-bag-overlay {
-        width: clamp(310px, 34vw, 390px) !important;
+@media not all {
     }
-}
 
 /* Android landscape uses the desktop composition at 60% UI density. The scene
    itself is never scaled: only HUD, minimap, composer, and nav are zoomed. */
-html.uie-landscape-required:not(.uie-portrait) #hud,
-html.uie-landscape-required:not(.uie-portrait) .re-screen-minimap {
-    zoom: .6;
+
+
+/* Ensure the background, game stages, and roots always fill the screen */
+#game-root, #vn-stage, #re-bg {
+  width: 100vw !important;
+  height: 100dvh !important;
 }
 
-html.uie-landscape-required:not(.uie-portrait) #vn-ui {
-    zoom: .6;
-    width: 166.666667% !important;
-    /* zoom lays out in a larger logical canvas.  Keep that canvas anchored at
-       the real left edge: offsetting it shifts the composer off-screen and
-       makes the reply box look crushed. */
-    left: 0 !important;
-    right: auto !important;
+#re-bg {
+  background-size: cover !important;
+  background-position: center center !important;
 }
 
-html.uie-landscape-required:not(.uie-portrait) .re-screen-minimap__stage {
-    grid-template-columns: 1fr 60px 1fr;
-    grid-template-rows: 44px 48px 44px;
+/* Desktop default */
+:root {
+  --uie-ui-scale: 1;
 }
 
-/* The root has one visual-viewport owner.  Mobile never receives a separate UI. */
-html.uie-landscape-required.uie-portrait #game-root {
-    visibility: hidden !important;
-    pointer-events: none !important;
-}
+/* Landscape uses the normal unscaled desktop composition. */
 
+/* Portrait is not playable: show orientation overlay */
 #rotate-overlay {
     display: none;
+}
+
+html.uie-landscape-required.uie-portrait #game-root,
+html.uie-landscape-required.uie-portrait #game-overlay-root {
+    visibility: hidden !important;
+    pointer-events: none !important;
 }
 
 html.uie-landscape-required.uie-portrait #rotate-overlay {
@@ -1606,3 +1568,586 @@ html.uie-landscape-required.uie-portrait #rotate-overlay {
 #rotate-overlay strong { font-size: 22px; letter-spacing: .06em; }
 #rotate-overlay span { margin-top: 8px; color: #b98765; font: 14px/1.5 system-ui, sans-serif; }
 
+/* Screen-level mini map (toggled from the eyeball / visibility dropdown) */
+.re-screen-minimap {
+    position: fixed;
+    top: 64px;
+    right: 12px;
+    z-index: 60;
+    width: min(300px, 82vw);
+    border: 1px solid rgba(103,232,249,.3);
+    border-radius: 16px;
+    background: linear-gradient(155deg,rgba(7,22,35,.97),rgba(3,9,17,.96));
+    box-shadow: 0 22px 64px rgba(0,0,0,.58),inset 0 1px rgba(255,255,255,.06);
+    backdrop-filter: blur(16px) saturate(1.15);
+    overflow: hidden;
+    color: #e2e8f0;
+}
+.re-screen-minimap__drag-hint{margin-left:auto;color:#7190a5;font:800 9px/1 system-ui;text-transform:uppercase;letter-spacing:.14em}
+.re-screen-minimap__where{padding:10px 12px 8px;background:rgba(6,19,31,.88);border-bottom:1px solid rgba(103,232,249,.12);display:grid;gap:3px}
+.re-screen-minimap__where span{font:800 9px/1 system-ui;text-transform:uppercase;letter-spacing:.14em;color:#7190a5}
+.re-screen-minimap__where strong{color:#effbff;font:850 14px/1.2 system-ui;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.re-screen-minimap__routes{display:grid;gap:5px;margin-top:7px}
+.minimap-route{width:100%;min-height:38px;border:1px solid rgba(103,232,249,.2);border-radius:8px;background:rgba(8,27,42,.88);color:#e4f8ff;display:grid;grid-template-columns:42px minmax(0,1fr);gap:2px 7px;align-items:center;padding:6px 8px;text-align:left;cursor:pointer}
+.minimap-route:hover,.minimap-route:focus-visible{border-color:#67e8f9;background:rgba(12,52,70,.96);outline:none}
+.minimap-route__dir{grid-row:1/3;font:950 11px system-ui;color:#67e8f9;letter-spacing:.08em}.minimap-route__name{font:800 10px/1.15 system-ui;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.minimap-route__tracked{font:700 8px/1.1 system-ui;color:#c4b5fd;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.minimap-route.is-locked{border-color:rgba(251,191,36,.42)}.minimap-route.is-locked .minimap-route__dir{color:#fbbf24}.minimap-route.is-blocked{border-color:rgba(248,113,113,.4);opacity:.8}.minimap-route.is-blocked .minimap-route__dir{color:#f87171}
+.re-screen-minimap__legend{display:flex;gap:12px;padding:7px 11px;border-top:1px solid rgba(103,232,249,.1);font:700 9px system-ui;color:#7190a5}.re-screen-minimap__legend span{display:flex;align-items:center;gap:4px}.re-screen-minimap__legend i{width:6px;height:6px;border-radius:50%;background:#67e8f9}.re-screen-minimap__legend .is-locked{background:#fbbf24}.re-screen-minimap__legend .is-blocked{background:#f87171}
+
+.re-screen-minimap[hidden] { display: none; }
+
+.re-screen-minimap__bar {
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 6px 0 10px;
+    border-bottom: 1px solid rgba(226, 232, 240, 0.12);
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    background:linear-gradient(90deg,rgba(8,47,73,.88),rgba(7,20,33,.94));
+}
+
+.re-screen-minimap__title { display: inline-flex; align-items: center; gap: 6px; }
+
+.re-screen-minimap__btn {
+    width: 26px;
+    height: 26px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    border: 1px solid rgba(226, 232, 240, 0.18);
+    background: rgba(15, 23, 42, 0.78);
+    color: #e2e8f0;
+    cursor: pointer;
+}
+
+.re-screen-minimap__btn:hover { color: #2dd4bf; border-color: rgba(45, 212, 191, 0.56); }
+
+.re-screen-minimap__stage {
+    position: relative;
+    width: 100%;
+    min-height: 155px;
+    max-height: 54vh;
+    overflow-y: auto;
+    background:
+        linear-gradient(90deg, rgba(148, 163, 184, 0.08) 1px, transparent 1px),
+        linear-gradient(0deg, rgba(148, 163, 184, 0.08) 1px, transparent 1px),
+        rgba(2, 6, 23, 0.72);
+    background-size: 18px 18px;
+}
+
+.re-screen-minimap__stage svg { width: 100%; height: 100%; display: block; }
+
+.re-screen-minimap__empty {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    opacity: 0.72;
+    text-align: center;
+    padding: 8px;
+}
+
+@media not all {
+    .re-screen-minimap { top: 60px; right: 10px; width: min(280px, 82vw); }
+}
+
+/* Atmosphere engine visual layers */
+#re-weather-layer{overflow:hidden;opacity:min(1,var(--uie-weather-intensity,1));transition:opacity .45s ease,background .8s ease}
+#re-weather-layer .particles{position:absolute;inset:-25%;pointer-events:none}
+.re-weather-rain{background:linear-gradient(180deg,rgba(20,42,62,.2),rgba(4,12,22,.4))}
+.re-weather-rain .particles{background-image:repeating-linear-gradient(105deg,transparent 0 18px,rgba(190,230,255,.42) 19px 20px,transparent 21px 36px);background-size:44px 74px;animation:uie-rain-fall .62s linear infinite}
+.re-weather-snow .particles{background-image:radial-gradient(circle,rgba(255,255,255,.9) 0 1.5px,transparent 2px),radial-gradient(circle,rgba(220,240,255,.72) 0 2px,transparent 2.5px);background-size:42px 42px,68px 68px;background-position:0 0,20px 14px;animation:uie-snow-fall 8s linear infinite}
+.re-weather-fog{background:linear-gradient(90deg,rgba(190,215,225,.12),rgba(230,240,245,.3),rgba(150,185,200,.12));background-size:200% 100%;backdrop-filter:blur(2px);animation:uie-fog-drift 12s ease-in-out infinite alternate}
+@keyframes uie-rain-fall{to{transform:translate3d(-36px,74px,0)}}@keyframes uie-snow-fall{to{transform:translate3d(-24px,120px,0) rotate(2deg)}}@keyframes uie-fog-drift{to{background-position:100% 0}}
+@media(prefers-reduced-motion:reduce){.re-weather-rain .particles,.re-weather-snow .particles,.re-weather-fog,.re-breathing{animation:none!important}}
+
+/* Bright, compact HUD and utility surfaces */
+.hud-status-effects {
+    display: grid;
+    gap: 6px;
+    width: 100%;
+    padding: 8px 9px;
+    border: 1px solid rgba(221,236,255,.24);
+    border-radius: 8px;
+    background: linear-gradient(180deg,rgba(13,20,32,.68),rgba(8,13,23,.52));
+    box-shadow: inset 0 1px rgba(255,255,255,.12);
+}
+.hud-status-effects__label {
+    color: #dcecff;
+    font: 900 9px/1 system-ui,sans-serif;
+    letter-spacing: .11em;
+    text-transform: uppercase;
+}
+.hud-status-effects__chips { display:flex; flex-wrap:wrap; gap:4px; }
+.hud-status-chip {
+    min-height: 22px;
+    max-width: 100%;
+    padding: 3px 7px;
+    overflow: hidden;
+    border: 1px solid rgba(122,174,205,.34);
+    border-radius: 999px;
+    background: rgba(91,137,165,.16);
+    color: #eef8ff;
+    font: 800 10px/1.2 system-ui,sans-serif;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    cursor: pointer;
+}
+.hud-status-empty {
+    display:flex;
+    align-items:center;
+    gap:7px;
+    color:#aebdca;
+    font:700 10px/1.2 system-ui,sans-serif;
+}
+
+/* Field map: compact dark topographic instrument, not a white/red status card. */
+.re-screen-minimap {
+    width: 300px;
+    border: 1px solid rgba(85,214,210,.28);
+    border-radius: 14px;
+    background: linear-gradient(155deg,rgba(7,25,38,.98),rgba(3,12,21,.98));
+    color: #dffcfb;
+    box-shadow: 0 20px 58px rgba(0,0,0,.48), inset 0 1px rgba(255,255,255,.05);
+    backdrop-filter: blur(14px) saturate(1.08);
+}
+.re-screen-minimap__bar {
+    height: 34px;
+    border-bottom: 1px solid rgba(85,214,210,.15);
+    background: linear-gradient(90deg,#0d3446,#071824);
+    color:#dffcfb;
+}
+.re-screen-minimap__drag-hint { color:#7298a5; margin-left:auto; }
+.re-screen-minimap__where {
+    padding:9px 12px;
+    border-bottom:1px solid rgba(85,214,210,.11);
+    background:rgba(6,23,35,.84);
+}
+.re-screen-minimap__where span { color:#7298a5; }
+.re-screen-minimap__where strong { color:#efffff; }
+.re-screen-minimap__stage {
+    min-height: 190px;
+    max-height: none;
+    overflow: hidden;
+    background:#06131f;
+}
+.re-screen-minimap__stage svg { min-height:190px; }
+.re-screen-minimap__routes { display:none!important; }
+.re-screen-minimap__btn { display:none!important; }
+.re-screen-minimap__empty { color:#9bb7c1; }
+.minimap-node--exit { transition:filter .16s ease, transform .16s ease; transform-box:fill-box; transform-origin:center; }
+.minimap-node--exit:hover { filter:brightness(1.22) drop-shadow(0 0 5px rgba(85,214,210,.32)); transform:scale(1.03); }
+
+/* Chat log uses more of the screen and a lively adventure-journal shell. */
+#chatlog-modal.chatlog-dock {
+    right: 22px;
+    bottom: 78px;
+    width: min(720px, calc(100vw - 44px));
+    max-height: min(78vh, 780px);
+}
+#chatlog-modal.chatlog-dock .chatlog-panel {
+    max-height: inherit;
+    border: 1px solid rgba(191,143,68,.34);
+    border-radius: 16px;
+    background:
+        linear-gradient(135deg,rgba(255,252,244,.97),rgba(238,247,249,.95));
+    color:#27343b;
+    box-shadow:0 24px 70px rgba(17,27,34,.34),inset 0 1px #fff;
+}
+#chatlog-modal.chatlog-dock .chatlog-window-head {
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    min-height:64px;
+    padding:12px 16px;
+    border-bottom:1px solid rgba(155,112,49,.2);
+    background:linear-gradient(90deg,#f2d6a9,#dcecf0);
+    color:#2f302d;
+}
+#chatlog-modal.chatlog-dock .chatlog-window-head h3 { font-size:20px; color:#26353b; }
+#chatlog-modal.chatlog-dock .chatlog-window-kicker { color:#805f30; opacity:1; }
+#chatlog-modal.chatlog-dock .chatlog-toolbar { padding:10px 12px; }
+#chatlog-modal.chatlog-dock .chatlog-toolbar .reply-tool-btn,
+#chatlog-modal .chatlog-tab-btn {
+    border:1px solid rgba(111,89,55,.24)!important;
+    background:#fffaf0!important;
+    color:#42525a!important;
+}
+#chatlog-modal .chatlog-tab-btn.active {
+    background:#3f7892!important;
+    border-color:#3f7892!important;
+    color:#fff!important;
+}
+#chatlog-modal.chatlog-dock .chatlog-scroll {
+    max-height: min(56vh,580px);
+    padding:12px;
+}
+#chatlog-modal.chatlog-dock .chatlog-entry,
+#chatlog-list .chatlog-entry {
+    border:1px solid rgba(73,112,128,.18);
+    border-radius:12px;
+    background:rgba(255,255,255,.78);
+    color:#27343b;
+    box-shadow:0 5px 16px rgba(29,48,57,.06);
+}
+#chatlog-list .chatlog-entry-head { color:#5b7079 !important; }
+#chatlog-list .chatlog-entry-body { color:#27343b !important; font-size:14px; line-height:1.58; }
+#chatlog-list .chatlog-edit-ta { color:#27343b !important; background:rgba(255,255,255,.9) !important; }
+#chatlog-list .chatlog-agent-pill { color:#526a75 !important; border-color:rgba(73,112,128,.24) !important; }
+#reply-image-preview { display:flex; flex-wrap:wrap; gap:6px; padding:4px 2px 0; }
+#reply-image-preview[hidden] { display:none !important; }
+#chatlog-list .chatlog-reasoning { margin-top:8px; border-top:1px solid rgba(73,112,128,.18); padding-top:7px; color:#526a75; font:11px/1.5 ui-monospace,SFMono-Regular,Consolas,monospace; }
+#chatlog-list .chatlog-reasoning summary { cursor:pointer; font-weight:800; }
+#chatlog-list .chatlog-reasoning div { margin-top:6px; white-space:pre-wrap; }
+#chatlog-list .chatlog-attachments { display:flex; flex-wrap:wrap; gap:7px; margin-top:8px; }
+#chatlog-list .chatlog-attachments img { width:92px; height:92px; object-fit:cover; border-radius:9px; border:1px solid rgba(73,112,128,.24); }
+
+
+
+html, body {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    background: #08101e;
+}
+.uie-simple-map__canvas { touch-action:none; overscroll-behavior:contain; }
+
+#game-root {
+    position: fixed;
+    inset: 0;
+    width: auto;
+    height: auto;
+    min-width: 0;
+    min-height: 0;
+    max-width: none;
+    max-height: none;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    transform: none;
+    zoom: 1;
+    aspect-ratio: auto;
+}
+
+#game-overlay-root {
+    position: fixed;
+    inset: 0;
+    width: auto;
+    height: auto;
+    min-width: 0;
+    min-height: 0;
+    max-width: none;
+    max-height: none;
+    overflow: visible;
+    pointer-events: none;
+    z-index: 2147483000;
+}
+
+#uie-press-info {
+    position: fixed;
+    z-index: 2147483647;
+    max-width: min(320px, calc(100vw - 16px));
+    padding: 8px 10px;
+    border: 1px solid rgba(125, 211, 252, 0.48);
+    border-radius: 8px;
+    background: rgba(3, 7, 18, 0.96);
+    color: #f8fafc;
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.46);
+    font: 700 12px/1.35 Inter, system-ui, sans-serif;
+    white-space: pre-line;
+    pointer-events: none;
+}
+
+#uie-press-info[hidden] { display: none !important; }
+
+#game-overlay-root > :is(.modal-overlay, .uie-overlay, .uie-map-modal, .uie-modal, .uie-full-modal, .life-modal, .party-cropper-overlay, #chatlog-modal, #battle-screen, #uie-battle-window) {
+    pointer-events: auto;
+}
+
+[hidden],
+[hidden] *,
+[aria-hidden="true"],
+[aria-hidden="true"] *,
+[style*="display: none"],
+[style*="display: none"] *,
+[style*="display:none"],
+[style*="display:none"] * {
+    pointer-events: none !important;
+}
+
+body.game-major-modal-open .re-screen-minimap {
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+}
+
+body.game-major-modal-open #game-overlay-root::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    background: rgba(2, 6, 14, 0.72);
+    backdrop-filter: blur(2px);
+    pointer-events: auto;
+}
+
+#game-overlay-root > #ui-toast-wrap,
+#game-overlay-root > #toast-container,
+#game-overlay-root > #immersive-nav-popup,
+#game-overlay-root > .re-movement-fade {
+    pointer-events: none !important;
+}
+
+#vn-ui {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+#input-row {
+    width: min(1438px, calc(100% - 32px));
+    max-width: 1438px;
+    margin: 12px auto 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+}
+
+#reply-tools,
+.persona-target-scene-wrap {
+    flex: 0 0 auto;
+}
+
+#user-input-column {
+    flex: 1 1 430px;
+    min-width: 220px;
+    max-width: 645px;
+}
+
+#nav-row {
+    width: max-content;
+    max-width: calc(100% - 24px);
+    margin: 8px auto 0;
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+}
+
+#vn-stage,
+#re-bg,
+#re-time-filter,
+#re-weather-layer,
+#re-sprites-layer,
+#vn-sprite-layer {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+}
+
+#re-bg {
+    background-size: cover !important;
+    background-position: center center !important;
+    background-repeat: no-repeat !important;
+}
+
+.modal-overlay,
+.uie-overlay,
+.uie-map-modal {
+    position: fixed;
+    inset: 0;
+    width: auto;
+    height: auto;
+    padding: 12px;
+    box-sizing: border-box;
+    align-items: center;
+    justify-content: center;
+    overflow: auto;
+    pointer-events: auto;
+}
+
+#uie-map-window {
+    position: fixed;
+    inset: 0;
+    width: auto;
+    height: auto;
+    max-width: none;
+    max-height: none;
+    background: transparent;
+    pointer-events: none;
+    transform: none;
+}
+
+#uie-map-window:not([hidden]):not([aria-hidden="true"]) :is(.uie-simple-map__header, .uie-simple-map__canvas, .uie-simple-map__panel, [data-map-panel], button, input, select, textarea, a),
+.re-screen-minimap:not([hidden]):not([aria-hidden="true"]) {
+    pointer-events: auto !important;
+}
+
+#map-move-modal .modal-card {
+    width: min(680px, calc(100vw - 32px));
+    height: auto;
+    max-height: calc(100dvh - 32px);
+    overflow: auto;
+    transform: none;
+}
+
+
+/* Removed conflicting alternate mobile layout. */
+
+
+
+/* Removed conflicting alternate mobile layout. */
+
+
+/* Portrait gameplay remains disabled. */
+@media (pointer: coarse) and (orientation: portrait) {
+    #rotate-overlay {
+        display: grid;
+    }
+
+    #game-root,
+    #game-overlay-root {
+        visibility: hidden;
+        pointer-events: none;
+    }
+}
+
+/* Ensure party, organizations, battle, inventory are all full screen */
+#re-party-modal .modal-card,
+#re-organizations-modal .modal-card,
+#re-factions-modal .modal-card,
+#re-battle-modal .modal-card,
+#re-inventory-modal .modal-card,
+#re-inv-modal .modal-card {
+    width: 100vw !important;
+    max-width: 100vw !important;
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+    border-radius: 0 !important;
+    border: none !important;
+    margin: 0 !important;
+    transform: none !important;
+}
+
+#re-party-modal,
+#re-organizations-modal,
+#re-factions-modal,
+#re-battle-modal,
+#re-inventory-modal,
+#re-inv-modal {
+    padding: 0 !important;
+}
+
+
+/* Landscape optimization for main menu on small screens */
+@media (max-height: 500px) and (orientation: landscape) {
+    #startup-modal {
+        align-items: center !important;
+        justify-content: center !important;
+        padding: 8px !important;
+        overflow: hidden !important;
+    }
+
+    #startup-modal .modal-card {
+        display: grid !important;
+        grid-template-columns: 1.1fr 0.9fr !important;
+        grid-template-rows: auto 1fr !important;
+        gap: 4px 24px !important;
+        width: min(720px, calc(100vw - 16px)) !important;
+        max-width: calc(100vw - 16px) !important;
+        max-height: calc(100dvh - 16px) !important;
+        padding: 16px 24px !important;
+        text-align: left !important;
+        align-content: center !important;
+        overflow: hidden !important;
+    }
+
+    #startup-modal .main-menu-logo-container {
+        grid-column: 1 / 2 !important;
+        grid-row: 1 / 2 !important;
+        margin-bottom: 0 !important;
+        text-align: left !important;
+    }
+
+    #startup-modal .main-menu-logo {
+        font-size: 1.45rem !important;
+        margin-bottom: 2px !important;
+        text-align: left !important;
+        line-height: 1.1 !important;
+    }
+
+    #startup-modal .main-menu-sub {
+        font-size: 0.8rem !important;
+        text-align: left !important;
+        letter-spacing: 2px !important;
+    }
+
+    #startup-modal p {
+        grid-column: 1 / 2 !important;
+        grid-row: 2 / 3 !important;
+        font-size: 11px !important;
+        line-height: 1.35 !important;
+        margin: 6px 0 0 !important;
+        text-align: left !important;
+        max-width: 320px !important;
+        opacity: 0.8 !important;
+    }
+
+    #startup-modal .main-menu-grid {
+        grid-column: 2 / 3 !important;
+        grid-row: 1 / 3 !important;
+        margin: 0 auto !important;
+        width: 100% !important;
+        max-width: 240px !important;
+        gap: 6px !important;
+    }
+
+    #startup-modal .main-menu-grid .reply-tool-btn {
+        min-height: 38px !important;
+        height: 38px !important;
+        padding: 0 12px !important;
+        font-size: 12px !important;
+        border-radius: 8px !important;
+    }
+
+    #startup-modal .main-menu-grid .reply-tool-btn i {
+        width: 28px !important;
+        height: 24px !important;
+        flex: 0 0 28px !important;
+        font-size: 9px !important;
+        border-radius: 4px !important;
+        box-shadow: 0 0 10px rgba(54,244,255,.16) !important;
+    }
+}
+/* Optional RPG setting: content-aware AI response box height. Manual UI/chat scale transforms remain untouched. */
+html.uie-dynamic-response-boxes #message-box {
+    height: var(--uie-dynamic-response-height, auto) !important;
+    min-height: min(86px, 18dvh) !important;
+    max-height: min(430px, 42dvh) !important;
+    overflow-y: auto !important;
+    transition: height .24s cubic-bezier(.2,.8,.2,1), max-height .24s ease !important;
+    overscroll-behavior: contain;
+}
+html.uie-dynamic-response-boxes #message-box[data-dynamic-response-overflow="fit"] { overflow-y: hidden !important; }
+html.uie-dynamic-response-boxes #message-box-wrap { min-height: 0 !important; height: auto !important; }
+@media (max-width:640px), (max-height:560px) {
+    html.uie-dynamic-response-boxes #message-box { min-height: 58px !important; max-height: min(180px,28dvh) !important; }
+}
+@media (prefers-reduced-motion:reduce) {
+    html.uie-dynamic-response-boxes #message-box { transition:none !important; }
+}

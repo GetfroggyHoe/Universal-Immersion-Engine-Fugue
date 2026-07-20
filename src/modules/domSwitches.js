@@ -215,7 +215,7 @@ const INJECTED_CSS = `
     gap: 20px;
 }
 
-@media (max-width: 768px) {
+@media not all {
     .apt-layout { grid-template-columns: 1fr; }
 }
 

@@ -98,7 +98,7 @@ function member(id, name, role, extra = {}) {
   const revin = projection.allies.find((combatant) => combatant.id === "mage");
   assert.deepEqual(revin.actions.map((action) => action.name), ["Elemental Burst"]);
   assert.equal(revin.derived.magicalEvasion, 0.15);
-  assert.equal(revin.presentation.portrait, "assets/ui/generated/Sil-F.png");
+  assert.equal(revin.presentation.portrait, "assets/ui/generated/PartySil.png");
   assert.equal(revin.imageUrl, revin.presentation.portrait);
 
   alyx.vitals.hp = 42;
@@ -125,6 +125,27 @@ function member(id, name, role, extra = {}) {
   const projection = buildCombatProjection(settings);
   assert.deepEqual(projection.allies.map((combatant) => combatant.lane), ["front", "mid", "back"]);
   assert.deepEqual(projection.reserves, []);
+}
+
+{
+  const projection = buildCombatProjection({ character: { name: "Player" } }, {
+    enemies: [{
+      name: "Equipped Captain",
+      level: 5,
+      threatTier: 4,
+      stats: { str: 12, dex: 8, con: 10, int: 4, wis: 6, cha: 7, per: 8, luk: 5 },
+      hp: 120,
+      maxHp: 120,
+      equipment: [{ name: "Officer Plate", defense: 7, maxHp: 15 }],
+      items: [{ name: "Field Tonic", heal: 20 }],
+    }],
+  });
+  const enemy = projection.enemies[0];
+  assert.equal(enemy.threatTier, 4, "explicit enemy tier must survive combat projection");
+  assert.equal(enemy.equipment[0].name, "Officer Plate");
+  assert.equal(enemy.items[0].heal, 20);
+  assert.ok(enemy.derived.defense >= 7, "enemy equipment must affect derived defense");
+  assert.ok(enemy.maxHp >= 135, "enemy equipment must affect maximum HP");
 }
 
 console.log("Combat projection tests passed.");

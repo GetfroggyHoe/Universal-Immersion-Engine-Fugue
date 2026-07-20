@@ -817,8 +817,31 @@ function normalizeTurboInputUrl(u) {
     let raw = String(u || "").trim();
     if (!raw) return "";
     raw = raw.replace(/,/g, ".");
-    if (!/^https?:\/\//i.test(raw)) raw = `https://${raw}`;
+    if (!/^https?:\/\//i.test(raw)) {
+        const host = raw.split(/[/:]/, 1)[0];
+        raw = `${isLocalNetworkHost(host) ? "http" : "https"}://${raw}`;
+    }
     return raw;
+}
+
+function isLocalNetworkHost(hostname = "") {
+    const host = String(hostname || "").replace(/^\[|\]$/g, "").trim().toLowerCase();
+    if (!host) return false;
+    if (["localhost", "127.0.0.1", "0.0.0.0", "::1"].includes(host) || host.endsWith(".local")) return true;
+    if (/^10\./.test(host) || /^192\.168\./.test(host) || /^169\.254\./.test(host)) return true;
+    if (/^172\.(1[6-9]|2\d|3[0-1])\./.test(host)) return true;
+    return !host.includes(".");
+}
+
+export function isLocalNetworkUrl(url = "") {
+    try {
+        const raw = String(url || "").trim();
+        if (!raw) return false;
+        const parsed = new URL(/^https?:\/\//i.test(raw) ? raw : `http://${raw}`);
+        return isLocalNetworkHost(parsed.hostname);
+    } catch (_) {
+        return false;
+    }
 }
 
 export function apiConfigFingerprint(config = {}) {
@@ -868,7 +891,7 @@ export function describeApiFailure(detail = {}, label = "API") {
     if (/local proxy returned 404|port \d+/i.test(raw)) return `${label}: the UIE proxy is unavailable. Start this app with the project dev server and reload the current page.`;
     if (/failed to fetch|networkerror|load failed|cors/i.test(raw)) return `${label}: network/CORS failure. The provider could not be reached through the UIE proxy.${suffix}`;
     if (raw) return `${label}: ${raw.slice(0, 380)}`;
-    return `${label}: generation could not start because no verified provider is available. Test a connection in Settings.`;
+    return `${label}: generation could not start because no usable provider URL/key is configured. Connection testing is optional.`;
 }
 
 function buildTurboUrlCandidates(rawUrl) {
@@ -1159,8 +1182,17 @@ function publishTokenUsageTrace(trace = {}) {
                 completionTokens: outputTokens,
                 totalTokens,
                 estimated: usage?.estimated === true || !usage,
+                cachedTokens: Number(usage?.cachedTokens || 0) || 0,
+                cacheWriteTokens: Number(usage?.cacheWriteTokens || 0) || 0,
+                reasoningTokens: Number(usage?.reasoningTokens || 0) || 0,
+                cost: Number.isFinite(Number(usage?.cost)) ? Number(usage.cost) : null,
             },
             buckets,
+            provider: String(trace.provider || ""),
+            requestId: String(trace.requestId || ""),
+            finishReason: String(trace.finishReason || ""),
+            status: Number(trace.status || 0) || 0,
+            ok: trace.ok !== false,
         };
         s.generation.tokenUsageLog = Array.isArray(s.generation.tokenUsageLog) ? s.generation.tokenUsageLog : [];
         s.generation.tokenUsageLog.unshift(row);
@@ -1175,7 +1207,7 @@ function publishTokenUsageTrace(trace = {}) {
 }
 
 /** OpenAI / OpenRouter / Anthropic-style usage blocks for console + UIE_lastTurbo. */
-function extractUsageFromApiJson(data) {
+export function extractUsageFromApiJson(data) {
     try {
         const u = data?.usage;
         if (!u || typeof u !== "object") return null;
@@ -1186,7 +1218,17 @@ function extractUsageFromApiJson(data) {
             totalTokens = promptTokens + completionTokens;
         }
         if (promptTokens == null && completionTokens == null && totalTokens == null) return null;
-        return { promptTokens, completionTokens, totalTokens };
+        const promptDetails = u.prompt_tokens_details || u.promptTokensDetails || u.input_tokens_details || {};
+        const completionDetails = u.completion_tokens_details || u.completionTokensDetails || u.output_tokens_details || {};
+        return {
+            promptTokens,
+            completionTokens,
+            totalTokens,
+            cachedTokens: numOrNull(promptDetails.cached_tokens ?? promptDetails.cachedTokens ?? u.cache_read_input_tokens) || 0,
+            cacheWriteTokens: numOrNull(promptDetails.cache_write_tokens ?? promptDetails.cacheWriteTokens ?? u.cache_creation_input_tokens) || 0,
+            reasoningTokens: numOrNull(completionDetails.reasoning_tokens ?? completionDetails.reasoningTokens) || 0,
+            cost: numOrNull(u.cost ?? u.total_cost),
+        };
     } catch (_) {
         return null;
     }
@@ -1248,13 +1290,28 @@ let uieCsrfCache = { t: 0, token: "" };
 
 function getConfiguredProxyOrigin() {
     try {
-        const explicit = String(window.UIE_PROXY_ORIGIN || localStorage.getItem("uie_proxy_origin") || "").trim();
+        const network = getSettings()?.network || {};
+        if (String(network.proxyMode || "auto") !== "custom") {
+            if (/^https?:$/i.test(window.location.protocol || "") && window.location.host) {
+                try { return new URL(".", window.location.href).href.replace(/\/+$/g, ""); } catch (_) { return window.location.origin; }
+            }
+        }
+        const explicit = String(network.proxyOrigin || window.UIE_PROXY_ORIGIN || localStorage.getItem("uie_proxy_origin") || "").trim();
         if (/^https?:\/\//i.test(explicit)) return explicit.replace(/\/+$/g, "");
     } catch (_) {}
     try {
         if (/^https?:$/i.test(window.location.protocol || "") && window.location.host) return window.location.origin;
     } catch (_) {}
     return "";
+}
+
+function getProxyPreference() {
+    try {
+        const value = String(getSettings()?.network?.proxyPreference || "auto").trim().toLowerCase();
+        return ["proxy-first", "direct-first"].includes(value) ? value : "auto";
+    } catch (_) {
+        return "auto";
+    }
 }
 
 async function getCsrfToken() {
@@ -1304,138 +1361,51 @@ function isFailedToFetchError(e) {
 }
 
 async function fetchWithCorsProxyFallback(targetUrl, options) {
-    const isLocalhost = window.location.hostname === "localhost" || 
-                        window.location.hostname === "127.0.0.1" || 
-                        window.location.hostname === "0.0.0.0" ||
-                        /^192\.168\./.test(window.location.hostname) ||
-                        /^10\./.test(window.location.hostname) ||
-                        /^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(window.location.hostname) ||
-                        window.location.protocol === "file:";
-    const isRemote = /^https?:\/\/(?!localhost|127\.0\.0\.1|0\.0\.0\.0)/i.test(targetUrl);
-    let hasLocalProxy404 = false;
-    
-    const tryServerForward = async (endpoint) => {
-        try {
-            const targetHdr = new Headers(options?.headers || {});
-            const hdr = new Headers();
-            hdr.set("Content-Type", "application/json");
-            const payload = {
-                url: String(targetUrl || ""),
-                method: String(options?.method || "GET"),
-                headers: Object.fromEntries(targetHdr.entries()),
-                body: options?.body ?? null
-            };
-            const tok = await getCsrfToken();
-            if (tok && !hdr.has("X-CSRF-Token")) hdr.set("X-CSRF-Token", tok);
+    const pageUsesLocalNetwork = isLocalNetworkHost(window.location.hostname) || window.location.protocol === "file:";
+    const targetUsesLocalNetwork = isLocalNetworkUrl(targetUrl);
+    const isRemote = /^https?:\/\//i.test(String(targetUrl || "")) && !targetUsesLocalNetwork;
+    const proxyPreference = getProxyPreference();
+    const proxyFirst = proxyPreference === "proxy-first"
+        || (proxyPreference === "auto" && (
+            (pageUsesLocalNetwork && isRemote)
+            || (targetUsesLocalNetwork && window.UIE_STANDALONE === true)
+        ));
 
-            // 1. Try relative endpoint
-            let r = null;
-            try {
-                r = await fetch(String(endpoint || ""), { method: "POST", headers: hdr, body: JSON.stringify(payload), credentials: "same-origin", signal: options?.signal });
-            } catch (_) {}
-
-            // 2. Try the configured proxy origin if it is different from the current page.
-            const origin = getConfiguredProxyOrigin();
-            if ((!r || r.status === 404 || r.status === 502) && origin && origin !== window.location.origin) {
-                try {
-                    r = await fetch(`${origin}${endpoint}`, { method: "POST", headers: hdr, body: JSON.stringify(payload), signal: options?.signal });
-                } catch (_) {}
-            }
-
-            if (!r) return null;
-
-            if (r.status >= 400) {
-                const isForwarded = r.headers.get("x-uie-proxy") === "true";
-                if (!isForwarded) {
-                    if (r.status === 404) {
-                        hasLocalProxy404 = true;
-                    }
-                    return null;
-                }
-            }
-            return r;
-        } catch (_) {
-            return null;
-        }
-    };
-
-    // If running on localhost and target is a remote third-party API, route through local proxy first to avoid CORS preflight console errors.
-    if (isLocalhost && isRemote) {
-        for (const ep of ["/api/proxy", "/api/cors-proxy", "/api/corsProxy"]) {
-            const r = await tryServerForward(ep);
-            if (r) return { response: r, via: "server-forward", requestUrl: ep };
-        }
+    // One logical AI operation gets one network attempt. Local pages use the
+    // canonical same-origin proxy for remote providers; direct configurations
+    // use the configured endpoint without cascading through fallback routes.
+    if (proxyFirst) {
+        const targetHdr = new Headers(options?.headers || {});
+        const hdr = new Headers({ "Content-Type": "application/json" });
+        const payload = {
+            url: String(targetUrl || ""),
+            method: String(options?.method || "GET"),
+            headers: Object.fromEntries(targetHdr.entries()),
+            body: options?.body ?? null
+        };
+        const origin = getConfiguredProxyOrigin();
+        const endpoint = origin ? `${origin}/api/proxy` : "/api/proxy";
+        const response = await fetch(endpoint, {
+            method: "POST",
+            headers: hdr,
+            body: JSON.stringify(payload),
+            credentials: "same-origin",
+            signal: options?.signal
+        });
+        return { response, via: "server-forward", requestUrl: endpoint };
     }
 
     try {
-        const r = await fetch(targetUrl, options);
-        return { response: r, via: "direct", requestUrl: targetUrl };
+        const response = await fetch(targetUrl, options);
+        return { response, via: "direct", requestUrl: targetUrl };
     } catch (e) {
-        if (isLocalhost) {
-            for (const ep of ["/api/proxy", "/api/cors-proxy", "/api/corsProxy"]) {
-                const r = await tryServerForward(ep);
-                if (r) return { response: r, via: "server-forward", requestUrl: ep };
-            }
-        }
         if (!isFailedToFetchError(e)) throw e;
-        const candidates = buildCorsProxyCandidates(targetUrl);
-        let lastErr = e;
-        for (const ep of ["/api/proxy", "/api/cors-proxy", "/api/corsProxy"]) {
-            const r = await tryServerForward(ep);
-            if (r) return { response: r, via: "server-forward", requestUrl: ep };
-        }
-        for (const proxyUrl of candidates) {
-            try {
-                let r = await fetch(proxyUrl, options);
-                if (r.status >= 400) {
-                    const isForwarded = r.headers.get("x-uie-proxy") === "true";
-                    if (!isForwarded) {
-                        if (r.status === 404) {
-                            hasLocalProxy404 = true;
-                        }
-                        if (r.status === 403 || r.status === 401) {
-                            const tok = await getCsrfToken();
-                            if (tok) {
-                                const h = new Headers(options?.headers || {});
-                                if (!h.has("X-CSRF-Token")) h.set("X-CSRF-Token", tok);
-                                const r2 = await fetch(proxyUrl, { ...options, headers: h });
-                                if (r2.status >= 400 && r2.headers.get("x-uie-proxy") !== "true") {
-                                    if (r2.status === 404) hasLocalProxy404 = true;
-                                    continue;
-                                }
-                                r = r2;
-                            } else {
-                                continue;
-                            }
-                        } else {
-                            continue;
-                        }
-                    }
-                }
-                return { response: r, via: "proxy", requestUrl: proxyUrl };
-            } catch (e2) {
-                lastErr = e2;
-                continue;
-            }
-        }
-        let msg = "Failed to fetch (CORS/network). Enable a host-side CORS proxy or use a local gateway, then retry.";
-        if (hasLocalProxy404) {
-            msg = "Failed to fetch (CORS/network) and the local proxy returned 404. " +
-                  "This usually means the current page is not being served by dev-server.mjs, " +
-                  "or another static server is occupying the project URL. " +
-                  "Close the extra server, start the app with the project dev server, and reload.";
-            console.error("[UIE/API] " + msg);
-            try {
-                if (typeof window.showToast === "function") {
-                    window.showToast("Dev server proxy unavailable. Reload the project server and try again.", 8000);
-                }
-            } catch (_) {}
-        }
-        throw new Error(msg);
+        throw new Error("Failed to fetch the configured AI endpoint. Check the endpoint or proxy preference, then try again.");
     }
 }
 
 async function generateFromApiConfig(t, prompt, systemPrompt, traceMeta = {}) {
+    window.UIE_lastReasoning = ""; // Reset reasoning cache
     if (isSystemLockedOut()) {
         enforceLockoutScreen();
         throw new Error("UIE Security Lockout Active: Fatal System Tamper");
@@ -1529,7 +1499,7 @@ async function generateFromApiConfig(t, prompt, systemPrompt, traceMeta = {}) {
         let hordeAttempt = 0;
         const triedHordeKeys = new Set([String(t.key || "").trim()]);
 
-        while (hordeAttempt < 5) {
+        while (hordeAttempt < 1) {
             hordeAttempt++;
             try {
                 const currentHordeKey = resolveApiKey(String(t.key || "").trim()) || "0000000000";
@@ -1731,7 +1701,7 @@ async function generateFromApiConfig(t, prompt, systemPrompt, traceMeta = {}) {
     const rawUrl = String(t.url || "").trim();
     const rawKey = resolveApiKey(String(t.key || "").trim());
     if (!rawUrl) return null;
-    const isLocal = /^https?:\/\/(localhost|127\.0\.0\.1|0\.0\.0\.0)(:\d+)?(\/|$)/i.test(normalizeTurboInputUrl(rawUrl));
+    const isLocal = isLocalNetworkUrl(rawUrl);
     if (!rawKey && !isLocal && !isAiHorde) return null;
 
     const urls = buildTurboUrlCandidates(rawUrl);
@@ -1801,9 +1771,19 @@ async function generateFromApiConfig(t, prompt, systemPrompt, traceMeta = {}) {
             const looksDefault = model === "google/gemini-2.0-flash-exp" || /gemini|deepseek|openrouter|google\//i.test(model);
             if (looksDefault) model = "gpt-4o-mini";
         }
+        const visionImages = (Array.isArray(traceMeta?.images) ? traceMeta.images : [])
+            .map((item) => String(item?.dataUrl || item?.url || "").trim())
+            .filter((url) => /^data:image\/(?:png|jpe?g|webp|gif);base64,/i.test(url))
+            .slice(0, 4);
+        const openAiUserContent = visionImages.length
+            ? [
+                { type: "text", text: String(finalPrompt || "") },
+                ...visionImages.map((url) => ({ type: "image_url", image_url: { url } })),
+            ]
+            : String(finalPrompt || "");
         const messages = [
             ...(finalSystemPrompt ? [{ role: "system", content: String(finalSystemPrompt) }] : []),
-            { role: "user", content: String(finalPrompt || "") }
+            { role: "user", content: openAiUserContent }
         ];
         const baseBody = {
             model,
@@ -1829,10 +1809,10 @@ async function generateFromApiConfig(t, prompt, systemPrompt, traceMeta = {}) {
         const startedAt = Date.now();
         const traceKind = String(traceMeta?.kind || "llm").trim() || "llm";
 
-        for (const url of urls) {
+        for (const url of urls.slice(0, 1)) {
             let attempt = 0;
             const triedKeys = new Set([String(t.key || "").trim()]);
-            while (attempt < 5) {
+            while (attempt < 1) {
                 attempt++;
                 try {
                     let body = null;
@@ -1840,13 +1820,22 @@ async function generateFromApiConfig(t, prompt, systemPrompt, traceMeta = {}) {
                          endpointShape
                         : (/\/responses/i.test(url) ? "openai_responses" : (/\/completions/i.test(url) && !/\/chat\/completions/i.test(url) ? "openai_completions" : "openai_chat"));
                     if (resolvedShape === "anthropic_messages") {
+                        const anthropicContent = visionImages.length
+                            ? [
+                                { type: "text", text: String(finalPrompt || "") },
+                                ...visionImages.map((url) => {
+                                    const match = url.match(/^data:(image\/(?:png|jpe?g|webp|gif));base64,(.+)$/i);
+                                    return { type: "image", source: { type: "base64", media_type: match?.[1] || "image/jpeg", data: match?.[2] || "" } };
+                                }),
+                            ]
+                            : String(finalPrompt || "");
                         body = {
                             model,
                             max_tokens: baseBody.max_tokens,
                             temperature: baseBody.temperature,
                             top_p: baseBody.top_p,
                             system: String(finalSystemPrompt || ""),
-                            messages: [{ role: "user", content: String(finalPrompt || "") }],
+                            messages: [{ role: "user", content: anthropicContent }],
                             stream: false
                         };
                         if (topkVal > 0) body.top_k = topkVal;
@@ -1862,7 +1851,14 @@ async function generateFromApiConfig(t, prompt, systemPrompt, traceMeta = {}) {
                         const flat = t.apiMode === "text" ? finalPrompt : messages.map(m => `${String(m.role).toUpperCase()}: ${String(m.content)}`).join("\n\n");
                         body = { ...baseBody, prompt: flat };
                     } else if (resolvedShape === "openai_responses") {
-                        body = { ...baseBody, input: messages };
+                        const responseInput = [
+                            ...(finalSystemPrompt ? [{ role: "system", content: [{ type: "input_text", text: String(finalSystemPrompt) }] }] : []),
+                            { role: "user", content: [
+                                { type: "input_text", text: String(finalPrompt || "") },
+                                ...visionImages.map((url) => ({ type: "input_image", image_url: url })),
+                            ] },
+                        ];
+                        body = { ...baseBody, input: responseInput };
                         if (reasoningEffort || (Number.isFinite(reasoningTokens) && reasoningTokens > 0)) {
                             body.reasoning = {};
                             if (reasoningEffort) body.reasoning.effort = reasoningEffort;
@@ -1931,6 +1927,46 @@ async function generateFromApiConfig(t, prompt, systemPrompt, traceMeta = {}) {
                     const data = await response.json().catch(() => null);
                 const text = extractApiResponseText(data);
                 const usage = extractUsageFromApiJson(data);
+
+                // Extract reasoning / thinking text
+                let reasoningText = "";
+                try {
+                    const choice = data?.choices?.[0];
+                    if (choice?.message?.reasoning_content) {
+                        reasoningText = String(choice.message.reasoning_content).trim();
+                    } else if (choice?.message?.reasoning) {
+                        reasoningText = String(choice.message.reasoning).trim();
+                    } else if (choice?.message?.thinking) {
+                        reasoningText = String(choice.message.thinking).trim();
+                    }
+                    if (!reasoningText && Array.isArray(data?.content)) {
+                        const thinkingBlock = data.content.find(block => block?.type === "thinking");
+                        if (thinkingBlock && typeof thinkingBlock.thinking === "string") {
+                            reasoningText = thinkingBlock.thinking.trim();
+                        }
+                    }
+                    if (!reasoningText && Array.isArray(data?.candidates?.[0]?.content?.parts)) {
+                        const parts = data.candidates[0].content.parts;
+                        const thoughtPart = parts.find(p => p?.thought === true || p?.metadata?.thought === true);
+                        if (thoughtPart && typeof thoughtPart.text === "string") {
+                            reasoningText = thoughtPart.text.trim();
+                        }
+                    }
+
+                    // Fallback to searching raw fields in data for inline <think> tags
+                    if (!reasoningText) {
+                        const rawText = choice?.message?.content || choice?.text || data?.output_text || data?.result || data?.response || "";
+                        if (typeof rawText === "string") {
+                            const match = rawText.match(/<think>([\s\S]*?)<\/think>/i);
+                            if (match) {
+                                reasoningText = match[1].trim();
+                            }
+                        }
+                    }
+                } catch (_) {}
+
+                window.UIE_lastReasoning = reasoningText;
+
                 if (!text) {
                     const providerError = data?.error ? extractProviderErrorMessage(JSON.stringify(data)) : "";
                     const responseKeys = data && typeof data === "object"
@@ -1966,6 +2002,9 @@ async function generateFromApiConfig(t, prompt, systemPrompt, traceMeta = {}) {
                     model,
                     provider: providerHost || String(t.provider || ""),
                     usage,
+                    reasoning: reasoningText,
+                    requestId: String(data?.id || ""),
+                    finishReason: String(data?.choices?.[0]?.finish_reason || data?.candidates?.[0]?.finishReason || ""),
                 };
                 uieApiConsole("llm_request_done", {
                     kind: traceKind,
@@ -2041,10 +2080,10 @@ export function hasVerifiedTextConnection() {
         if (requireEnabled && config?.enabled !== true) return false;
         const url = String(config?.url || "").trim();
         const provider = String(config?.provider || "").trim().toLowerCase();
-        const local = localProviders.has(provider) || /^https?:\/\/(localhost|127\.0\.0\.1|0\.0\.0\.0)(:\d+)?(\/|$)/i.test(normalizeTurboInputUrl(url));
+        const local = localProviders.has(provider) || isLocalNetworkUrl(url);
         const allowsBlankKey = provider === "aihorde" || provider === "horde";
         const key = resolveApiKey(String(config?.key || "").trim());
-        return !!(url && (local || allowsBlankKey || key) && isVerifiedApiConfig(config));
+        return !!(url && (local || allowsBlankKey || key));
     };
     return isReady(getActiveMainApiConfig(s)) || (s?.turbo?.applyToText !== false && isReady(s?.turbo || {}, true));
 }
@@ -2060,7 +2099,7 @@ export async function testTurboConnection(opts = {}) {
     const rawKey = resolveApiKey(String(t.key || "").trim());
     const urls = buildTurboUrlCandidates(rawUrl);
     if (!urls.length) return { ok: false, error: `No ${label} endpoint set.` };
-    const isLocal = /^https?:\/\/(localhost|127\.0\.0\.1|0\.0\.0\.0)(:\d+)?(\/|$)/i.test(normalizeTurboInputUrl(rawUrl));
+    const isLocal = isLocalNetworkUrl(rawUrl);
     const provider = String(t.provider || "").trim().toLowerCase();
     const allowsBlankKey = provider === "aihorde" || provider === "horde";
     if (!rawKey && !isLocal && !allowsBlankKey) return { ok: false, error: `No ${label} API key.` };
@@ -2376,19 +2415,20 @@ export async function listTurboModels(opts = {}) {
     return { ok: false, error: lastErr || "Model list failed.", models: [] };
 }
 
-export async function generateContent(prompt, type) {
+export async function generateContent(prompt, type, options = {}) {
     if (isSystemLockedOut()) {
         enforceLockoutScreen();
         throw new Error("UIE Security Lockout Active: Fatal System Tamper");
     }
     const s = getSettings();
+    const requestImages = Array.isArray(options?.images) ? options.images.slice(0, 4) : [];
     const turboEnabled = !!(s.turbo && s.turbo.enabled);
     const turboUrl = String(s?.turbo?.url || "").trim();
     const turboKeyRaw = resolveApiKey(String(s?.turbo?.key || "").trim());
     const turboProvider = String(s?.turbo?.provider || "").trim().toLowerCase();
-    const turboIsLocal = /^https?:\/\/(localhost|127\.0\.0\.1|0\.0\.0\.0)(:\d+)?(\/|$)/i.test(normalizeTurboInputUrl(turboUrl));
+    const turboIsLocal = isLocalNetworkUrl(turboUrl);
     const turboAllowsBlankKey = turboProvider === "aihorde" || turboProvider === "horde";
-    const turboReady = turboEnabled && !!turboUrl && (turboIsLocal || turboAllowsBlankKey || !!turboKeyRaw) && isVerifiedApiConfig(s.turbo);
+    const turboReady = turboEnabled && !!turboUrl && (turboIsLocal || turboAllowsBlankKey || !!turboKeyRaw);
     const typeStr = String(type || "").trim();
     const isImageAiType =
         typeStr === "Image Gen" ||
@@ -2574,6 +2614,9 @@ export async function generateContent(prompt, type) {
             "- Never output prompt notes, constraint checks, recent-context summaries, scene_summary fields, or implementation instructions.",
             "- Valid examples: [Jill]: I found the key.  [Jack]: Then we should leave.  [Monster]: It drags its claws over the stone.  [Unknown]: Stay back.  [Narrator]: Rain strikes the window.",
             "- Characters are not subject to a limit of one sentence or one action. In their own [Name]: turn, characters can perform multiple actions, gestures, and speak multiple sentences. Do not split a character's rich actions and speech into separate turns or dump them into the [Narrator]: turn; let them do what they like within their own turn.",
+            "- Unless the moment is naturally terse, use two or three sentences in each character's displayed turn so the dialogue box feels complete. The per-box sentence setting is available capacity, not a reason to collapse every turn to one sentence.",
+            "- One assistant response may contain many labeled turns, including repeated turns from the same speaker. [Narrator]: may return between or after character turns whenever worldbuilding, atmosphere, consequences, or environmental motion should continue.",
+            "- Display-box limits are sentence limits only (up to three sentences per box when configured), never a one-turn or one-response limit.",
             "- Never write the player's dialogue, thoughts, decisions, feelings, or actions for them.",
             "- Do not paraphrase the player's inner monologue with phrases like 'the thought occurs to you' or 'the idea forms in your mind.' Respond to what can be seen, heard, touched, or said.",
             "- Do not narrate or paraphrase engine syntax (no 'OBJECT id=', no explaining bracket tags).",
@@ -2781,6 +2824,7 @@ export async function generateContent(prompt, type) {
             kind: displayType,
             chatContextMessages: 0,
             signal: vnAbortController?.signal,
+            images: requestImages,
         });
         if (out) {
             traceRoute = "turbo";
@@ -2792,29 +2836,24 @@ export async function generateContent(prompt, type) {
         }
     }
 
-    // 2. Use Main API only when Turbo was not selected for this request.
+    // 2. Main API remains the reliable story route and is always available as
+    // fallback when optional Turbo is unavailable or its request fails.
     const mainConfig = getActiveMainApiConfig(s);
     const mainUrl = String(mainConfig?.url || "").trim();
     const mainKeyRaw = resolveApiKey(String(mainConfig?.key || "").trim());
     const mainProvider = String(mainConfig?.provider || "").trim().toLowerCase();
     const locals = new Set(["ollama", "lmstudio", "koboldcpp", "textgen_webui", "vllm", "localai", "llamacpp", "jan"]);
-    const mainIsLocal = locals.has(mainProvider) || /^https?:\/\/(localhost|127\.0\.0\.1|0\.0\.0\.0)(:\d+)?(\/|$)/i.test(normalizeTurboInputUrl(mainUrl));
-    const mainReady = !!(mainConfig && mainUrl && (mainIsLocal || mainProvider === "aihorde" || mainProvider === "horde" || !!mainKeyRaw) && isVerifiedApiConfig(mainConfig));
-    const turboUrl = String(s?.turbo?.url || "").trim();
-    const mainDuplicatesTurbo = !!(
-        useTurbo &&
-        turboUrl &&
-        normalizeTurboInputUrl(mainUrl).replace(/\/+$/, "") === normalizeTurboInputUrl(turboUrl).replace(/\/+$/, "")
-    );
-
-    if (!out && !useTurbo && mainReady && !mainDuplicatesTurbo) {
+    const mainIsLocal = locals.has(mainProvider) || isLocalNetworkUrl(mainUrl);
+    const mainReady = !!(mainConfig && mainUrl && (mainIsLocal || mainProvider === "aihorde" || mainProvider === "horde" || !!mainKeyRaw));
+    if (!out && mainReady) {
         try {
+            traceRoute = "main-api";
             out = await generateFromApiConfig(mainConfig, finalPrompt, system, {
                 kind: displayType,
                 signal: vnAbortController?.signal,
+                images: requestImages,
             });
             if (out) {
-                traceRoute = "main-api";
                 try {
                     traceUsage = window.UIE_lastTurbo?.usage || null;
                 } catch (_) {
@@ -2834,8 +2873,8 @@ export async function generateContent(prompt, type) {
                 if (isStandalone) {
                     const lastApi = window.UIE_lastTurbo || {};
                     const label = traceRoute === "turbo" ? "Turbo AI" : "Main API";
-                    const message = !useTurbo && !mainReady
-                        ? `${label}: no verified connection is available. Open Settings, choose a profile, and run Connect & apply.`
+                    const message = !mainReady
+                        ? `${label}: no usable endpoint is configured. Open Settings, choose a profile, and apply it. Connection testing is optional.`
                         : describeApiFailure(lastApi, label);
                     console.error(`[UIE] Standalone generation failed: ${message}`);
                     notify(
@@ -2927,7 +2966,7 @@ export async function generateContent(prompt, type) {
                 "Regenerate the reply as visual-novel output only.",
                 "The first readable character must be '['.",
                 "Every readable line must be [Name]: Response, using [Narrator]: for narration.",
-                "Narrator cannot contain quoted speech, character dialogue, or character actions. Move every spoken line, character action, expression, or gesture into [Exact Character Name]:, [Unknown]:, or a typed entity label like [Monster]:. Characters are free to speak multiple sentences and perform multiple actions/gestures inside their own [Name]: turns; the Narrator must never speak or act for them.",
+                "Narrator cannot contain quoted speech, character dialogue, or character actions. Move every spoken line, character action, expression, or gesture into [Exact Character Name]:, [Unknown]:, or a typed entity label like [Monster]:. Characters are free to speak multiple sentences and perform multiple actions/gestures inside their own [Name]: turns; the Narrator must never speak or act for them. The same speaker and Narrator may each return in later labeled blocks within the same assistant response.",
                 "Do not include Player Character, Location, Time, Current State, Context, Inventory, interactives, bullet summaries, markdown, or prompt labels.",
                 "After the readable turns, output exactly ===DATA=== and then one strict JSON object following the requested schema."
             ].join("\n");
@@ -3020,6 +3059,11 @@ export async function generateContent(prompt, type) {
                     usage: finalUsage,
                     buckets: _uieGenTrace.buckets || [],
                     outputText: out || "",
+                    provider: String(window.UIE_lastTurbo?.provider || ""),
+                    requestId: String(window.UIE_lastTurbo?.requestId || ""),
+                    finishReason: String(window.UIE_lastTurbo?.finishReason || ""),
+                    status: Number(window.UIE_lastTurbo?.status || 0),
+                    ok: window.UIE_lastTurbo?.ok !== false,
                 });
                 uieApiConsole("generation_run_end", {
                     kind: _uieGenTrace.kind,
@@ -3056,8 +3100,8 @@ export async function sendToBigSis(userMessage, systemContext = "") {
     const mainKeyRaw = resolveApiKey(String(mainConfig?.key || "").trim());
     const mainProvider = String(mainConfig?.provider || "").trim().toLowerCase();
     const locals = new Set(["ollama", "lmstudio", "koboldcpp", "textgen_webui", "vllm", "localai", "llamacpp", "jan"]);
-    const mainIsLocal = locals.has(mainProvider) || /^https?:\/\/(localhost|127\.0\.0\.1|0\.0\.0\.0)(:\d+)?(\/|$)/i.test(normalizeTurboInputUrl(mainUrl));
-    const mainReady = !!(mainConfig && mainUrl && (mainIsLocal || mainProvider === "aihorde" || mainProvider === "horde" || !!mainKeyRaw) && isVerifiedApiConfig(mainConfig));
+    const mainIsLocal = locals.has(mainProvider) || isLocalNetworkUrl(mainUrl);
+    const mainReady = !!(mainConfig && mainUrl && (mainIsLocal || mainProvider === "aihorde" || mainProvider === "horde" || !!mainKeyRaw));
     if (mainReady) {
         return await generateFromApiConfig(mainConfig, finalPrompt, readableSystem, { kind: "Big Sis" });
     }
@@ -3076,8 +3120,8 @@ function uieTurboEnabled() {
     if (!st) return false;
     const t = st.turbo || {};
     const rawUrl = String(t.url || "").trim();
-    const local = /^https?:\/\/(localhost|127\.0\.0\.1|0\.0\.0\.0)(:\d+)?(\/|$)/i.test(normalizeTurboInputUrl(rawUrl));
-    return !!(t.enabled === true && rawUrl && (local || String(t.key || "").trim()) && isVerifiedApiConfig(t));
+    const local = isLocalNetworkUrl(rawUrl);
+    return !!(t.enabled === true && rawUrl && (local || String(t.key || "").trim()));
   } catch (_) {
     return false;
   }
@@ -3104,11 +3148,14 @@ export function initTurboUi() {
         return s;
     };
 
-    const turboUrlFields = "#uie-turbo-url, #cfg-turbo-url";
-    const turboKeyFields = "#uie-turbo-key, #cfg-turbo-key";
-    const turboModelFields = "#uie-turbo-model, #cfg-turbo-model";
-    const turboModelSelects = "#uie-turbo-model-select, #cfg-turbo-model-select";
-    const turboEnableChecks = "#uie-turbo-enable, #cfg-turbo-enabled";
+    // The standalone settings window owns the cfg-* controls. Keep this module's
+    // bindings scoped to the legacy embedded Turbo controls so two independent
+    // preset/test handlers cannot race each other.
+    const turboUrlFields = "#uie-turbo-url";
+    const turboKeyFields = "#uie-turbo-key";
+    const turboModelFields = "#uie-turbo-model";
+    const turboModelSelects = "#uie-turbo-model-select";
+    const turboEnableChecks = "#uie-turbo-enable";
 
     const syncTurboModelSelect = (modelRaw) => {
         const model = String(modelRaw || "").trim();
@@ -3145,7 +3192,7 @@ export function initTurboUi() {
     // Presets Logic
     const applyPreset = function(e) {
         if (e && e.preventDefault) e.preventDefault();
-        const val = String($("#uie-turbo-preset").val() || $("#cfg-turbo-preset").val() || "");
+        const val = String($("#uie-turbo-preset").val() || "");
         const s = ensureTurboSettings();
         if (!s.turbo.providerKeys || typeof s.turbo.providerKeys !== "object") s.turbo.providerKeys = {};
         s.turbo.provider = val || "custom";
@@ -3211,8 +3258,8 @@ export function initTurboUi() {
     };
 
     $(document).off("click.uieTurbo change.uieTurbo")
-        .on("click.uieTurbo", "#uie-turbo-preset-apply, #cfg-turbo-preset-apply", applyPreset)
-        .on("change.uieTurbo", "#uie-turbo-preset, #cfg-turbo-preset", applyPreset);
+        .on("click.uieTurbo", "#uie-turbo-preset-apply", applyPreset)
+        .on("change.uieTurbo", "#uie-turbo-preset", applyPreset);
 
     $(document)
         .off("change.uieTurboEnabled input.uieTurboFields change.uieTurboFields")
@@ -3300,7 +3347,12 @@ try {
     window.UIE = window.UIE || {};
     window.UIE.generateContent = generateContent;
     window.UIE.hasVerifiedTextConnection = hasVerifiedTextConnection;
+    window.UIE.testTurboConnection = testTurboConnection;
+    window.UIE.listTurboModels = listTurboModels;
     window.UIE_generateContent = generateContent;
+    // Expose as a bare global so modules that call generateContent(...) without
+    // importing it (inventory, wand, map scan, character cards, etc.) resolve correctly.
+    window.generateContent = generateContent;
 } catch (_) {}
 
 

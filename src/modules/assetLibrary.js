@@ -133,13 +133,15 @@ async function loadPakBackedManifest() {
       const baseManifest = await loadProcessedAssetManifest();
       const publicManifest = await fetchJson(PUBLIC_ASSET_MANIFEST_PATH);
       const paks = publicManifest?.paks && typeof publicManifest.paks === "object" ? publicManifest.paks : {};
-      const [foodPak, miscPak] = await Promise.all([
+      const [foodPak, miscPak, uneditedPak] = await Promise.all([
         paks.food ? loadBinaryApak(String(paks.food)) : null,
         paks.misc ? loadBinaryApak(String(paks.misc)) : null,
+        paks.unedited ? loadBinaryApak(String(paks.unedited)) : null,
       ]);
       const manifest = baseManifest && typeof baseManifest === "object" ? { ...baseManifest } : {};
       if (Array.isArray(foodPak?.assets)) manifest.food = foodPak.assets;
       if (Array.isArray(miscPak?.assets)) manifest.misc = miscPak.assets;
+      if (Array.isArray(uneditedPak?.assets)) manifest.misc = [...(manifest.misc || []), ...uneditedPak.assets];
       return manifest;
     })();
   }

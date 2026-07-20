@@ -1,0 +1,306 @@
+/*
+ * UIE mobile landscape desktop-chrome fit
+ *
+ * This is not an alternate mobile layout. It preserves the desktop HUD,
+ * composer, tool order, input, send controls, navigation, and Field Map.
+ * Only the complete gameplay chrome is uniformly reduced to fit the viewport.
+ * Full-screen applications are intentionally excluded.
+ */
+
+html.uie-fluid-landscape {
+  --uie-chrome-scale: 1;
+  --uie-vn-width: 100vw;
+  --uie-vn-pad-left: 24px;
+  --uie-vn-pad-right: 24px;
+}
+
+/* Cancel transform enlargement injected by applyUiScales(). */
+html.uie-fluid-landscape #hud,
+html.uie-fluid-landscape #vn-ui,
+html.uie-fluid-landscape #message-box-wrap,
+html.uie-fluid-landscape #q-menu-hamburger,
+html.uie-fluid-landscape #reply-tools .reply-tool-btn,
+html.uie-fluid-landscape .persona-target-scene-wrap .reply-tool-btn,
+html.uie-fluid-landscape #nav-row .nav-btn,
+html.uie-fluid-landscape #send-btn {
+  transform: none !important;
+  transform-origin: initial !important;
+}
+
+/* Scale each desktop chrome container once, never each child separately. */
+html.uie-fluid-landscape #hud {
+  zoom: var(--uie-chrome-scale) !important;
+  transform-origin: top left !important;
+}
+
+html.uie-fluid-landscape #vn-ui {
+  zoom: var(--uie-chrome-scale) !important;
+  left: 0 !important;
+  right: auto !important;
+  width: var(--uie-vn-width) !important;
+  max-width: none !important;
+  padding-left: var(--uie-vn-pad-left) !important;
+  padding-right: var(--uie-vn-pad-right) !important;
+  padding-top: 8px !important;
+  padding-bottom: 8px !important;
+  box-sizing: border-box !important;
+}
+
+/* Preserve the desktop single-row composer. */
+html.uie-fluid-landscape #input-row {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 1438px !important;
+  margin: 8px 0 0 !important;
+  padding: 0 !important;
+  gap: 8px !important;
+  overflow: visible !important;
+}
+
+html.uie-fluid-landscape #reply-tools,
+html.uie-fluid-landscape .persona-target-scene-wrap {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  align-items: center !important;
+  flex: 0 0 auto !important;
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  gap: 8px !important;
+  overflow: visible !important;
+  scrollbar-width: none !important;
+}
+
+html.uie-fluid-landscape #reply-tools::-webkit-scrollbar,
+html.uie-fluid-landscape .persona-target-scene-wrap::-webkit-scrollbar,
+html.uie-fluid-landscape #nav-row::-webkit-scrollbar {
+  display: none !important;
+}
+
+html.uie-fluid-landscape #user-input-column {
+  flex: 1 1 auto !important;
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  margin: 0 !important;
+}
+
+html.uie-fluid-landscape .reply-input-shell,
+html.uie-fluid-landscape #user-input {
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  box-sizing: border-box !important;
+}
+
+html.uie-fluid-landscape #user-input {
+  min-height: 48px !important;
+  max-height: 110px !important;
+}
+
+html.uie-fluid-landscape .reply-send-column {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  align-self: center !important;
+  flex: 0 0 auto !important;
+  width: max-content !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  gap: 4px !important;
+}
+
+html.uie-fluid-landscape .reply-send-utilities {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: max-content !important;
+  min-width: 0 !important;
+  min-height: 22px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  gap: 6px !important;
+  overflow: visible !important;
+}
+
+html.uie-fluid-landscape #nav-row {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: max-content !important;
+  max-width: 100% !important;
+  margin: 8px auto 0 !important;
+  padding: 0 !important;
+  gap: 8px !important;
+  overflow: visible !important;
+}
+
+/* Field Map is the desktop floating panel, uniformly reduced once. */
+html.uie-fluid-landscape .re-screen-minimap {
+  width: 300px !important;
+  max-width: none !important;
+  max-height: none !important;
+  top: 8px !important;
+  right: 8px !important;
+  left: auto !important;
+  bottom: auto !important;
+  zoom: 1 !important;
+  transform: scale(var(--uie-chrome-scale)) !important;
+  transform-origin: top right !important;
+}
+
+/* Do not allow old mobile blocks to restyle the main chrome again. */
+html.uie-fluid-landscape #reply-tools {
+  overflow-x: visible !important;
+  overflow-y: visible !important;
+}
+
+html.uie-fluid-landscape #target-select,
+html.uie-fluid-landscape #uie-target-trigger-btn {
+  flex-shrink: 0 !important;
+}
+
+/* Portrait remains blocked elsewhere. */
+
+/* UIE_SEND_STACK_FINAL
+ * Higher specificity than the old mobile chrome row rule.
+ * Send on top; paperclip and generation dot directly beneath.
+ */
+html body #vn-ui #input-row .reply-send-column,
+html.uie-fluid-landscape body #vn-ui #input-row .reply-send-column {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  align-self: center !important;
+  flex: 0 0 auto !important;
+  width: max-content !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  gap: 4px !important;
+}
+
+html body #vn-ui #input-row .reply-send-column > #send-btn,
+html.uie-fluid-landscape body #vn-ui #input-row .reply-send-column > #send-btn {
+  order: 0 !important;
+  position: relative !important;
+  inset: auto !important;
+  flex: 0 0 auto !important;
+  margin: 0 !important;
+}
+
+html body #vn-ui #input-row .reply-send-column > .reply-send-utilities,
+html.uie-fluid-landscape body #vn-ui #input-row .reply-send-column > .reply-send-utilities {
+  order: 1 !important;
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: max-content !important;
+  min-width: 0 !important;
+  min-height: 22px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  gap: 6px !important;
+  overflow: visible !important;
+}
+
+html body #vn-ui #input-row .reply-send-column #reply-image-attach,
+html.uie-fluid-landscape body #vn-ui #input-row .reply-send-column #reply-image-attach {
+  position: relative !important;
+  inset: auto !important;
+  width: 27px !important;
+  height: 23px !important;
+  min-width: 27px !important;
+  min-height: 23px !important;
+  flex: 0 0 27px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* UIE_MOBILE_TOAST_COMPACT
+ * Mobile landscape only. Desktop toast sizing is untouched.
+ * Covers both toastr (#toast-container) and UIE's internal #ui-toast-wrap.
+ */
+@media (pointer: coarse) and (orientation: landscape) {
+  #toast-container,
+  #ui-toast-wrap {
+    position: fixed !important;
+    top: max(7px, env(safe-area-inset-top, 0px)) !important;
+    right: auto !important;
+    bottom: auto !important;
+    left: 50% !important;
+    width: clamp(260px, 42vw, 380px) !important;
+    max-width: calc(100vw - 24px) !important;
+    margin: 0 !important;
+    transform: translateX(-50%) !important;
+    gap: 5px !important;
+    pointer-events: none !important;
+  }
+
+  #toast-container > div,
+  #toast-container .toast,
+  #toast-container .toast-notification,
+  #ui-toast-wrap > .ui-toast,
+  body > .toast-notification {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    min-height: 0 !important;
+    max-height: 32dvh !important;
+    margin: 0 0 5px !important;
+    padding: 8px 10px !important;
+    border-radius: 7px !important;
+    box-sizing: border-box !important;
+    font-size: 12px !important;
+    line-height: 1.28 !important;
+    overflow: auto !important;
+    pointer-events: auto !important;
+  }
+
+  #toast-container .toast-title,
+  #toast-container .toast-message,
+  #toast-container .toast-notification *,
+  #ui-toast-wrap .ui-toast,
+  body > .toast-notification,
+  body > .toast-notification * {
+    font-size: inherit !important;
+    line-height: inherit !important;
+  }
+
+  #toast-container .toast-title {
+    margin: 0 18px 2px 0 !important;
+    font-weight: 800 !important;
+  }
+
+  #toast-container .toast-message {
+    margin: 0 !important;
+  }
+
+  #toast-container .toast-close-button,
+  .toast-notification .toast-close-button {
+    top: 3px !important;
+    right: 5px !important;
+    font-size: 16px !important;
+    line-height: 1 !important;
+  }
+
+  #toast-container .toast-progress {
+    height: 2px !important;
+  }
+}

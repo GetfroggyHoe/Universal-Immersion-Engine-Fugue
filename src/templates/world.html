@@ -11,20 +11,20 @@
             height: min(650px, 80vh);
             max-height: 80vh;
             display: flex;
-            background: linear-gradient(155deg, rgba(16, 25, 46, 0.97), rgba(7, 12, 25, 0.98)) !important;
-            border: 1px solid rgba(139, 184, 255, 0.28);
-            border-radius: 16px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.85);
+            background:#fff !important;
+            border:1px solid #dbe2ea;
+            border-radius:12px;
+            box-shadow:0 20px 60px rgba(15,23,42,.18);
             z-index: 20035;
             font-family: 'Outfit', 'Inter', system-ui, sans-serif;
-            color: #f6e7c8;
+            color:#172033;
             overflow: hidden;
         }
         #uie-world-window::before {
             content: "";
             position: absolute;
             inset: 0;
-            background: radial-gradient(circle at 15% 0%, rgba(99, 102, 241, 0.15), transparent 42%);
+            background:linear-gradient(135deg,rgba(45,108,223,.05),transparent 42%);
             pointer-events: none;
             z-index: 0;
             border-radius: 16px;
@@ -46,10 +46,10 @@
             align-items: center;
             justify-content: space-between;
             padding: 14px 16px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-            background: rgba(255, 255, 255, 0.03);
+            border-bottom:1px solid #e2e7ee;
+            background:#f8fafc;
         }
-        #uie-world-window .uie-header h2 { margin: 0; font-size: 1.2em; color: #e8f3ff; font-weight: 800; letter-spacing: 0.5px; }
+        #uie-world-window .uie-header h2 { margin:0; font-size:1.2em; color:#172033; font-weight:800; letter-spacing:.5px; }
         #uie-world-window .uie-close-btn { cursor: pointer; font-size: 1.2em; opacity: 0.7; transition: all 0.2s ease; }
         #uie-world-window .uie-close-btn:hover { opacity: 1; color: #e74c3c; transform: scale(1.1); }
         
@@ -58,24 +58,24 @@
             padding: 20px;
             overflow-y: auto;
             scrollbar-width: thin;
-            scrollbar-color: rgba(139, 184, 255, 0.5) rgba(0, 0, 0, 0.2);
+            scrollbar-color:#94a3b8 #eef2f6;
             -webkit-overflow-scrolling: touch;
             overscroll-behavior: contain;
         }
         #uie-world-window .uie-content::-webkit-scrollbar { width: 6px; }
-        #uie-world-window .uie-content::-webkit-scrollbar-track { background: rgba(0, 0, 0, 0.2); }
-        #uie-world-window .uie-content::-webkit-scrollbar-thumb { background: rgba(139, 184, 255, 0.5); border-radius: 8px; }
+        #uie-world-window .uie-content::-webkit-scrollbar-track { background:#eef2f6; }
+        #uie-world-window .uie-content::-webkit-scrollbar-thumb { background:#94a3b8; border-radius:8px; }
 
         .uie-world-gen-box {
-            background: rgba(26, 34, 54, 0.6);
-            border: 1px solid rgba(139, 184, 255, 0.15);
+            background:#fff;
+            border:1px solid #e2e7ee;
             padding: 16px;
             border-radius: 12px;
             margin-top: 15px;
             display: flex;
             flex-direction: column;
             gap: 12px;
-            box-shadow: inset 0 1px 3px rgba(255, 255, 255, 0.05);
+            box-shadow:0 6px 16px rgba(15,23,42,.05);
         }
         .uie-world-input-group {
             display: flex;
@@ -84,9 +84,9 @@
         .uie-world-input-group input {
             flex: 1;
             height: 42px;
-            background: rgba(10, 15, 28, 0.8);
-            border: 1px solid rgba(139, 184, 255, 0.25);
-            color: #fff;
+            background:#fff;
+            border:1px solid #cbd5e1;
+            color:#172033;
             padding: 0 12px;
             border-radius: 8px;
             font-family: inherit;
@@ -103,8 +103,8 @@
             padding: 0 16px;
             border-radius: 8px;
             border: none;
-            background: linear-gradient(135deg, #06b6d4 0%, #6366f1 100%);
-            color: #fff;
+            background:#172033;
+            color:#fff;
             font-weight: 700;
             font-size: 13px;
             letter-spacing: 0.5px;
@@ -115,11 +115,11 @@
             align-items: center;
             justify-content: center;
             gap: 8px;
-            box-shadow: 0 4px 12px rgba(6, 182, 212, 0.2);
+            box-shadow:0 4px 12px rgba(15,23,42,.16);
         }
         .uie-world-btn:hover {
             transform: translateY(-2px);
-            box-shadow: 0 6px 16px rgba(6, 182, 212, 0.35);
+            box-shadow:0 6px 16px rgba(15,23,42,.24);
             filter: brightness(1.1);
         }
         .uie-world-btn:active {
@@ -130,13 +130,13 @@
             align-items: center;
             gap: 8px;
             font-size: 11px;
-            color: #94a3b8;
+            color:#667085;
             font-weight: 600;
         }
         .uie-world-meta-badge {
-            background: rgba(99, 102, 241, 0.15);
-            border: 1px solid rgba(99, 102, 241, 0.3);
-            color: #818cf8;
+            background:#eef4ff;
+            border:1px solid #cbdaf7;
+            color:#2d6cdf;
             padding: 2px 6px;
             border-radius: 4px;
             font-family: monospace;
@@ -146,7 +146,7 @@
     <div class="uie-header">
         <h2>World Simulation</h2>
         <div style="margin-left: auto; display: flex; gap: 12px; align-items: center;">
-            <i class="fa-solid fa-rotate" id="uie-world-update" title="Scan / Update State" style="cursor: pointer; color: #06b6d4; font-size: 1.1em; transition: transform 0.3s ease;"></i>
+            <i class="fa-solid fa-rotate" id="uie-world-update" title="Scan / Update State" style="cursor:pointer; color:#2d6cdf; font-size:1.1em; transition:transform .3s ease;"></i>
             <i class="fa-solid fa-xmark uie-close-btn" id="uie-world-close" title="Close Panel"></i>
         </div>
     </div>
@@ -161,7 +161,7 @@
                 <span>SIMULATION ID:</span>
                 <span id="uie-world-id" class="uie-world-meta-badge">WAITING...</span>
             </div>
-            <div style="font-size: 13px; color: #cbd5e1; font-weight: 600;">
+            <div style="font-size:13px; color:#334155; font-weight:600;">
                 Change Location / Target Dimension
             </div>
             <div class="uie-world-input-group">
@@ -170,13 +170,13 @@
                     <i class="fa-solid fa-wand-magic-sparkles"></i> Project
                 </button>
             </div>
-            <div style="font-size: 11px; color: #64748b; line-height: 1.4;">
+            <div style="font-size:11px; color:#64748b; line-height:1.4;">
                 Projecting to a new location triggers Reality Engine environment synthesis and generates a corresponding local backdrop.
             </div>
         </div>
     </div>
     
-    <div style="text-align: center; padding: 10px; color: rgba(246, 231, 200, 0.25); font-size: 0.75em; border-top: 1px solid rgba(255, 255, 255, 0.05); font-weight: 700; letter-spacing: 0.5px;">
+    <div style="text-align:center; padding:10px; color:#94a3b8; font-size:.75em; border-top:1px solid #e2e7ee; font-weight:700; letter-spacing:.5px;">
         REALITY PROJECTION UNIT v3.0
     </div>
 </div>

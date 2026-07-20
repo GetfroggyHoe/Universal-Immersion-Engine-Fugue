@@ -1,6 +1,19 @@
-import { KokoroTTS } from "https://cdn.jsdelivr.net/npm/kokoro-js/+esm";
+// Pocket and Kokoro both run through the bundled local backend. Keeping this
+// module free of a top-level CDN import means Pocket-TTS still works fully
+// offline and Kokoro uses the checked-in ONNX model instead of downloading a
+// second browser model.
+const KokoroTTS = null;
 
-export const POCKET_DEFAULT_BACKEND_URL = `http://${typeof window !== "undefined" ? window.location.hostname : "127.0.0.1"}:28101`;
+function defaultPocketBackendUrl() {
+  try {
+    if (typeof window !== "undefined" && window.location) {
+      return new URL("./api/backend", window.location.href).toString().replace(/\/+$/, "");
+    }
+  } catch (_) {}
+  return "http://127.0.0.1:28101";
+}
+
+export const POCKET_DEFAULT_BACKEND_URL = defaultPocketBackendUrl();
 export const POCKET_PRESET_VOICES = [
   "cosette",
   "marius",
@@ -22,12 +35,7 @@ export const POCKET_PRESET_VOICES = [
   "bill_boerst",
   "peter_yearsley",
   "stuart_bell",
-  "caro_davy",
-  "giovanni",
-  "lola",
-  "juergen",
-  "rafael",
-  "estelle"
+  "caro_davy"
 ];
 export const KOKORO_PRESET_VOICES = [
   "af_heart",
@@ -117,8 +125,51 @@ function getRuntimeSettings() {
 
 function backendBaseUrl(options = {}) {
   const audio = getRuntimeSettings()?.audio || {};
-  const explicit = String(options.backendUrl || options.url || audio.pocket?.url || audio.url || window.UIE_BACKEND?.baseUrl || "").trim();
-  return (explicit || POCKET_DEFAULT_BACKEND_URL).replace(/\/+$/, "");
+  const optionUrl = String(options.backendUrl || options.url || "").trim();
+  if (optionUrl) return optionUrl.replace(/\/+$/, "");
+
+  const configured = String(audio.pocket?.url || audio.url || "").trim();
+  if (configured) {
+    try {
+      const parsed = new URL(configured, window.location.href);
+      const isLegacyLoopback = ["127.0.0.1", "localhost", "[::1]"].includes(parsed.hostname) && parsed.port === "8101";
+      if (!isLegacyLoopback) return configured.replace(/\/+$/, "");
+    } catch (_) {
+      return configured.replace(/\/+$/, "");
+    }
+  }
+
+  return String(window.UIE_BACKEND?.baseUrl || POCKET_DEFAULT_BACKEND_URL).replace(/\/+$/, "");
+}
+
+function createOfflineVoiceRegistry(error) {
+  return {
+    schemaVersion: 2,
+    offline: true,
+    error: String(error?.message || error || "Pocket TTS backend unavailable."),
+    updatedAt: new Date().toISOString(),
+    voices: POCKET_PRESET_VOICES.map((voice) => ({
+      id: `model_pocket_${voice}`,
+      name: voice.replace(/_/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase()),
+      engine: "pocket",
+      voice,
+      category: "model",
+      sourceType: "built-in",
+      agePresentation: "adult",
+      genderPresentation: "other",
+      accent: "",
+      tone: "",
+      tags: [],
+      vocalTraits: [],
+      poolRules: {},
+      usage: {},
+      favorite: false,
+      qualityScore: null,
+      enabled: true,
+      ready: false,
+      status: "unavailable"
+    }))
+  };
 }
 
 function getAudioContext(procdAudioInstance) {
@@ -143,13 +194,97 @@ function normalizePocketVoice(value, fallback = "alba") {
 
 function extractVoiceRecipe(entity) {
   if (!entity || typeof entity !== "object") return "";
+  if (entity.voice_enabled === false || entity.voiceEnabled === false || entity.tts?.enabled === false) return "";
   return String(entity.voice_recipe || entity.voiceRecipe || entity.tts?.voice_recipe || entity.tts?.voiceRecipe || "").trim();
+}
+
+function entityVoiceDisabled(entity) {
+  return !!entity && typeof entity === "object"
+    && (entity.voice_enabled === false || entity.voiceEnabled === false || entity.tts?.enabled === false);
+}
+
+function stableVoiceIndex(value, length) {
+  let hash = 2166136261;
+  for (const ch of String(value || "voice")) {
+    hash ^= ch.charCodeAt(0);
+    hash = Math.imul(hash, 16777619);
+  }
+  return Math.abs(hash >>> 0) % Math.max(1, length);
+}
+
+function assignVoiceRecipe(entity, recipe) {
+  if (!entity || typeof entity !== "object" || !recipe) return false;
+  if (entity.voice_enabled === false || entity.voiceEnabled === false || entity.tts?.enabled === false) return false;
+  if (extractVoiceRecipe(entity)) return false;
+  entity.voice_recipe = recipe;
+  entity.voiceRecipe = recipe;
+  entity.voice_enabled = true;
+  entity.voiceEnabled = true;
+  entity.tts = { ...(entity.tts && typeof entity.tts === "object" ? entity.tts : {}), enabled: true, voice_recipe: recipe };
+  return true;
+}
+
+function defaultVoiceRecipe(name = "", provider = "pocket") {
+  const key = String(name || "character").trim().toLowerCase() || "character";
+  if (String(provider || "").toLowerCase() === "kokoro") {
+    const voice = KOKORO_PRESET_VOICES[stableVoiceIndex(key, KOKORO_PRESET_VOICES.length)] || "af_heart";
+    return createKokoroVoiceRecipe({ voice, language: "english", label: `${name || "Character"} Voice` });
+  }
+  const voice = POCKET_PRESET_VOICES[stableVoiceIndex(key, POCKET_PRESET_VOICES.length)] || "alba";
+  return createPocketVoiceRecipe({ fallbackVoice: voice, voice, language: "english", label: `${name || "Character"} Voice` });
+}
+
+function voiceEntityCollections(s) {
+  const relationships = s.relationships && typeof s.relationships === "object" ? Object.values(s.relationships) : [];
+  const social = s.social && typeof s.social === "object"
+    ? Object.values(s.social).flatMap((value) => Array.isArray(value) ? value : [])
+    : [];
+  return [
+    ...(Array.isArray(s.character_cards) ? s.character_cards : []),
+    ...(Array.isArray(s.personas) ? s.personas : []),
+    ...(Array.isArray(s.sceneCharacters) ? s.sceneCharacters : []),
+    ...(Array.isArray(s.party?.members) ? s.party.members : []),
+    ...(Array.isArray(s.trackedCharacters) ? s.trackedCharacters : []),
+    ...(Array.isArray(s.externalCharacters) ? s.externalCharacters : []),
+    ...relationships,
+    ...social,
+  ].filter((entity) => entity && typeof entity === "object");
+}
+
+function entityMatchesSpeaker(entity, id) {
+  return sameSpeaker(entity?.id, id)
+    || sameSpeaker(entity?.cardId, id)
+    || sameSpeaker(entity?.name, id)
+    || sameSpeaker(entity?.identity?.name, id);
+}
+
+export function ensureVoiceAssignments(settings = getRuntimeSettings()) {
+  const s = settings && typeof settings === "object" ? settings : {};
+  const audio = s.audio && typeof s.audio === "object" ? s.audio : (s.audio = {});
+  const provider = String(audio.provider || "pocket").toLowerCase() === "kokoro" ? "kokoro" : "pocket";
+  let changed = false;
+
+  for (const entity of voiceEntityCollections(s)) {
+    const name = String(entity?.name || entity?.identity?.name || entity?.id || "Character").trim() || "Character";
+    changed = assignVoiceRecipe(entity, defaultVoiceRecipe(name, provider)) || changed;
+  }
+
+  if (!String(audio.narratorVoiceRecipe || "").trim()) {
+    audio.narratorVoiceRecipe = defaultVoiceRecipe("Narrator", provider);
+    changed = true;
+  }
+
+  if (changed) {
+    try { window.UIE?.saveSettings?.(); } catch (_) {}
+  }
+  return changed;
 }
 
 function findRuntimeVoiceRecipe(charId = "") {
   const s = getRuntimeSettings();
   const id = String(charId || "").trim();
   if (!id) return "";
+  ensureVoiceAssignments(s);
   const cards = Array.isArray(s.character_cards) ? s.character_cards : [];
   const card = cards.find((c) => sameSpeaker(c?.id, id) || sameSpeaker(c?.name, id));
   const cardRecipe = extractVoiceRecipe(card);
@@ -160,6 +295,7 @@ function findRuntimeVoiceRecipe(charId = "") {
   const isUser = /^(user|you|me|player|protagonist)$/i.test(id);
   const persona = personas.find((p) => sameSpeaker(p?.id, id) || sameSpeaker(p?.name, id))
     || (isUser ? personas.find((p) => sameSpeaker(p?.id, activePersonaId)) : null);
+  if (entityVoiceDisabled(persona)) return "none";
   const personaRecipe = extractVoiceRecipe(persona);
   if (personaRecipe) return personaRecipe;
 
@@ -170,7 +306,11 @@ function findRuntimeVoiceRecipe(charId = "") {
     const narrator = narratorCards.find((n) => sameSpeaker(n?.id, narratorId) || sameSpeaker(n?.name, id)) || narratorCards[0];
     return extractVoiceRecipe(narrator) || String(audio.narratorVoiceRecipe || "").trim();
   }
-  return "";
+  const entity = voiceEntityCollections(s).find((item) => entityMatchesSpeaker(item, id));
+  if (entityVoiceDisabled(entity)) return "none";
+  const entityRecipe = extractVoiceRecipe(entity);
+  if (entityRecipe) return entityRecipe;
+  return defaultVoiceRecipe(id, String(s.audio?.provider || "pocket").toLowerCase() === "kokoro" ? "kokoro" : "pocket");
 }
 
 function normalizePocketRecipe(recipe = "", fallback = {}) {
@@ -296,7 +436,7 @@ async function captureRawAudioClass(tts) {
 }
 
 // Monkeypatch KokoroTTS prototype to support Float32Array style vectors and select correct phonemizer language
-if (typeof KokoroTTS !== "undefined") {
+if (KokoroTTS?.prototype) {
   const originalValidateVoice = KokoroTTS.prototype._validate_voice;
   KokoroTTS.prototype._validate_voice = function(e) {
     if (e instanceof Float32Array) {
@@ -356,6 +496,7 @@ export class KokoroLocalEngine {
   async initialize() {
     if (this.tts) return this.tts;
     if (this.loading) return this.loading;
+    if (!KokoroTTS) throw new Error("Browser Kokoro is disabled; use the bundled local backend.");
 
     this.loading = (async () => {
       publishTtsState({ status: "Downloading Model...", provider: "kokoro", progress: 0.05, error: "" });
@@ -557,6 +698,31 @@ export function refreshVoiceDropdown(select, registry) {
   if ([...select.options].some(option => option.value === selected)) select.value = selected;
 }
 
+function refreshEngineVoiceDropdown(select, registry, engine, includeCustom = false) {
+  if (!select || !registry?.voices) return;
+  const selected = String(select.value || "");
+  const voices = registry.voices
+    .filter((voice) => voice?.engine === engine && voice?.category === "model" && voice?.enabled !== false && voice?.ready !== false)
+    .map((voice) => String(voice.engineVoice || voice.voice || "").trim())
+    .filter(Boolean);
+  const unique = [...new Set(voices)];
+  select.innerHTML = [
+    ...(includeCustom ? ['<option value="custom">Custom Blend (Studio)</option>'] : []),
+    ...unique.map((voice) => `<option value="${escapeOption(voice)}">${escapeOption(voice)}</option>`),
+  ].join("");
+  if ([...select.options].some((option) => option.value === selected)) select.value = selected;
+  else if (select.options.length) select.selectedIndex = 0;
+}
+
+function publishVoiceRegistry(registry) {
+  document.querySelectorAll("[data-uie-voice-registry]").forEach((select) => refreshVoiceDropdown(select, registry));
+  document.querySelectorAll("#cfg-audio-pocket-voice, #persona-pocket-fallback-voice, #uie-npc-pocket-fallback-voice, #ce-pocket-fallback-voice")
+    .forEach((select) => refreshEngineVoiceDropdown(select, registry, "pocket"));
+  document.querySelectorAll("#cfg-audio-kokoro-voice, #persona-kokoro-voice, #uie-npc-kokoro-voice, #ce-kokoro-voice")
+    .forEach((select) => refreshEngineVoiceDropdown(select, registry, "kokoro", true));
+  try { window.dispatchEvent(new CustomEvent("uie:voice-registry", { detail: registry })); } catch (_) {}
+}
+
 
 function ttsDisabled() {
   try {
@@ -587,7 +753,7 @@ export class PocketVoiceEngine {
           const data = await response.json().catch(() => ({}));
           fetch(`${this.baseUrl}/api/tts/voices`, { cache: "no-store" }).then(r => r.ok ? r.json() : null).then(registry => {
             if (!registry) return;
-            document.querySelectorAll("[data-uie-voice-registry], #cfg-audio-pocket-voice, #cfg-audio-kokoro-voice").forEach(select => refreshVoiceDropdown(select, registry));
+            publishVoiceRegistry(registry);
           }).catch(() => {});
           publishTtsState({ status: "Ready", provider: "pocket", progress: 1, error: "" });
           return data;
@@ -646,7 +812,9 @@ export class PocketVoiceEngine {
       await this.initialize(options);
       const reference = this.resolveReference(characterId, options);
       const audio = getRuntimeSettings()?.audio || {};
-      const provider = String(reference.engine === "kokoro" ? "kokoro" : (options.provider || audio.provider || "pocket")).toLowerCase();
+      const requestedRecipe = String(options.voice_recipe || options.voiceRecipe || options.voice || findRuntimeVoiceRecipe(characterId) || "").trim();
+      const recipeProvider = String(reference.engine || "").startsWith("kokoro") ? "kokoro" : "pocket";
+      const provider = String(requestedRecipe ? recipeProvider : (options.provider || audio.provider || "pocket")).toLowerCase();
       const kokoro = audio.kokoro || {};
       const pocketReference = reference.useReference === false ? "" : reference.refAudioUrl;
       const pocketRefText = reference.useReference === false ? "" : reference.refText;
@@ -753,8 +921,11 @@ export class VoiceBridge {
     const audioSettings = getRuntimeSettings()?.audio || {};
     const provider = String(options.provider || audioSettings.provider || "pocket").toLowerCase();
     const recipe = String(options.voice_recipe || options.voiceRecipe || options.voice || findRuntimeVoiceRecipe(charId) || "");
+    if (recipe.toLowerCase() === "none") throw new Error(`Voice is disabled for ${charId}.`);
     const parsedRecipe = normalizeVoiceRecipe(recipe, {});
-    const effectiveProvider = (parsedRecipe.engine === "kokoro" || parsedRecipe.engine === "kokoro-studio" || provider === "kokoro") ? "kokoro" : provider;
+    const effectiveProvider = recipe
+      ? (String(parsedRecipe.engine || "").startsWith("kokoro") ? "kokoro" : "pocket")
+      : provider;
 
     if (effectiveProvider === "kokoro") {
       const audioBuffer = await this.synthesizeVoice(text, charId, options);
@@ -788,8 +959,16 @@ export class VoiceBridge {
     const audioSettings = getRuntimeSettings()?.audio || {};
     const provider = String(options.provider || audioSettings.provider || "pocket").toLowerCase();
     const recipe = String(options.voice_recipe || options.voiceRecipe || options.voice || findRuntimeVoiceRecipe(charId) || "");
+    if (recipe.toLowerCase() === "none") {
+      const message = `Voice is disabled for ${charId}.`;
+      publishTtsState({ status: "Voice disabled", error: message });
+      if (useFallback) return makeSilentBuffer(this.audioContext);
+      throw new Error(message);
+    }
     const parsedRecipe = normalizeVoiceRecipe(recipe, {});
-    const effectiveProvider = (parsedRecipe.engine === "kokoro" || parsedRecipe.engine === "kokoro-studio" || provider === "kokoro") ? "kokoro" : provider;
+    const effectiveProvider = recipe
+      ? (String(parsedRecipe.engine || "").startsWith("kokoro") ? "kokoro" : "pocket")
+      : provider;
     
     const providerVoiceKey = effectiveProvider === "kokoro"
       ? `${parsedRecipe.voice || options.kokoroVoice || audioSettings.kokoro?.voice || "af_heart"}:${parsedRecipe.language || options.language || audioSettings.kokoro?.language || "english"}:${parsedRecipe.speed || options.speed || audioSettings.kokoro?.speed || 1}:${parsedRecipe.pitch || options.pitch || 1}:${parsedRecipe.genderBlend ?? ""}:${parsedRecipe.vibeBlend ?? ""}`
@@ -805,20 +984,21 @@ export class VoiceBridge {
       
       let audioBuffer;
       if (effectiveProvider === "kokoro") {
-        const localKokoro = getKokoroLocalEngine();
-        const kokoroOptions = {
-          voice: parsedRecipe.voice || options.kokoroVoice || audioSettings.kokoro?.voice || "af_heart",
+        const studioVoice = (() => {
+          if (parsedRecipe.engine !== "kokoro-studio") return "";
+          const feminine = Number(parsedRecipe.genderBlend ?? 0.5) >= 0.5;
+          const energetic = Number(parsedRecipe.vibeBlend ?? 0.5) >= 0.58;
+          if (feminine) return energetic ? "af_bella" : "af_sky";
+          return energetic ? "am_puck" : "am_adam";
+        })();
+        const result = await this.engine.synthesize(charId, text, {
+          ...options,
+          provider: "kokoro",
+          kokoroVoice: studioVoice || parsedRecipe.voice || options.kokoroVoice || audioSettings.kokoro?.voice || "af_heart",
           language: parsedRecipe.language || options.language || audioSettings.kokoro?.language || "english",
           speed: parsedRecipe.speed || options.speed || audioSettings.kokoro?.speed || 1,
-          pitch: parsedRecipe.pitch || options.pitch || 1,
-          isStudio: parsedRecipe.engine === "kokoro-studio" || parsedRecipe.genderBlend !== undefined || parsedRecipe.vibeBlend !== undefined,
-          genderBlend: parsedRecipe.genderBlend ?? audioSettings.kokoro?.genderBlend,
-          vibeBlend: parsedRecipe.vibeBlend ?? audioSettings.kokoro?.vibeBlend
-        };
-        const audio = await localKokoro.synthesize(prepareDialogueForSpeech(text), kokoroOptions);
-        
-        audioBuffer = this.audioContext.createBuffer(1, audio.data.length, 24000);
-        audioBuffer.getChannelData(0).set(audio.data);
+        });
+        audioBuffer = await wavBytesToAudioBuffer(result.wavBytes, this.audioContext);
       } else {
         const result = await this.engine.synthesize(charId, text, options);
         audioBuffer = await wavBytesToAudioBuffer(result.wavBytes, this.audioContext);
@@ -942,13 +1122,18 @@ export class VoiceBridge {
   }
 
   async listVoiceRegistry(force = false) {
-    const data = await this.getTts();
-    if (force || !this.voiceRegistry) {
-      const response = await fetch(`${this.engine.baseUrl}/api/tts/voices`, { cache: "no-store" });
-      if (!response.ok) throw new Error("Could not refresh the voice registry.");
-      this.voiceRegistry = await response.json();
+    try {
+      const data = await this.getTts();
+      if (force || !this.voiceRegistry || this.voiceRegistry.offline) {
+        const response = await fetch(`${this.engine.baseUrl}/api/tts/voices`, { cache: "no-store" });
+        if (!response.ok) throw new Error("Could not refresh the voice registry.");
+        this.voiceRegistry = await response.json();
+      }
+      return this.voiceRegistry || data;
+    } catch (error) {
+      this.voiceRegistry = createOfflineVoiceRegistry(error);
+      return this.voiceRegistry;
     }
-    return this.voiceRegistry || data;
   }
 
   cacheVoiceAsset(key, value) {

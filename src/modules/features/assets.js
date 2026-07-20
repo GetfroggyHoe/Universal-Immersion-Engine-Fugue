@@ -71,6 +71,12 @@ export async function init() {
   if (!settings) return;
   await ensureProcessedAssetLibrary();
   bindHandlers();
+  render();
+}
+
+export function render() {
+  const settings = getSettings();
+  if (!settings) return;
   const list = [...(settings.inventory?.assets || [])].sort((a, b) => {
     const ac = String(a?.category || a?.type || "").localeCompare(String(b?.category || b?.type || ""));
     if (ac) return ac;
@@ -146,7 +152,4 @@ export async function init() {
     $controls.find(".asset-action-park").toggle(travel && isActive);
     $list.append($card);
   }
-
 }
-
-export const render = init;

@@ -6,11 +6,13 @@
     "manifest": "assets/processed/asset-tags.json",
     "inventoryPlates": 0,
     "itemsEquipment": 0,
-    "food": 493,
-    "misc": 277
+    "food": 0,
+    "misc": 0,
+    "unedited": 975
   },
   "paks": {
     "food": "assets/paks/food.apak",
-    "misc": "assets/paks/misc.apak"
+    "misc": "assets/paks/misc.apak",
+    "unedited": "assets/paks/unedited.apak"
   }
 }

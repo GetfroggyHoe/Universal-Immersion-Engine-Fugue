@@ -4,6 +4,7 @@ import { normalizeLifeTracker } from "./life.js";
 import { fetchTemplateHtml } from "../templateFetch.js";
 import { ensureTravelAssetFields } from "../travelAssets.js";
 import { generateRandomName } from "../nameRandomizer.js";
+import { upsertCharacter } from "../backendBridge.js";
 import {
   ADVENTURE_PATH_PRESET_ID,
   applyAdventurePathClassLoadout,
@@ -21,6 +22,16 @@ let editingQuestIndex = -1;
 let editingAssetIndex = -1;
 let itemFormMode = "standard";
 let awaitingNewGameNpc = false;
+
+const DEFAULT_STARTING_BACKGROUND = "./assets/backgrounds/starting-frontier-airship-dock.png";
+
+function usableStartingBackground(value) {
+  const raw = String(value || "").trim();
+  if (!raw || /^(?:none|null|undefined|black|transparent|#000(?:000)?|rgba?\(\s*0\s*,\s*0\s*,\s*0(?:\s*,[^)]*)?\))$/i.test(raw)) {
+    return DEFAULT_STARTING_BACKGROUND;
+  }
+  return raw;
+}
 
 function lifeTrackerKey(value = "") {
   return String(value || "tracker").trim().toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "") || "tracker";
@@ -892,7 +903,8 @@ function addLocationNpc() {
     name,
     className: String(classEl?.value || "Companion").trim() || "Companion",
     description,
-    inParty: partyEl?.checked === true
+    inParty: partyEl?.checked === true,
+    startsInLocation: true
   };
   if (existing >= 0) newGameState.location.npcDetails[existing] = entry;
   else newGameState.location.npcDetails.push(entry);
@@ -903,7 +915,8 @@ function addLocationNpc() {
 }
 
 function addLibraryCardNpc(card) {
-  if (!card || !String(card.name || "").trim()) return;
+  if (!card || !String(card.name || card.data?.name || "").trim()) return;
+  const data = card.data && typeof card.data === "object" ? card.data : {};
   if (!Array.isArray(newGameState.location.npcDetails)) newGameState.location.npcDetails = [];
   const cardId = String(card.id || "").trim();
   if (newGameState.location.npcDetails.some(n => String(n?.cardId || "") === cardId)) return;
@@ -911,14 +924,19 @@ function addLibraryCardNpc(card) {
     id: cardId || `card_${Date.now()}`,
     cardId,
     source: "character_card",
-    name: String(card.name || "Unnamed").trim(),
-    className: String(card.class || card.className || card.role || "Companion").trim() || "Companion",
-    description: String(card.description || card.personality || card.background || "").trim(),
-    avatar: String(card.avatar || card.image || "").trim(),
+    name: String(card.name || data.name || "Unnamed").trim(),
+    className: String(card.class || card.className || card.role || data.role || "Companion").trim() || "Companion",
+    description: String(card.description || data.description || card.bio || card.personality || data.personality || card.background || "").trim(),
+    bio: String(card.bio || card.description || data.description || "").trim(),
+    personality: String(card.personality || data.personality || card.traits || "").trim(),
+    scenario: String(card.scenario || data.scenario || "").trim(),
+    firstMessage: String(card.first_mes || data.first_mes || "").trim(),
+    avatar: String(card.avatar || card.image || data.avatar || "").trim(),
     stats: card.stats && typeof card.stats === "object" ? { ...card.stats } : null,
     vitals: card.vitals && typeof card.vitals === "object" ? { ...card.vitals } : null,
     inParty: false,
-    startsInLocation: false
+    startsInLocation: true,
+    characterCard: JSON.parse(JSON.stringify(card))
   });
   renderLocationNpcs();
   renderLibraryCards();
@@ -1028,9 +1046,21 @@ async function openCharacterCardsManager() {
       const el = document.getElementById(id);
       if (!el) continue;
       document.body.appendChild(el);
-      el.style.setProperty("z-index", "2147483651", "important");
+      el.style.setProperty("z-index", "2147483647", "important");
       el.style.setProperty("position", "fixed", "important");
     }
+    const setupOverlay = document.getElementById("uie-newgame-overlay");
+    setupOverlay?.style.setProperty("z-index", "2147483000", "important");
+    const refreshCardsAfterClose = (event) => {
+      if (!event.target?.closest?.("#btn-cc-close")) return;
+      document.removeEventListener("click", refreshCardsAfterClose, true);
+      setTimeout(() => {
+        renderLibraryCards();
+        setupOverlay?.style.removeProperty("z-index");
+        forceNewGameOverlayVisible(setupOverlay);
+      }, 0);
+    };
+    document.addEventListener("click", refreshCardsAfterClose, true);
   } catch (err) {
     console.error("[NewGame] Character cards manager failed to open:", err);
   }
@@ -1048,7 +1078,7 @@ async function openDynamicNpcManager() {
     const modal = document.getElementById("uie-npc-management-modal");
     if (modal) {
       document.body.appendChild(modal);
-      modal.style.setProperty("z-index", "2147483651", "important");
+      modal.style.setProperty("z-index", "2147483647", "important");
       modal.style.setProperty("position", "fixed", "important");
     }
   } catch (error) {
@@ -1080,7 +1110,7 @@ function installNewGameNpcCreatedHook() {
       vitals: npc.vitals && typeof npc.vitals === "object" ? { ...npc.vitals } : null,
       npcManagement: npc.npcManagement || npc.managementOptions || null,
       inParty: false,
-      startsInLocation: false
+      startsInLocation: true
     };
     if (existing >= 0) newGameState.location.npcDetails[existing] = entry;
     else newGameState.location.npcDetails.push(entry);
@@ -2285,6 +2315,7 @@ function ensureGeneratedStartingNpcs() {
       rumors: [],
       avatar: "",
       inParty: false,
+      startsInLocation: true,
       transientGameNpc: true,
       locked: true,
       autoLocked: true,
@@ -2509,12 +2540,13 @@ async function startNewGame() {
   const setupAssets = Array.isArray(newGameState.assets) ? newGameState.assets : [];
   settings.assets = [...existingAssets, ...setupAssets];
   const locName = newGameState.location.name || "Backstage Dressing Room";
+  const startingBackground = usableStartingBackground(newGameState.location.bg);
   settings.worldState = {
     location: locName,
     currentLocation: locName,
     locationDesc: newGameState.location.description || "A cozy starting space.",
-    background: newGameState.location.bg || "",
-    backgroundUrl: newGameState.location.bg || "",
+    background: startingBackground,
+    backgroundUrl: startingBackground,
     currentRoomId: "start_room",
     currentCoords: { x: 0, y: -1, z: 0 },
     x: 0,
@@ -2523,7 +2555,7 @@ async function startNewGame() {
       [locName]: {
         name: locName,
         description: newGameState.location.description || "A cozy starting space.",
-        imageUrl: newGameState.location.bg || ""
+        imageUrl: startingBackground
       }
     },
     mapNodes: {
@@ -2559,6 +2591,8 @@ async function startNewGame() {
     className: String(npc.className || "Companion").trim(),
     description: String(npc.description || npc.bio || "").trim(),
     bio: String(npc.bio || npc.description || "").trim(),
+    scenario: String(npc.scenario || "").trim(),
+    firstMessage: String(npc.firstMessage || "").trim(),
     avatar: String(npc.avatar || "").trim(),
     stats: npc.stats && typeof npc.stats === "object" ? { ...npc.stats } : null,
     vitals: npc.vitals && typeof npc.vitals === "object" ? { ...npc.vitals } : { hp: 100, maxHp: 100, mp: 50, maxMp: 50, ap: 100, maxAp: 100 },
@@ -2577,13 +2611,22 @@ async function startNewGame() {
     schedule: Array.isArray(npc.schedule) ? npc.schedule.map((entry) => ({ ...entry })) : (npc.schedule || ""),
     wants: String(npc.wants || "").trim(),
     needs: String(npc.needs || "").trim(),
-    desires: String(npc.desires || "").trim()
+    desires: String(npc.desires || "").trim(),
+    characterCard: npc.characterCard && typeof npc.characterCard === "object" ? JSON.parse(JSON.stringify(npc.characterCard)) : null
   })).filter(n => n.name);
   const startingNpcs = gameNpcs.filter((npc) => npc.startsInLocation === true);
   settings.sceneCharacters = startingNpcs;
   settings.npcs = gameNpcs.map((npc) => ({ ...npc }));
   settings.gameCharacters = gameNpcs.map(n => n.cardId || n.id);
   settings.worldState.mapNodes[locName].chars = startingNpcs.map(n => n.name);
+  void Promise.allSettled(gameNpcs.map((npc) => upsertCharacter({
+    ...npc,
+    currentLocation: npc.startsInLocation ? locName : (npc.workLocation || npc.homeLocation || locName),
+    source: npc.source || "new_game"
+  }, { required: false, timeoutMs: 2200 }))).then((results) => {
+    const rejected = results.filter((result) => result.status === "rejected");
+    if (rejected.length) console.warn(`[NewGame] ${rejected.length} NPC profile(s) remain local because the living-world backend was unavailable.`);
+  });
   settings.social = settings.social && typeof settings.social === "object" ? settings.social : {};
   settings.social.associates = Array.isArray(settings.social.associates) ? settings.social.associates : [];
   for (const npc of gameNpcs) {
@@ -2627,9 +2670,7 @@ async function startNewGame() {
 
   settings.realityEngine = settings.realityEngine || {};
   settings.realityEngine.backgrounds = settings.realityEngine.backgrounds || {};
-  if (newGameState.location.bg) {
-    persistStartingBackground(settings, locName, newGameState.location.bg);
-  }
+  persistStartingBackground(settings, locName, startingBackground);
 
   // Inject lorebook entries into actual lorebook system
   if (newGameState.lorebook.entries.length > 0) {
@@ -2834,6 +2875,13 @@ async function startNewGame() {
   const charClassVal = settings.character?.class || "Adventurer";
   const charRaceVal = settings.character?.race || "Human";
   const charAgeVal = settings.character?.age || 18;
+  const openingCast = gameNpcs.filter((npc) => npc.startsInLocation).slice(0, 6);
+  const openingCastPrompt = openingCast.map((npc) => [
+    `- ${npc.name} (${npc.role || npc.className || "NPC"})`,
+    npc.personality ? `personality: ${npc.personality}` : "",
+    npc.description ? `background: ${npc.description}` : "",
+    npc.firstMessage ? `card opening: ${npc.firstMessage}` : ""
+  ].filter(Boolean).join("; ")).join("\n");
 
   const aiStoryPrompt = `You are the narrator of a highly immersive, atmospheric RPG.
 Generate a premium welcome and wake-up starting scenario for the following character and setting.
@@ -2853,6 +2901,16 @@ Generate a premium welcome and wake-up starting scenario for the following chara
 - Danger: ${newGameState.location?.danger || "safe"}
 - NPCs: ${newGameState.location?.npcs?.join(", ") || "none"}
 - Prompt: ${newGameState.location?.startingSequence || "Begin with an immediate grounded first beat."}
+
+[STARTING CAST]
+${openingCastPrompt || "No authored card was selected; introduce one of the generated local characters immediately."}
+
+[OPENING REQUIREMENTS]
+- Treat the user's starting-action prompt as the first beat, not optional flavor.
+- Keep the player in the configured starting location unless that prompt explicitly moves them.
+- At least one starting-room NPC must be visibly present and must act or speak in this response.
+- Never describe the starting area as an empty void, devoid of characters, or waiting for setup.
+- Return only the in-world opening with clear [Narrator] and [Character Name] speaker labels.
 `;
 
   let introText = "";
@@ -2886,7 +2944,11 @@ Generate a premium welcome and wake-up starting scenario for the following chara
       ? `Memories of your past stir within your chest: ${backstoryVal}.`
       : `Standing with renewed purpose, you feel the pull of destiny as a ${charRaceVal} ${charClassVal}.`;
 
-    introText = `[Narrator]: You open your eyes in the ${startLocNameVal}. ${startLocDescVal || "A starting area."} ${ambientText}\n\n[Narrator]: ${backstoryParagraph}`;
+    const firstNpc = openingCast[0] || gameNpcs[0] || null;
+    const npcBeat = firstNpc
+      ? `\n\n[${firstNpc.name}]: ${firstNpc.firstMessage || `\"You're here. Good,\" ${firstNpc.name} says, stepping into view and drawing your attention to the first decision ahead.`}`
+      : "";
+    introText = `[Narrator]: You open your eyes in the ${startLocNameVal}. ${startLocDescVal || "A starting area."} ${ambientText}\n\n[Narrator]: ${backstoryParagraph}${npcBeat}`;
   }
 
   settings.ui = settings.ui || {};
@@ -2931,7 +2993,9 @@ Generate a premium welcome and wake-up starting scenario for the following chara
     if (typeof mapModule.generateForTier !== "function") throw new Error("Cartographer generateForTier() is unavailable.");
     mapModule.resetMapState?.();
     const requestedMapMode = newGameState.worldScope.mode || "hybrid";
-    const mapMode = newGameAiReady ? requestedMapMode : "procedural";
+    // Map generation has its own provider route and must not be downgraded just
+    // because the opening-story request failed.
+    const mapMode = requestedMapMode;
     if (newGameState.presetId === ADVENTURE_PATH_PRESET_ID && requestedMapMode === "preset") {
       installAdventurePathMap(settings);
       settings.lastNewGameWorldGeneration = {
@@ -3057,11 +3121,9 @@ Generate a premium welcome and wake-up starting scenario for the following chara
   }
 
   // Fix background routing: Save custom start background so bedroom fallbacks never override it
-  const bgToApply = newGameState.location.bg || "";
-  if (bgToApply) {
-    const finalStartLocation = String(startLocNameVal || settings.worldState?.location || "Immersion Sandbox").trim();
-    persistStartingBackground(settings, finalStartLocation, bgToApply);
-  }
+  const bgToApply = usableStartingBackground(newGameState.location.bg || startingBackground);
+  const finalStartLocation = String(startLocNameVal || settings.worldState?.location || "Immersion Sandbox").trim();
+  persistStartingBackground(settings, finalStartLocation, bgToApply);
 
   // Save settings
   saveSettings();
@@ -3132,6 +3194,20 @@ Generate a premium welcome and wake-up starting scenario for the following chara
         });
       }
     }
+    setTimeout(() => {
+      try {
+        if (typeof window.UIE_showWorldbuildingIntro === "function") {
+          window.UIE_showWorldbuildingIntro();
+        } else {
+          window.UIE_appendChatLog?.("Narrator", introText, false, { agent: "new-game-opening" });
+        }
+        window.dispatchEvent(new CustomEvent("uie:new-game-started", {
+          detail: { location: finalStartLocation, npcCount: gameNpcs.length, introRendered: true }
+        }));
+      } catch (error) {
+        console.error("[NewGame] Opening dialogue could not be rendered:", error);
+      }
+    }, 120);
     document.getElementById("uie-newgame-tutorial-choice")?.remove();
   } catch (e) {
     console.error("[NewGame] Failed to enter gameplay:", e);

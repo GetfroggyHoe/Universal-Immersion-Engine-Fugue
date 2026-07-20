@@ -778,7 +778,25 @@ export function openChatbox() {
     if (win) {
         $(win).off("mousedown.uieBlock pointerdown.uieBlock touchstart.uieBlock click.uieBlock");
         $(win).on("mousedown.uieBlock pointerdown.uieBlock touchstart.uieBlock click.uieBlock", function(e) {
+            const header = $(e.target).closest(".uie-header");
+            const control = $(e.target).closest("button, input, select, textarea, a, [role='button']");
+            if (header.length && !control.length && e.type !== "click") return;
             e.stopPropagation();
+        });
+        requestAnimationFrame(() => {
+            const pos = s?.ui?.chatboxDock;
+            if (pos?.moved !== true) return;
+            const rect = win.getBoundingClientRect();
+            const left = Math.max(0, Math.min(window.innerWidth - rect.width, Number(pos.x || 0)));
+            const top = Math.max(0, Math.min(window.innerHeight - rect.height, Number(pos.y || 0)));
+            Object.assign(win.style, {
+                position: "fixed",
+                left: `${left}px`,
+                top: `${top}px`,
+                right: "auto",
+                bottom: "auto",
+                transform: "none"
+            });
         });
     }
 }

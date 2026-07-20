@@ -1,6 +1,8 @@
 export const DEFAULT_PARTY_PORTRAITS = Object.freeze({
-  feminine: "assets/ui/generated/Sil-F.png",
-  masculine: "assets/ui/generated/Sil-M.png",
+  // Keep the legacy keys as aliases for callers, but use one canonical
+  // fallback image for every party member.
+  feminine: "assets/ui/generated/PartySil.png",
+  masculine: "assets/ui/generated/PartySil.png",
   party: "assets/ui/generated/PartySil.png",
 });
 
@@ -57,8 +59,7 @@ export function inferDefaultPartyPortraitKind(settings, member) {
 }
 
 export function defaultPartyPortraitUrl(settings, member) {
-  if (member?.partySilhouette === true || member?.usePartySilhouette === true) return DEFAULT_PARTY_PORTRAITS.party;
-  return DEFAULT_PARTY_PORTRAITS[inferDefaultPartyPortraitKind(settings, member)] || DEFAULT_PARTY_PORTRAITS.masculine;
+  return DEFAULT_PARTY_PORTRAITS.party;
 }
 
 function resolveCharacterPortraitReference(settings, directRaw) {
@@ -84,7 +85,7 @@ function resolveCharacterPortraitReference(settings, directRaw) {
 export function resolvePartyPortraitUrl(settings, member, options = {}) {
   const direct = resolveCharacterPortraitReference(settings, member?.images?.portrait || member?.imageUrl || member?.sprite || "");
   const isSilhouette = (url) => {
-    return url && (url.includes("PartySil.png") || url.includes("Sil-F.png") || url.includes("Sil-M.png"));
+    return /(?:PartySil|Sil-F|Sil-M)\.png(?:$|[?#])/i.test(String(url || ""));
   };
 
   if (direct && !isSilhouette(direct)) return direct;
@@ -100,10 +101,8 @@ export function resolvePartyPortraitUrl(settings, member, options = {}) {
     if (userAvatar && !isSilhouette(userAvatar)) return userAvatar;
   }
 
-  if (direct) return direct;
-  if (friendAvatar) return friendAvatar;
-  if (userAvatar) return userAvatar;
-
-  if (options.party === true) return DEFAULT_PARTY_PORTRAITS.party;
+  // Legacy Sil-F/Sil-M values may already be persisted on members or linked
+  // contacts. Treat every built-in silhouette as a fallback request so old
+  // saves also move to the canonical party silhouette.
   return defaultPartyPortraitUrl(settings, member);
 }

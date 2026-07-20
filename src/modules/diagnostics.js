@@ -200,6 +200,90 @@ function hookGlobalErrors() {
     };
 }
 
+export async function scanLocalAiServers() {
+    logLine("Scanning for local AI servers on standard ports...", "info");
+    const servers = [
+        { name: "Ollama", url: "http://localhost:11434/api/tags" },
+        { name: "LM Studio", url: "http://localhost:1234/v1/models" },
+        { name: "KoboldCpp", url: "http://localhost:5001/api/v1/model" },
+        { name: "llama.cpp", url: "http://localhost:8080/v1/models" }
+    ];
+    const found = [];
+    for (const s of servers) {
+        try {
+            const controller = new AbortController();
+            const id = setTimeout(() => controller.abort(), 800);
+            const res = await fetch(s.url, { method: "GET", signal: controller.signal, mode: "no-cors" });
+            clearTimeout(id);
+            logLine(`Detected ${s.name} running on local port.`, "pass");
+            found.push(s.name);
+        } catch (_) {}
+    }
+    if (!found.length) {
+        logLine("No local AI servers detected on standard ports (11434, 1234, 5001, 8080).", "info");
+    }
+    return found;
+}
+
+export function startConnectionHeartbeat() {
+    // Inject indicator dot into HUD if not already present
+    if (!document.getElementById("uie-api-heartbeat-dot")) {
+        const dot = $('<div id="uie-api-heartbeat-dot" role="status" aria-label="API Status: Checking" title="API Status: Checking..." style="width: 10px; height: 10px; flex:0 0 10px; border-radius: 50%; background: #94a3b8; display: inline-block; vertical-align: middle; transition: background-color 0.5s ease; cursor: help; border: 1px solid rgba(255,255,255,0.2);"></div>');
+        const utilityRow = $("#reply-send-utilities");
+        if (utilityRow.length) utilityRow.append(dot);
+        else $("#reply-image-attach").after(dot);
+    }
+
+    async function check() {
+        const s = getSettings() || {};
+        const connections = s.connections || {};
+        const activeId = String(connections.activeMainProfileId || "").trim();
+        const profiles = Array.isArray(connections.mainProfiles) ? connections.mainProfiles : [];
+        const active = profiles.find((p) => String(p?.id || "").trim() === activeId) || profiles[0] || {};
+        const apiUrl = String(active.url || s.mainApi?.url || "").trim();
+
+        let apiConfigured = false;
+        let backendOk = false;
+
+        // Provider base URLs are API namespaces, not health resources. In
+        // particular Google's /v1beta/openai base correctly returns 404 to a
+        // bare GET. Never generate noisy or billable heartbeat requests here;
+        // real generation/model-list calls own connection status.
+        apiConfigured = !!(apiUrl && String(active.model || s.mainApi?.model || "").trim());
+
+        // Check local backend connection
+        try {
+            const controller = new AbortController();
+            const id = setTimeout(() => controller.abort(), 1200);
+            const res = await fetch("/api/backend-info", { signal: controller.signal });
+            clearTimeout(id);
+            backendOk = res.ok;
+        } catch (_) {}
+
+        // Update indicator dot
+        const dot = $("#uie-api-heartbeat-dot");
+        if (dot.length) {
+            if (apiConfigured && backendOk) {
+                dot.css("background-color", "#10b981"); // Green
+                dot.attr("title", `API: Configured (${active.name || "Default"})\nBackend: Connected`);
+                dot.attr("aria-label", `API configured: ${active.name || "Default"}. Backend connected.`);
+            } else if (apiConfigured || backendOk) {
+                dot.css("background-color", "#f59e0b"); // Yellow
+                dot.attr("title", `API: ${apiConfigured ? "Configured" : "Not configured"}\nBackend: ${backendOk ? "Connected" : "Offline"}`);
+                dot.attr("aria-label", `API ${apiConfigured ? "configured" : "not configured"}. Backend ${backendOk ? "connected" : "offline"}.`);
+            } else {
+                dot.css("background-color", "#ef4444"); // Red
+                dot.attr("title", "API not configured; backend offline");
+                dot.attr("aria-label", "API not configured. Backend offline.");
+            }
+        }
+    }
+
+    // Run first check immediately, then every 30s
+    setTimeout(check, 1000);
+    setInterval(check, 30000);
+}
+
 export function initDiagnostics() {
     hookGlobalErrors();
     $(document)
@@ -210,4 +294,8 @@ export function initDiagnostics() {
         .on("click.uieDiag", "#uie-debug-download", function(e){ e.preventDefault(); e.stopPropagation(); downloadReport(); });
 
     logLine("Debug capture online.", "pass");
+    
+    // Automatically trigger scanner and heartbeat on startup
+    startConnectionHeartbeat();
+    scanLocalAiServers();
 }

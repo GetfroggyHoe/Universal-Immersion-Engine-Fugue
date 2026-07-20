@@ -63,7 +63,7 @@ export function notify(level, message, title, category, options) {
           #toast-container .toast-message { font-size: 14px !important; line-height: 1.45 !important; }
           #toast-container.toast-top-center > div { animation: uie-toast-drop .22s ease-out both !important; }
           @keyframes uie-toast-drop { from { opacity: 0; transform: translateY(-14px); } to { opacity: 1; transform: translateY(0); } }
-          @media (max-width: 480px) {
+          @media not all {
             #toast-container { top: max(8px, env(safe-area-inset-top, 0px)) !important; width: calc(100vw - 16px) !important; }
             #toast-container > div { padding: 13px 15px !important; }
           }
@@ -73,6 +73,17 @@ export function notify(level, message, title, category, options) {
 
   if (s?.ui?.showPopups === false) return;
   if (!shouldNotify(category)) return;
+
+  const key = String(category || "").trim();
+  const helperCategories = new Set(["lowHp", "story", "resources", "phoneBattery", "phoneNetwork", "bills"]);
+  if (options?.helperSpeech === true || helperCategories.has(key)) {
+    try {
+      if (typeof window.UIE_systemSpeak === "function") {
+        window.UIE_systemSpeak(String(message || ""), { duration: Number(options?.timeOut || 0) || undefined });
+      }
+    } catch (_) {}
+  }
+
   if (!window.toastr) return;
 
   const lvl = String(level || "info");
@@ -84,7 +95,6 @@ export function notify(level, message, title, category, options) {
 
   const opts = options && typeof options === "object" ? { ...options } : {};
   opts.positionClass = "toast-top-center";
-  const key = String(category || "").trim();
   if (key) {
     const safe = key.replace(/[^a-z0-9_-]/gi, "-").toLowerCase();
     const base = String(opts.toastClass || "toast");

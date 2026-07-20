@@ -30,6 +30,7 @@ import { initMagicKnowledgeEngine } from "./magicKnowledgeEngine.js";
 import { advanceWorldTimeMinutes } from "./timeProgress.js";
 import { injectRpEvent } from "./features/rp_log.js";
 import { layeredAnimation, initLayeredAnimation } from "./animation/index.js";
+import { initInteractables } from "./interactables.js";
 
 let reBound = false;
 let reObserver = null;
@@ -63,6 +64,7 @@ function ensureRealityModulesInited() {
     try { initSimulation(); } catch (e) { console.error(e); }
     try { initMods(); } catch (e) { console.error(e); }
     try { initMagicKnowledgeEngine(); } catch (e) { console.error(e); }
+    try { initInteractables(); } catch (e) { console.error(e); }
 }
 
 // Register optional per-character motion profiles from persona / social data so
@@ -1963,13 +1965,14 @@ Do not output markdown or explanations.`;
             showImpersonationPopup(e.currentTarget);
         });
 
-        // Next beat functionality - keep always visible
-        $("#next-beat-container").show();
+        // The Show/Hide menu owns this visibility. Do not force the field back open on input.
+        const nextBeatVisible = getSettings()?.ui?.nextBeatEnabled !== false;
+        $("#next-beat-container").toggle(nextBeatVisible);
         $(document).off("input.uieUserInput", "#user-input").on("input.uieUserInput", "#user-input", function() {
-            $("#next-beat-container").show();
+            $("#next-beat-container").toggle(getSettings()?.ui?.nextBeatEnabled !== false);
         });
 
-        $(document).off("pointerup click.uieNextBeatDel", "#next-beat-delete").on("pointerup click.uieNextBeatDel", "#next-beat-delete", function() {
+        $(document).off("click.uieNextBeatDel", "#next-beat-delete").on("click.uieNextBeatDel", "#next-beat-delete", function() {
             $("#next-beat-input").val("");
         });
 
@@ -2377,13 +2380,18 @@ export function initWorld() {
         const container = $("#uie-world-content").empty();
         const content = $(document.getElementById("uie-world-state-view").content.cloneNode(true));
 
-        content.find(".val-loc").text(ws.location || "Unknown");
-        content.find(".val-time").text(ws.time || "Day");
-        content.find(".val-weather").text(ws.weather || "Clear");
-        content.find(".val-threat").text(ws.threat || "None");
+        const displayValue = (value, fallback) => {
+            if (value === null || value === undefined || value === "") return fallback;
+            if (typeof value === "object") return String(value.name || value.label || value.title || value.description || fallback);
+            return String(value);
+        };
+        content.find(".val-loc").text(displayValue(ws.location, "Unknown"));
+        content.find(".val-time").text(displayValue(ws.time, "Day"));
+        content.find(".val-weather").text(displayValue(ws.weather, "Clear"));
+        content.find(".val-threat").text(displayValue(ws.threat, "None"));
 
         // Simulation Status
-        let statusText = ws.status || "Normal";
+        let statusText = displayValue(ws.status, "Normal");
         if (utilityAI) {
              const best = utilityAI.decide();
              if (best) statusText += ` (Agent wants to: ${best.name})`;
@@ -2678,92 +2686,17 @@ export function initWorld() {
         .on("change.wgScope", "#wg-scope", () => {
             syncWgScopeHint();
         })
-        .off(".wgCancel")
-        .on("click.wgCancel", "#wg-cancel", (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            $("#worldgen-modal").hide();
-        })
-        .off(".wgGenerate")
-        .on("click.wgGenerate", "#wg-generate", async (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-
-            const scope = $("#wg-scope").val();
-            const mode = $("#wg-mode").val();
-            const label = $("#wg-location").val().trim() || "Generated Location";
-            const prompt = $("#wg-prompt").val().trim();
-
-            const counts = {
-                worlds: parseInt($("#wg-count-worlds").val()) || 1,
-                regions: parseInt($("#wg-count-regions").val()) || 4,
-                settlements: parseInt($("#wg-count-settlements").val()) || 4,
-                places: parseInt($("#wg-count-places").val()) || 10,
-                roomsPerInterior: parseInt($("#wg-count-rooms").val()) || 8,
-                blueprintMode: String($("#wg-blueprint-mode").val() || "sites")
-            };
-
-            try {
-                $("#wg-generate").text("Generating...").prop("disabled", true);
-                const mapMod = await import("./map.js");
-
-                mapMod.openMap();
-
-                let targetTier = scope;
-                if (scope === "area") targetTier = "local";
-
-                let targetState;
-                if (scope === "blueprint") {
-                    targetState = await mapMod.generateForTier("blueprint", {
-                        mode,
-                        label: mapMod.currentLocationName(),
-                        prompt,
-                        counts
-                    });
-                } else {
-                    targetState = await mapMod.generateForTier(targetTier, {
-                        mode,
-                        label,
-                        prompt,
-                        counts
-                    });
-                }
-
-                $("#worldgen-modal").hide();
-
-                if (targetState) {
-                    let startNode = null;
-                    if (scope === "blueprint") {
-                        startNode = targetState.blueprint?.rooms?.[0];
-                    } else {
-                        startNode = targetState.area?.[0];
-                    }
-
-                    if (startNode && startNode.name) {
-                        await mapMod.travelToLocationName(startNode.name);
-                        notify("success", `Map generated! Traveled to: ${startNode.name}`, "Map Gen");
-                    }
-                }
-            } catch (err) {
-                console.error(err);
-                notify("error", `Generation failed: ${err.message || err}`, "Map Gen");
-            } finally {
-                $("#wg-generate").text("Generate Map").prop("disabled", false);
-            }
-        });
-
     $(document)
         .off("click.btnWorldGen", "#uie-btn-worldgen, #btn-worldgen")
-        .on("click.btnWorldGen", "#uie-btn-worldgen, #btn-worldgen", (e) => {
+        .on("click.btnWorldGen", "#uie-btn-worldgen, #btn-worldgen", async (e) => {
             e.preventDefault();
             e.stopPropagation();
-
-            $("#uie-main-menu").hide();
-            $("#reply-menu-panel").hide();
-            $("#uie-world-window").show().css("display", "flex");
-            $("#worldgen-modal").css("display", "flex");
-
-            syncWgScopeHint();
+            try { $("#uie-main-menu").hide(); } catch (_) {}
+            try { $("#reply-menu-panel").hide(); } catch (_) {}
+            // The worldgen modal lives inside the map window, so route through the map engine.
+            const mapMod = await import("./map.js");
+            await mapMod.openMap();
+            mapMod.openMapModal("worldgen-modal");
         });
 }
 

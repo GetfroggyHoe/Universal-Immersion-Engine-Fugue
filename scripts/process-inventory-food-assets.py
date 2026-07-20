@@ -292,6 +292,105 @@ def category_from_tokens(tokens: list[str], fallback: str) -> str:
     return fallback
 
 
+def unedited_asset_name(path: Path) -> tuple[str, str, list[str]]:
+    """Give the anonymous drop-folder assets stable names and broad retrieval tags."""
+    stem = path.stem.lower()
+    lookup_stem = re.sub(r" \((\d+)\)$", r"~\1", stem)
+    generic = ["misc", "prop", "inventory item", "quest item"]
+    folder = next((part.lower() for part in reversed(path.parts) if part.lower().startswith("sprites (")), "frames")
+    folder_assets = {
+        "frames": ("Steel Longsword", "weapon", ["weapon", "sword", "fantasy", "equipment"]),
+        "sprites (7)": ("Rugged Data Tablet", "misc", ["technology", "electronics", "tablet", "device"]),
+        "sprites (8)": ("Ornate Key", "key", ["key", "lock", "access", "unlock", "metal"]),
+        "sprites (9)": ("Utility Key", "key", ["key", "lock", "access", "unlock", "metal"]),
+        "sprites (10)": ("Scientific Calculator", "misc", ["technology", "electronics", "calculator", "device"]),
+        "sprites (12)": ("Baby Bottle", "misc", ["baby", "bottle", "container", "care"]),
+        "sprites (13)": ("Pocket Notebook", "book", ["book", "notebook", "journal", "writing", "record"]),
+        "sprites (14)": ("Garden Shovel", "weapon", ["tool", "shovel", "digging", "equipment"]),
+        "sprites (15)": ("Claw Hammer", "weapon", ["tool", "hammer", "repair", "equipment"]),
+        "sprites (16)": ("Unidentified Utility Item", "misc", ["unknown", "utility", "inspect"]),
+        "sprites (17)": ("Metal Kettle", "misc", ["kitchen", "kettle", "container", "household"]),
+        "sprites (21)": ("Coal Ore Chunk", "misc", ["ore", "coal", "rock", "mineral", "resource"]),
+    }
+    if folder in folder_assets and (stem.startswith("frame_") or stem.startswith("sprite_")):
+        base_name, category, folder_tags = folder_assets[folder]
+        suffix = re.search(r"\d+", stem)
+        label = f" {int(suffix.group(0)):03d}" if suffix else ""
+        return f"{base_name}{label}", category, generic + folder_tags + [folder.replace(" ", "-")]
+    if stem.startswith("download"):
+        names = {
+            "download.png": "Violet Arcane Spear",
+            "download (1).png": "Violet Shadow Spear",
+            "download (2).png": "Silver Frost Spear",
+            "download (3).png": "Azure Orb Spear",
+            "download (4).png": "Ivory Feather Spear",
+            "download (5).png": "Silver Frost Spear Variant",
+            "download (6).png": "Crimson Shadow Spear",
+            "download (7).png": "Golden Feather Spear",
+            "download (8).png": "Radiant Feather Spear",
+        }
+        return names.get(path.name.lower(), "Arcane Spear"), "weapon", generic + ["weapon", "spear", "fantasy", "equipment"]
+
+    document_names = {
+        "item_1": ("Black Ring Binder", "book"),
+        "item_2": ("Clipped Form Stack", "document"),
+        "item_3": ("Blank Folder", "document"),
+        "item_4": ("Wax-Sealed Letter", "letter"),
+        "item_5": ("Urgent Letter", "letter"),
+        "item_6~2": ("Botanical Envelope Letter", "letter"),
+        "item_7": ("Confidential Dossier", "document"),
+        "item_8": ("Silver-Sealed Envelope", "letter"),
+        "item_9": ("Ribbon-Tied Mail Bundle", "letter"),
+        "item_11": ("Annual Report", "document"),
+        "item_14": ("Tied Letter Bundle", "letter"),
+        "item_16": ("Handwritten Letter", "letter"),
+        "item_17": ("Business Mail Stack", "letter"),
+        "item_19": ("Shipping Parcel", "parcel"),
+        "item_9~2": ("Paperwork Stack", "document"),
+    }
+    if stem in document_names or lookup_stem in document_names:
+        name, category = document_names[stem if stem in document_names else lookup_stem]
+        category_tags = {
+            "book": ["book", "binder", "reading", "record"],
+            "document": ["document", "paper", "record", "reading"],
+            "letter": ["letter", "mail", "message", "paper"],
+            "parcel": ["parcel", "package", "shipping", "mail"],
+        }[category]
+        return name, category, generic + category_tags
+
+    if stem.startswith("item_"):
+        weapon_names = {
+            "item_10": "Silver Crystal Sword", "item_11~2": "Azure Royal Sword",
+            "item_12": "Violet Flame Sword", "item_13": "Verdant Flame Sword",
+            "item_14~1": "Crimson Edge Sword", "item_15": "Azure Orb Staff",
+            "item_16~1": "Violet Flame Staff", "item_18": "Solar Staff",
+            "item_20": "Azure Orb Wand", "item_21": "Verdant Vine Staff",
+            "item_22": "Ember Flame Staff", "item_23": "Frost Crystal Staff",
+            "item_24": "Crystal Staff Set", "item_26": "Solar Scepter",
+            "item_27": "Crimson War Mace", "item_28": "Azure Runed Hammer",
+            "item_29": "Magma War Hammer", "item_31": "Verdant Crescent Axe",
+            "item_32": "Crimson Double Axe", "item_34": "Verdant Crystal Staff",
+            "item_36": "Violet Crystal Sword", "item_37": "Ember Crystal Sword",
+            "item_40": "Crimson Reaper Scythe", "item_41": "Azure Trident",
+            "item_42": "Azure Orb Scepter", "item_43": "Ember Greatsword",
+            "item_44": "Frost Greatsword", "item_45": "Golden Sun Scepter",
+            "item_46": "Verdant Spiral Scepter", "item_47": "Azure Crystal Wand",
+            "item_48": "Crimson Orb Mace",
+        }
+        name = weapon_names.get(stem, weapon_names.get(lookup_stem, f"Fantasy Weapon {stem.replace('item_', '')}"))
+        kind = "axe" if "axe" in name else "hammer" if "hammer" in name or "mace" in name else "staff" if any(x in name.lower() for x in ["staff", "wand", "scepter"]) else "sword"
+        return name, "weapon", generic + ["weapon", kind, "fantasy", "equipment"]
+
+    if stem.startswith("icon_"):
+        number = re.search(r"\d+", stem).group(0)
+        return f"Antique Leather Journal {int(number) + 1:02d}", "book", generic + ["book", "tome", "journal", "reading", "record", "fantasy"]
+    if stem.startswith("sprite_"):
+        number = re.search(r"\d+", stem).group(0)
+        variant = "red" if "(3)" in path.name else "brown" if "(1)" in path.name else "ornate"
+        return f"Fantasy Grimoire {int(number) + 1:02d} {variant}", "book", generic + ["book", "tome", "grimoire", "journal", "reading", "record", "fantasy", variant]
+    return path.stem.replace("_", " ").title(), "misc", generic
+
+
 def tags_for(name: str, category: str, image: Image.Image, extra: list[str] | None = None) -> list[str]:
     tokens = tokenize(name)
     tags = [category, *tokens, *dominant_color_tags(image), *shape_tags(image.width, image.height)]
@@ -437,12 +536,14 @@ def process_all() -> dict:
         "itemsEquipment": [],
         "food": [],
         "misc": [],
+        "unedited": [],
     }
     mappings: dict[str, dict[str, str]] = {
         "food": {},
         "itemsEquipment": {},
         "inventoryPlates": {},
         "misc": {},
+        "unedited": {},
     }
 
     plate_dir = ASSETS / "ui" / "Modal Plates"
@@ -550,6 +651,27 @@ def process_all() -> dict:
             manifests["misc"].append(cutout_record(cut))
             mappings["misc"][rel_misc_path] = rel(cut.output)
 
+    # The drop folder is intentionally processed last so new anonymous assets can
+    # be added without disturbing the established Food/Misc source trees.
+    unedited_dir = ASSETS / "Unedited assets"
+    used_unedited_ids: set[str] = set()
+    for path in sorted(unedited_dir.rglob("*")):
+        if path.suffix.lower() not in IMAGE_EXTS:
+            continue
+        name, category, extra_tags = unedited_asset_name(path)
+        base_name = name
+        variant = 2
+        while slugify(f"{category}-{name}") in used_unedited_ids:
+            name = f"{base_name} Variant {variant:02d}"
+            variant += 1
+        output_dir = PROCESSED / "misc" / "unedited" / category
+        cut = process_single_asset(path, output_dir, name, category, extra_tags)
+        if not cut:
+            continue
+        used_unedited_ids.add(slugify(f"{category}-{cut.name}"))
+        manifests["unedited"].append(cutout_record(cut))
+        mappings["unedited"][path.relative_to(unedited_dir).as_posix()] = rel(cut.output)
+
     manifest_path = PROCESSED / "asset-tags.json"
     manifest_path.parent.mkdir(parents=True, exist_ok=True)
     manifest_path.write_text(json.dumps(manifests, indent=2), encoding="utf-8")
@@ -569,10 +691,12 @@ def process_all() -> dict:
         "itemsEquipment": len(manifests["itemsEquipment"]),
         "food": len(manifests["food"]),
         "misc": len(manifests["misc"]),
+        "unedited": len(manifests["unedited"]),
     }
     public_manifest["paks"] = {
-        "food": "assets/paks/food.apak.json",
-        "misc": "assets/paks/misc.apak.json",
+        "food": "assets/paks/food.apak",
+        "misc": "assets/paks/misc.apak",
+        "unedited": "assets/paks/unedited.apak",
     }
     public_manifest_path.write_text(json.dumps(public_manifest, indent=2), encoding="utf-8")
     write_js_mapping(ASSETS / "Food" / "foodTags.js", "FOOD_TAGS", mappings["food"])

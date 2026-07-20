@@ -25,7 +25,7 @@ export function ensureGameModeState(settings = getSettings()) {
     if (!Number.isFinite(Number(s.world.currentTime))) s.world.currentTime = Date.now();
     if (!Array.isArray(s.world.inTransitQueue)) s.world.inTransitQueue = [];
     if (!Array.isArray(s.world.debuffs)) s.world.debuffs = [];
-    if (typeof s.world.permadeath !== "boolean") s.world.permadeath = s.permadeath === true;
+    if (typeof s.world.permadeath !== "boolean") s.world.permadeath = s?.rpgSettings?.permadeath === true || s.permadeath === true;
     if (!s.relationships || typeof s.relationships !== "object") s.relationships = {};
     if (!Array.isArray(s.relationships.messages)) s.relationships.messages = [];
     if (!Number.isFinite(Number(s.maxHp)) || Number(s.maxHp) <= 0) s.maxHp = Number(s.inventory?.vitals?.maxHp || 100);

@@ -1,7 +1,7 @@
 import { spawn } from "node:child_process";
 
 const backendHost = process.env.UIE_BACKEND_HOST || "127.0.0.1";
-const backendPort = process.env.UIE_BACKEND_PORT || "8101";
+const backendPort = process.env.UIE_BACKEND_PORT || "28101";
 const frontendHost = process.env.UIE_FRONTEND_HOST || "127.0.0.1";
 const frontendPort = process.env.UIE_FRONTEND_PORT || "8093";
 const python = process.env.PYTHON || (process.platform === "win32" ? "python" : "python3");
@@ -43,4 +43,4 @@ console.log(`Living world backend: http://${backendHost}:${backendPort}`);
 console.log(`Game frontend: http://${frontendHost}:${frontendPort}/game.html`);
 
 run("backend", python, ["-m", "uvicorn", "python.uie_backend:app", "--host", backendHost, "--port", backendPort]);
-run("frontend", "node", ["dev-server.mjs", "--host", frontendHost, "--port", frontendPort, "--no-backend"]);
+run("frontend", "node", ["dev-server.mjs", "--host", frontendHost, "--port", frontendPort, "--backend-host", backendHost, "--backend-port", backendPort, "--no-backend"]);

@@ -361,9 +361,24 @@
                     <div class="uie-row-actions" style="margin-top:14px; gap:8px;">
                         <button type="button" id="cfg-main-new" class="uie-rpg-btn uie-rpg-btn-info">Add profile</button>
                         <button type="button" id="cfg-main-save" class="uie-rpg-btn uie-rpg-btn-primary">Save profile</button>
-                        <button type="button" id="cfg-main-apply" class="uie-rpg-btn uie-rpg-btn-success">Connect &amp; apply</button>
+                        <button type="button" id="cfg-main-apply" class="uie-rpg-btn uie-rpg-btn-success">Apply profile</button>
                         <button type="button" id="cfg-main-test" class="uie-rpg-btn">Test connection</button>
                         <button type="button" id="cfg-main-delete" class="uie-rpg-btn uie-rpg-btn-danger">Delete</button>
+                        <span id="cfg-api-save-status" style="margin-left:auto;align-self:center;color:#7dd3fc;font-size:11px;font-weight:800;">Saved locally</span>
+                    </div>
+                    <div class="uie-rpg-card" style="margin-top:14px;background:rgba(5,16,28,.65);">
+                        <div class="uie-rpg-card-title"><i class="fa-solid fa-shuffle"></i> Network & Reverse Proxy</div>
+                        <p style="font-size:12px;opacity:.8;line-height:1.45;">Automatic uses UIE's same-origin proxy. Set a custom origin only when UIE is hosted behind another gateway.</p>
+                        <div class="uie-rpg-grid-2">
+                            <div class="uie-rpg-field"><label>Proxy Mode</label><select id="cfg-proxy-mode"><option value="auto">Automatic / same origin</option><option value="custom">Custom proxy origin</option></select></div>
+                            <div class="uie-rpg-field"><label>Request Preference</label><select id="cfg-proxy-preference"><option value="auto">Automatic</option><option value="proxy-first">Proxy first</option><option value="direct-first">Direct first</option></select></div>
+                            <div class="uie-rpg-field" style="grid-column:1/-1;"><label>Custom Proxy Origin</label><input id="cfg-proxy-origin" placeholder="https://example.com or https://example.com/uie"></div>
+                        </div>
+                        <div class="uie-row-actions" style="margin-top:10px;">
+                            <button type="button" id="cfg-proxy-test" class="uie-rpg-btn"><i class="fa-solid fa-signal"></i> Test proxy</button>
+                            <button type="button" id="cfg-proxy-reset" class="uie-rpg-btn">Reset automatic</button>
+                            <span id="cfg-proxy-status" style="align-self:center;font-size:11px;color:#94a3b8;">Not tested</span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -395,44 +410,52 @@
                             <label>Provider Preset</label>
                             <div style="display:grid; grid-template-columns: 1fr auto; gap:8px; align-items:end;">
                                 <select id="cfg-turbo-preset" class="modal-select">
-                                    <option value="">Choose...</option>
-                                    <option value="openrouter">OpenRouter</option>
-                                    <option value="openai">OpenAI</option>
-                                    <option value="anthropic">Anthropic</option>
-                                    <option value="google">Google Gemini</option>
-                                    <option value="deepseek">DeepSeek</option>
-                                    <option value="groq">Groq</option>
-                                    <option value="together">Together AI</option>
-                                    <option value="fireworks">Fireworks AI</option>
-                                    <option value="cohere">Cohere</option>
-                                    <option value="mistral">Mistral</option>
-                                    <option value="xai">xAI</option>
-                                    <option value="perplexity">Perplexity</option>
-                                    <option value="nvidia">NVIDIA NIM</option>
-                                    <option value="nanogpt">NanoGPT</option>
-                                    <option value="huggingface">Hugging Face Inference</option>
-                                    <option value="replicate">Replicate</option>
-                                    <option value="anyscale">Anyscale Endpoints</option>
-                                    <option value="cloudflare">Cloudflare Workers AI</option>
-                                    <option value="cerebras">Cerebras</option>
-                                    <option value="sambanova">SambaNova</option>
-                                    <option value="aihorde">AI Horde (text)</option>
-                                    <option value="azure_openai">Azure OpenAI</option>
-                                    <option value="aws_bedrock">AWS Bedrock (gateway)</option>
-                                    <option value="vertex_ai">Vertex AI (gateway)</option>
-                                    <option value="openai_compatible">OpenAI-compatible (generic)</option>
-                                    <option value="ollama">Ollama (local)</option>
-                                    <option value="lmstudio">LM Studio</option>
-                                    <option value="koboldcpp">KoboldCpp</option>
-                                    <option value="textgen_webui">Text Generation WebUI</option>
-                                    <option value="vllm">vLLM OpenAI server</option>
-                                    <option value="localai">LocalAI</option>
-                                    <option value="llamacpp">llama.cpp server</option>
-                                    <option value="jan">Jan API</option>
-                                    <option value="custom">Custom</option>
+                                    <optgroup label="Cloud services">
+                                        <option value="openrouter">OpenRouter</option>
+                                        <option value="openai">OpenAI</option>
+                                        <option value="anthropic">Anthropic</option>
+                                        <option value="google">Google Gemini</option>
+                                        <option value="deepseek">DeepSeek</option>
+                                        <option value="groq">Groq</option>
+                                        <option value="together">Together AI</option>
+                                        <option value="fireworks">Fireworks AI</option>
+                                        <option value="cohere">Cohere</option>
+                                        <option value="mistral">Mistral</option>
+                                        <option value="xai">xAI</option>
+                                        <option value="perplexity">Perplexity</option>
+                                        <option value="nvidia">NVIDIA NIM</option>
+                                        <option value="nanogpt">NanoGPT</option>
+                                        <option value="huggingface">Hugging Face Inference</option>
+                                        <option value="replicate">Replicate</option>
+                                        <option value="anyscale">Anyscale Endpoints</option>
+                                        <option value="cloudflare">Cloudflare Workers AI</option>
+                                        <option value="cerebras">Cerebras</option>
+                                        <option value="sambanova">SambaNova</option>
+                                    </optgroup>
+                                    <optgroup label="AI Horde">
+                                        <option value="aihorde">AI Horde (text)</option>
+                                    </optgroup>
+                                    <optgroup label="Local services">
+                                        <option value="ollama">Ollama</option>
+                                        <option value="lmstudio">LM Studio</option>
+                                        <option value="koboldcpp">KoboldCpp</option>
+                                        <option value="textgen_webui">Text Generation WebUI</option>
+                                        <option value="vllm">vLLM OpenAI server</option>
+                                        <option value="localai">LocalAI</option>
+                                        <option value="llamacpp">llama.cpp server</option>
+                                        <option value="jan">Jan API</option>
+                                    </optgroup>
+                                    <optgroup label="Gateways and custom">
+                                        <option value="azure_openai">Azure OpenAI</option>
+                                        <option value="aws_bedrock">AWS Bedrock (gateway)</option>
+                                        <option value="vertex_ai">Vertex AI (gateway)</option>
+                                        <option value="openai_compatible">OpenAI-compatible (generic)</option>
+                                        <option value="custom">Custom</option>
+                                    </optgroup>
                                 </select>
-                                <button type="button" id="cfg-turbo-preset-apply" class="uie-rpg-btn">Apply</button>
+                                <button type="button" id="cfg-turbo-preset-apply" class="uie-rpg-btn" title="Restore this provider's default endpoint and model">Reset default</button>
                             </div>
+                            <div style="font-size:11px;color:#94a3b8;margin-top:5px;">Changing service immediately updates the endpoint. You can edit the URL afterward.</div>
                         </div>
                         <div class="uie-rpg-field" style="grid-column: 1 / -1;"><label>Turbo URL</label><input id="cfg-turbo-url" placeholder="https://openrouter.ai/api/v1"></div>
                         <div class="uie-rpg-field" style="grid-column: 1 / -1;"><label>Turbo API Key</label><input id="cfg-turbo-key" type="password" placeholder="Paste provider key or token"></div>
@@ -765,9 +788,10 @@
                             <span>Confirm and edit prompt in dialog before generating</span>
                         </label>
                         <label class="uie-check-row" style="margin-top:6px;">
-                            <input type="checkbox" id="cfg-image-fallback-enabled" checked>
-                            <span>Enable fallback to Pollinations/SVG if primary provider fails</span>
+                            <input type="checkbox" id="cfg-image-fallback-enabled">
+                            <span>Use Pollinations if the primary image provider fails</span>
                         </label>
+                        <p style="margin:5px 0 0 24px; font-size:11px; opacity:.72;">Off by default. Failed generations remain failures instead of being replaced by a placeholder.</p>
                         <label class="uie-check-row" style="margin-top:6px;">
                             <input type="checkbox" id="cfg-image-hybrid-mode">
                             <span>Hybrid mode: Try Koji first, then fall back to cloud API</span>
@@ -805,7 +829,7 @@
                     <div class="uie-rpg-card-title"><i class="fa-solid fa-volume-high"></i> Audio Provider Service</div>
                     <label class="uie-check-row" style="margin:8px 0 12px;">
                         <input type="checkbox" id="cfg-audio-enabled" checked>
-                        <span>Enable voices</span>
+                        <span>Enable character, narrator, and persona voices</span>
                     </label>
                     
                     <div class="uie-rpg-grid-2">
@@ -827,6 +851,7 @@
                         <div class="uie-rpg-field">
                             <label>Character Assignment</label>
                             <select id="cfg-audio-assignment" class="modal-select">
+                                <option value="all" selected>Every character + narrator + persona</option>
                                 <option value="active">Active target character</option>
                                 <option value="cards">Character cards</option>
                                 <option value="both">Cards and target characters</option>
@@ -850,6 +875,10 @@
                             </select>
                         </div>
                     </div>
+                    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:10px;">
+                        <button type="button" id="cfg-audio-check-local" class="uie-rpg-btn"><i class="fa-solid fa-stethoscope"></i> Check Pocket + Kokoro</button>
+                        <span id="cfg-audio-local-status" style="font-size:12px;opacity:.82;" aria-live="polite">Local engine status not checked yet.</span>
+                    </div>
 
                     <div class="cfg-tts-panel active" data-tts-panel="openai" style="margin-top:12px; border:1px solid rgba(255,255,255,0.12); border-radius:8px; padding:12px;">
                         <div class="uie-rpg-grid-2">
@@ -862,7 +891,7 @@
 
                     <div class="cfg-tts-panel" data-tts-panel="pocket" style="margin-top:12px; border:1px solid rgba(255,255,255,0.12); border-radius:8px; padding:12px;">
                         <div class="uie-rpg-grid-2">
-                            <div class="uie-rpg-field" style="grid-column:1/-1;"><label>Pocket-TTS Backend URL</label><input id="cfg-audio-pocket-url" placeholder="http://127.0.0.1:28101"></div>
+                            <div class="uie-rpg-field" style="grid-column:1/-1;"><label>Pocket-TTS Backend URL</label><input id="cfg-audio-pocket-url" placeholder="./api/backend (same-origin proxy)"></div>
                             <div class="uie-rpg-field">
                                 <label>Pocket Fallback Voice</label>
                                 <select id="cfg-audio-pocket-voice" class="modal-select">
@@ -1058,7 +1087,7 @@
                     
                     <div style="margin-top:10px;">
                         <label class="uie-check-row">
-                            <input type="checkbox" id="cfg-audio-autoplay">
+                            <input type="checkbox" id="cfg-audio-autoplay" checked>
                             <span>Autoplay voice responses on completion</span>
                         </label>
                     </div>
@@ -1242,6 +1271,10 @@
                             <input type="checkbox" id="uie-rpg-readable-html-enabled" checked>
                             <span>Ask before building readable HTML popups for books, letters, scrolls, boards, and documents</span>
                         </label>
+                        <label class="uie-check-row" style="grid-column:1/-1;">
+                            <input type="checkbox" id="uie-rpg-dynamic-response-boxes">
+                            <span>Dynamically size AI response boxes to the current reply (opt-in; long replies scroll within viewport-safe limits)</span>
+                        </label>
                     </div>
                 </div>
 
@@ -1274,6 +1307,7 @@
             <div id="uie-sw-ui-edit" class="uie-settings-section" style="display:none;">
                 <div class="uie-rpg-card">
                     <div class="uie-rpg-card-title"><i class="fa-solid fa-palette"></i> UI CSS & Font</div>
+                    <p class="uie-help-text">Each Look menu is a ready-to-use template for that specific surface: choose a look for the whole UI, then override individual modals below. Your colors and Custom CSS remain available for fine tuning—start with a template instead of writing CSS from scratch.</p>
                     <div class="uie-rpg-grid-2">
                         <div class="uie-rpg-field" style="grid-column:1/-1;">
                             <label>UI Font Family</label>
@@ -1309,32 +1343,42 @@
                 </div>
 
                 <div class="uie-rpg-card">
+                    <div class="uie-rpg-card-title"><i class="fa-solid fa-comment-dots"></i> Dialogue Flow</div>
+                    <div class="uie-rpg-grid-2">
+                        <div class="uie-rpg-field"><label>Milliseconds per word</label><input id="cfg-msg-stream-wps" type="number" min="0" max="2000" value="8" title="Delay between revealed words; 0 reveals instantly"></div>
+                        <div class="uie-rpg-field"><label>Sentences per VN box</label><input id="cfg-msg-sentence-stopper" type="number" min="0" max="3" value="3" title="0 shows the whole speaker block"></div>
+                        <label class="uie-check-row" style="grid-column:1/-1;"><input id="cfg-msg-auto-continue" type="checkbox"> Auto-continue after each box</label>
+                        <div class="uie-rpg-field" style="grid-column:1/-1;"><label>Auto-continue wait (milliseconds)</label><input id="cfg-msg-auto-continue-delay" type="number" min="250" max="30000" value="1200"></div>
+                    </div>
+                </div>
+
+                <div class="uie-rpg-card">
                     <div class="uie-rpg-card-title"><i class="fa-solid fa-sliders"></i> UI Sizing & Scale Controls</div>
                     <p style="font-size:12px; opacity:0.85; margin:0 0 12px; line-height:1.4;">Adjust the scale of specific interface elements dynamically. Changes apply immediately and are saved to your profile.</p>
                     
                     <div class="uie-rpg-field" style="margin-bottom:15px;">
-                        <label>HUD / Sidebar Scale: <span id="cfg-scale-sidebar-lbl">100</span>%</label>
-                        <input id="cfg-scale-sidebar" type="range" min="50" max="200" step="5" value="100" style="padding:0; width:100%; accent-color:#cc7a2e;">
+                        <label>HUD / Sidebar Scale: <span id="cfg-scale-sidebar-lbl">110</span>%</label>
+                        <input id="cfg-scale-sidebar" type="range" min="50" max="200" step="5" value="110" style="padding:0; width:100%; accent-color:#cc7a2e;">
                     </div>
                     
                     <div class="uie-rpg-field" style="margin-bottom:15px;">
-                        <label>Hamburger Menu Scale: <span id="cfg-scale-menu-lbl">100</span>%</label>
-                        <input id="cfg-scale-menu" type="range" min="50" max="200" step="5" value="100" style="padding:0; width:100%; accent-color:#cc7a2e;">
+                        <label>Hamburger Menu Scale: <span id="cfg-scale-menu-lbl">110</span>%</label>
+                        <input id="cfg-scale-menu" type="range" min="50" max="200" step="5" value="110" style="padding:0; width:100%; accent-color:#cc7a2e;">
                     </div>
 
                     <div class="uie-rpg-field" style="margin-bottom:15px;">
-                        <label>Chat / Dialogue Boxes Scale: <span id="cfg-scale-chatbox-lbl">100</span>%</label>
-                        <input id="cfg-scale-chatbox" type="range" min="50" max="200" step="5" value="100" style="padding:0; width:100%; accent-color:#cc7a2e;">
+                        <label>Chat / Dialogue Boxes Scale: <span id="cfg-scale-chatbox-lbl">110</span>%</label>
+                        <input id="cfg-scale-chatbox" type="range" min="50" max="200" step="5" value="110" style="padding:0; width:100%; accent-color:#cc7a2e;">
                     </div>
 
                     <div class="uie-rpg-field" style="margin-bottom:15px;">
-                        <label>UI Buttons Scale: <span id="cfg-scale-uibutton-lbl">100</span>%</label>
-                        <input id="cfg-scale-uibutton" type="range" min="50" max="200" step="5" value="100" style="padding:0; width:100%; accent-color:#cc7a2e;">
+                        <label>UI Buttons Scale: <span id="cfg-scale-uibutton-lbl">110</span>%</label>
+                        <input id="cfg-scale-uibutton" type="range" min="50" max="200" step="5" value="110" style="padding:0; width:100%; accent-color:#cc7a2e;">
                     </div>
 
                     <div class="uie-rpg-field" style="margin-bottom:15px;">
-                        <label>Toast Notifications Scale: <span id="cfg-scale-toast-lbl">100</span>%</label>
-                        <input id="cfg-scale-toast" type="range" min="50" max="200" step="5" value="100" style="padding:0; width:100%; accent-color:#cc7a2e;">
+                        <label>Toast Notifications Scale: <span id="cfg-scale-toast-lbl">110</span>%</label>
+                        <input id="cfg-scale-toast" type="range" min="50" max="200" step="5" value="110" style="padding:0; width:100%; accent-color:#cc7a2e;">
                     </div>
 
                     <div style="margin-top:20px;">

@@ -1,19 +1,104 @@
 <div id="uie-map-window" class="uie-window uie-simple-map map-interface-root mobile-map-viewport" style="display:none;" aria-hidden="true">
   <div class="uie-simple-map__shell">
+    <!-- MAP INSTRUCTIONS POPUP -->
+    <div id="uie-map-help-popup" style="display:none; position:fixed; inset:0; z-index:2147483650; background:rgba(2,6,20,0.72); backdrop-filter:blur(6px); align-items:center; justify-content:center;" role="dialog" aria-modal="true" aria-labelledby="map-help-title">
+      <div style="width:min(680px,96vw); max-height:90dvh; overflow-y:auto; border-radius:16px; border:1px solid rgba(83,186,242,0.35); background:linear-gradient(160deg,rgba(5,12,32,0.98),rgba(8,18,42,0.98)); color:#e0f0ff; padding:28px 32px; box-shadow:0 28px 80px rgba(0,0,0,0.75); font-family:Inter,system-ui,sans-serif;">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:20px;">
+          <div>
+            <div style="font-size:11px; font-weight:900; letter-spacing:.14em; text-transform:uppercase; color:#53baf2; margin-bottom:4px;">📍 How To Use</div>
+            <h2 id="map-help-title" style="margin:0; font-size:22px; color:#ffffff;">World Map Guide</h2>
+          </div>
+          <button id="uie-map-help-close" style="width:38px;height:38px;border-radius:50%;border:1px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.06);color:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;">✕</button>
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:20px;">
+          <div style="background:rgba(83,186,242,0.07); border:1px solid rgba(83,186,242,0.2); border-radius:10px; padding:14px;">
+            <div style="font-weight:900; font-size:13px; color:#53baf2; margin-bottom:8px;">🗺️ Navigating the Map</div>
+            <ul style="margin:0; padding-left:18px; font-size:13px; line-height:1.8; color:#c0d8f0;">
+              <li><b>Drag</b> — Click and drag the map to pan around</li>
+              <li><b>Scroll Wheel</b> — Zoom in and out</li>
+              <li><b>Click a location dot</b> — Select it to see info on the right panel</li>
+              <li><b>1:1 Button</b> — Resets zoom back to normal view</li>
+            </ul>
+          </div>
+          <div style="background:rgba(168,139,250,0.07); border:1px solid rgba(168,139,250,0.2); border-radius:10px; padding:14px;">
+            <div style="font-weight:900; font-size:13px; color:#a78bfa; margin-bottom:8px;">📂 Map View Tabs</div>
+            <ul style="margin:0; padding-left:18px; font-size:13px; line-height:1.8; color:#c0d8f0;">
+              <li><b>World</b> — The whole continent/world view</li>
+              <li><b>Region</b> — A province or major area</li>
+              <li><b>Local</b> — Your current general area</li>
+              <li><b>Nearby</b> — Immediate surroundings</li>
+              <li><b>Area</b> — Room-by-room blueprint view</li>
+            </ul>
+          </div>
+          <div style="background:rgba(46,204,113,0.07); border:1px solid rgba(46,204,113,0.2); border-radius:10px; padding:14px;">
+            <div style="font-weight:900; font-size:13px; color:#2ecc71; margin-bottom:8px;">✈️ Traveling</div>
+            <ul style="margin:0; padding-left:18px; font-size:13px; line-height:1.8; color:#c0d8f0;">
+              <li>Click a <b>location dot</b> on the map</li>
+              <li>Its name & info appears on the <b>right panel</b></li>
+              <li>Press <b>"Move To Area"</b> to fast-travel there</li>
+              <li>Press <b>"Open Area"</b> for a detailed room view</li>
+            </ul>
+          </div>
+          <div style="background:rgba(251,191,36,0.07); border:1px solid rgba(251,191,36,0.22); border-radius:10px; padding:14px;">
+            <div style="font-weight:900; font-size:13px; color:#fbbf24; margin-bottom:8px;">🏗️ Building the World</div>
+            <ul style="margin:0; padding-left:18px; font-size:13px; line-height:1.8; color:#c0d8f0;">
+              <li><b>Expand</b> — AI generates new nearby locations</li>
+              <li><b>Add Place</b> — Manually add a new location</li>
+              <li><b>Free Place</b> — Drag-and-drop a location anywhere</li>
+              <li><b>Import / Export</b> — Save or load your map data</li>
+            </ul>
+          </div>
+        </div>
+        <div style="background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.1); border-radius:10px; padding:14px; margin-bottom:16px;">
+          <div style="font-weight:900; font-size:13px; color:#ffd06f; margin-bottom:8px;">🎨 Color Legend — What Do The Dots Mean?</div>
+          <div style="display:flex; flex-wrap:wrap; gap:10px; font-size:12px; color:#c0d8f0;">
+            <span>🟢 <b>You</b> — Your current location</span>
+            <span>🔴 <b>Target</b> — Destination or objective</span>
+            <span>🔵 <b>Station/Dock</b> — Travel hub</span>
+            <span>🟡 <b>Vehicle/Ship</b> — Transport</span>
+            <span>🟠 <b>Danger</b> — Hostile area</span>
+            <span>⚪ <b>Service</b> — Shop or service</span>
+            <span>🟤 <b>Interior</b> — Inside a building</span>
+          </div>
+        </div>
+        <div style="text-align:center;">
+          <button id="uie-map-help-close2" style="padding:10px 32px; border-radius:8px; border:1px solid rgba(83,186,242,0.45); background:rgba(83,186,242,0.12); color:#53baf2; font-weight:900; font-size:14px; cursor:pointer;">Got It — Close Guide</button>
+        </div>
+      </div>
+    </div>
+    <script>
+    (function(){
+      function bindMapHelp(){
+        var popup = document.getElementById('uie-map-help-popup');
+        var btn = document.getElementById('uie-map-help-btn');
+        var close1 = document.getElementById('uie-map-help-close');
+        var close2 = document.getElementById('uie-map-help-close2');
+        if(!popup||!btn) return;
+        btn.addEventListener('click', function(){ popup.style.display='flex'; });
+        function closeHelp(){ popup.style.display='none'; }
+        if(close1) close1.addEventListener('click', closeHelp);
+        if(close2) close2.addEventListener('click', closeHelp);
+        popup.addEventListener('click', function(e){ if(e.target===popup) closeHelp(); });
+      }
+      if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', bindMapHelp);
+      else setTimeout(bindMapHelp, 100);
+    })();
+    </script>
+
     <header class="uie-simple-map__header map-header mobile-map-header">
       <div class="uie-simple-map__brand">
-        <h2 id="uie-map-title" class="uie-simple-map__title">Map</h2>
+        <h2 id="uie-map-title" class="uie-simple-map__title">🗺️ Map</h2>
         <div id="uie-map-path" class="uie-simple-map__path" hidden></div>
       </div>
       <div class="uie-simple-map__actions">
         <nav class="uie-map-depth-stack map-nav-group" aria-label="Spatial depth">
-          <button type="button" class="uie-simple-map__tab map-nav-btn is-active" data-map-view="world">World</button>
-          <button type="button" class="uie-simple-map__tab map-nav-btn" data-map-view="region">Region</button>
-          <button type="button" class="uie-simple-map__tab map-nav-btn" data-map-view="area">Local</button>
-          <button type="button" class="uie-simple-map__tab map-nav-btn" data-map-view="vicinity">Nearby</button>
-          <button type="button" class="uie-simple-map__tab map-nav-btn" data-map-view="blueprint">Area</button>
+          <button type="button" class="uie-simple-map__tab map-nav-btn is-active" title="View the full world" data-map-view="world">World</button>
+          <button type="button" class="uie-simple-map__tab map-nav-btn" title="View your current region" data-map-view="region">Region</button>
+          <button type="button" class="uie-simple-map__tab map-nav-btn" title="View local area around you" data-map-view="area">Local</button>
+          <button type="button" class="uie-simple-map__tab map-nav-btn" title="See what's immediately nearby" data-map-view="vicinity">Nearby</button>
+          <button type="button" class="uie-simple-map__tab map-nav-btn" title="Room-by-room floor plan view" data-map-view="blueprint">Area</button>
         </nav>
-        <label class="uie-simple-map__theme-picker map-dropdown-container" title="Map visual theme">
+        <label class="uie-simple-map__theme-picker map-dropdown-container" title="Change map visual style">
           <span>Style</span>
           <select id="uie-map-style">
             <option value="high-fantasy">Fantasy Realm</option>
@@ -21,14 +106,15 @@
             <option value="futuristic">Futuristic Holo</option>
           </select>
         </label>
-        <button type="button" class="uie-simple-map__tool" data-map-action="generate">Expand</button>
-        <button type="button" class="uie-simple-map__tool" data-map-action="add">Add Place</button>
-        <button type="button" class="uie-simple-map__tool" data-map-action="freeplace" style="background:linear-gradient(135deg,#a855f7,#7e22ce); color:#fff; border:none;">Free Place</button>
-        <button type="button" class="uie-simple-map__icon" data-map-zoom="reset" title="Reset view">1:1</button>
-        <button type="button" class="uie-simple-map__icon" data-map-action="import" title="Import map" aria-label="Import map"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M12 17V9"/><path d="m8 13 4 4 4-4"/></svg></button>
-        <button type="button" class="uie-simple-map__icon" data-map-action="export" title="Export map" aria-label="Export map"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M12 9v8"/><path d="m8 13 4-4 4 4"/></svg></button>
-        <button type="button" class="uie-simple-map__icon" data-map-action="share" title="Share map" aria-label="Share map"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.59 13.51 6.83 3.98"/><path d="m15.41 6.51-6.82 3.98"/></svg></button>
-        <button type="button" id="uie-map-close" class="uie-simple-map__close" aria-label="Close map">x</button>
+        <button type="button" id="uie-map-focus-open" class="uie-simple-map__tool uie-focus-entry" aria-haspopup="dialog" aria-controls="uie-focused-doms-modal"><i class="fa-solid fa-crosshairs" aria-hidden="true"></i><span>Focus</span><b id="uie-map-focus-count">0</b><small id="uie-map-focus-status">No dossiers</small></button>
+        <button type="button" class="uie-simple-map__tool" data-map-action="generate" title="Ask AI to expand and generate new locations near you">🔮 Expand</button>
+        <button type="button" class="uie-simple-map__tool" data-map-action="add" title="Manually add a new location to the map">➕ Add Place</button>
+        <button type="button" class="uie-simple-map__tool" data-map-action="freeplace" style="background:linear-gradient(135deg,#a855f7,#7e22ce); color:#fff; border:none;" title="Freely drag and place a location anywhere on the map">📌 Free Place</button>
+        <button type="button" class="uie-simple-map__icon" data-map-zoom="reset" title="Reset zoom to 1:1 (normal view)">1:1</button>
+        <button type="button" class="uie-simple-map__icon" data-map-action="import" title="Import a saved map file" aria-label="Import map"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M12 17V9"/><path d="m8 13 4 4 4-4"/></svg></button>
+        <button type="button" class="uie-simple-map__icon" data-map-action="export" title="Export and save your current map" aria-label="Export map"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M12 9v8"/><path d="m8 13 4-4 4 4"/></svg></button>
+        <button type="button" id="uie-map-help-btn" class="uie-simple-map__icon" title="How to use the Map — click for instructions!" aria-label="Map help" style="background:linear-gradient(135deg,rgba(83,186,242,0.22),rgba(60,130,255,0.18)); border-color:rgba(83,186,242,0.55); color:#53baf2; font-weight:900; font-size:15px;">?</button>
+        <button type="button" id="uie-map-close" class="uie-simple-map__close" aria-label="Close map">✕</button>
       </div>
     </header>
 
@@ -90,6 +176,16 @@
         </div>
       </aside>
     </main>
+  </div>
+</div>
+
+<div id="uie-focused-doms-modal" class="uie-map-modal uie-focus-modal" hidden aria-hidden="true">
+  <div class="uie-focus-workspace" role="dialog" aria-modal="true" aria-labelledby="uie-focus-workspace-title">
+    <header class="uie-focus-workspace__top">
+      <div><div class="uie-simple-map__eyebrow">Operational Dossiers</div><h2 id="uie-focus-workspace-title">Focused DOMs</h2></div>
+      <button type="button" data-map-modal-close class="uie-simple-map__close" aria-label="Close Focused DOM workspace">×</button>
+    </header>
+    <div id="uie-focus-workspace-body" class="uie-focus-workspace__body" aria-live="polite"></div>
   </div>
 </div>
 

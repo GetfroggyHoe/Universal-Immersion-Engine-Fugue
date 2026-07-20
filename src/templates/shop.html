@@ -51,10 +51,10 @@
   }
   #uie-shop-toolbar{
     display:grid;
-    grid-template-columns: 1fr auto auto;
+    grid-template-columns: minmax(150px,.8fr) minmax(180px,1fr) auto auto;
     gap:8px;
   }
-  #uie-shop-keywords{
+  #uie-shop-keywords, #uie-shop-search{
     width:100%;
     box-sizing:border-box;
     border-radius:12px;
@@ -110,7 +110,11 @@
   }
   .uie-shop-name{ font-weight:800; color:#fff; }
   .uie-shop-desc{ opacity:0.78; font-size:12px; }
-  .uie-shop-buy{
+  .uie-shop-meta{margin-top:5px;color:#d7b56d;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.05em}
+  .uie-shop-copy{flex:1;min-width:0}
+  .uie-shop-purchase{text-align:right;display:grid;justify-items:end;gap:6px}
+  .uie-shop-price{font-weight:900;color:#cba35c}
+  .uie-shop-buy, .uie-shop-sell{
     margin-top:6px;
     height:34px;
     padding:0 12px;
@@ -119,6 +123,18 @@
     font-weight:800;
     cursor:pointer;
   }
+  .uie-shop-buy{background:#2ecc71;color:#07120b}
+  .uie-shop-sell{background:#e3a84d;color:#211305}
+  .uie-shop-buy:disabled{background:#343941;color:#848b95;cursor:not-allowed}
+  .uie-shop-empty{grid-column:1/-1;padding:22px;border:1px dashed rgba(255,255,255,.18);border-radius:14px;text-align:center;color:#9299a4}
+  #uie-shopkeeper-panel{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:12px;padding:12px 14px;border:1px solid rgba(234,195,113,.24);border-radius:14px;background:linear-gradient(100deg,rgba(96,62,23,.28),rgba(12,17,26,.82))}
+  #uie-shopkeeper-avatar{width:58px;height:58px;border-radius:50%;display:grid;place-items:center;border:2px solid #d3a853;background-color:#261b10;background-size:cover;background-position:center;color:#ffe8ae;font:900 17px Georgia,serif;box-shadow:0 0 0 4px rgba(211,168,83,.1)}
+  #uie-shopkeeper-name{color:#ffe0a1;font:900 16px Georgia,serif}
+  #uie-shopkeeper-role,#uie-shop-location-label{color:#aeb8c8;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.06em}
+  #uie-shopkeeper-dialogue{margin-top:6px;color:#f2f4f8;font-size:13px;line-height:1.4}
+  .uie-shop-mode-switch{display:flex;gap:6px;align-self:stretch;align-items:center}
+  .uie-shop-mode-switch button{min-width:64px;height:34px;border:1px solid rgba(255,255,255,.16);border-radius:9px;background:rgba(0,0,0,.25);color:#bac3cf;font-weight:900;cursor:pointer}
+  .uie-shop-mode-switch button.active{border-color:#d7b56d;background:rgba(215,181,109,.18);color:#ffe1a1}
   @media not all {
     #uie-shop-window{
       width:96vw;
@@ -128,6 +144,8 @@
     #uie-shop-toolbar{
       grid-template-columns: 1fr;
     }
+    #uie-shopkeeper-panel{grid-template-columns:auto 1fr}
+    .uie-shop-mode-switch{grid-column:1/-1}
     #uie-shop-items{
       grid-template-columns: 1fr;
     }
@@ -141,16 +159,31 @@
     </div>
     <div style="margin-left:auto; display:flex; align-items:center; gap:10px;">
       <div id="uie-shop-balance" style="font-weight:900; color:#cba35c;">0 G</div>
-      <i class="fa-solid fa-circle-question" onclick="UIE_openGuide('guide-shop')" title="Help / Guide" style="cursor:pointer; color:#cba35c; margin-right:6px;"></i>
+      <i class="fa-solid fa-circle-question" onclick="UIE_openGuide('guide-shop-trade')" title="Help / Guide" style="cursor:pointer; color:#cba35c; margin-right:6px;"></i>
       <i class="fa-solid fa-xmark uie-close-btn" id="uie-shop-close"></i>
     </div>
   </div>
 
   <div class="uie-content">
+    <section id="uie-shopkeeper-panel" aria-live="polite">
+      <div id="uie-shopkeeper-avatar" aria-hidden="true">SP</div>
+      <div>
+        <div id="uie-shopkeeper-name">Shopkeeper</div>
+        <div id="uie-shopkeeper-role">Local merchant</div>
+        <div id="uie-shopkeeper-dialogue">Welcome. The catalog is being prepared.</div>
+      </div>
+      <div class="uie-shop-mode-switch" aria-label="Shop mode">
+        <button type="button" id="uie-shop-mode-buy" class="active">BUY</button>
+        <button type="button" id="uie-shop-mode-sell">SELL</button>
+      </div>
+    </section>
+
+    <div id="uie-shop-location-label">CURRENT LOCATION</div>
     <div id="uie-shop-toolbar">
-      <input id="uie-shop-keywords" type="text" placeholder="Keywords: potion, grocery, boutique, underworld gear...">
-      <button id="uie-shop-generate" title="Generate shop inventory"><i class="fa-solid fa-image"></i> Generate</button>
-      <button id="uie-shop-refresh" title="Refresh inventory"><i class="fa-solid fa-rotate-right"></i></button>
+      <input id="uie-shop-search" type="search" placeholder="Search this catalog...">
+      <input id="uie-shop-keywords" type="text" placeholder="Ask for: remedies, travel gear, rare books...">
+      <button id="uie-shop-generate" title="Ask the merchant to restock for this request"><i class="fa-solid fa-boxes-stacked"></i> Restock</button>
+      <button id="uie-shop-refresh" title="Refresh context-driven stock"><i class="fa-solid fa-rotate-right"></i></button>
     </div>
 
     <div id="uie-shop-items">

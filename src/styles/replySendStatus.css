@@ -1,0 +1,162 @@
+/*
+ * Send stack shared by desktop and mobile landscape.
+ * Send stays on top. Paperclip + generation status sit beneath it.
+ */
+
+.reply-send-column {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  align-self: center !important;
+  flex: 0 0 auto !important;
+  width: max-content !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  gap: 4px !important;
+}
+
+.reply-send-column > #send-btn {
+  order: 0 !important;
+  position: relative !important;
+  inset: auto !important;
+  flex: 0 0 auto !important;
+  margin: 0 !important;
+}
+
+.reply-send-column > .reply-send-utilities {
+  order: 1 !important;
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: max-content !important;
+  min-width: 0 !important;
+  min-height: 22px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  gap: 6px !important;
+  overflow: visible !important;
+}
+
+.reply-send-column #reply-image-attach {
+  position: relative !important;
+  inset: auto !important;
+  width: 27px !important;
+  height: 23px !important;
+  min-width: 27px !important;
+  min-height: 23px !important;
+  flex: 0 0 27px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  font-size: 12px !important;
+}
+
+.reply-generation-status {
+  --uie-status-color: #ef4444;
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  min-width: 10px;
+  min-height: 10px;
+  flex: 0 0 10px;
+  border-radius: 999px;
+  background: var(--uie-status-color);
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  box-shadow:
+    0 0 0 2px rgba(0, 0, 0, 0.28),
+    0 0 8px color-mix(in srgb, var(--uie-status-color) 72%, transparent);
+  cursor: help;
+}
+
+.reply-generation-status[data-state="active"],
+.reply-generation-status[data-state="done"] {
+  --uie-status-color: #22c55e;
+}
+
+.reply-generation-status[data-state="generating"] {
+  --uie-status-color: #facc15;
+  animation: uie-generation-status-pulse 0.9s ease-in-out infinite alternate;
+}
+
+.reply-generation-status[data-state="failed"],
+.reply-generation-status[data-state="inactive"] {
+  --uie-status-color: #ef4444;
+  animation: none;
+}
+
+@keyframes uie-generation-status-pulse {
+  from {
+    opacity: 0.62;
+    transform: scale(0.84);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1.1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reply-generation-status {
+    animation: none !important;
+  }
+}
+
+/* UIE_SEND_STACK_FINAL
+ * Higher specificity than the old mobile chrome row rule.
+ * Send on top; paperclip and generation dot directly beneath.
+ */
+html body #vn-ui #input-row .reply-send-column,
+html.uie-fluid-landscape body #vn-ui #input-row .reply-send-column {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  align-self: center !important;
+  flex: 0 0 auto !important;
+  width: max-content !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  gap: 4px !important;
+}
+
+html body #vn-ui #input-row .reply-send-column > #send-btn,
+html.uie-fluid-landscape body #vn-ui #input-row .reply-send-column > #send-btn {
+  order: 0 !important;
+  position: relative !important;
+  inset: auto !important;
+  flex: 0 0 auto !important;
+  margin: 0 !important;
+}
+
+html body #vn-ui #input-row .reply-send-column > .reply-send-utilities,
+html.uie-fluid-landscape body #vn-ui #input-row .reply-send-column > .reply-send-utilities {
+  order: 1 !important;
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: max-content !important;
+  min-width: 0 !important;
+  min-height: 22px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  gap: 6px !important;
+  overflow: visible !important;
+}
+
+html body #vn-ui #input-row .reply-send-column #reply-image-attach,
+html.uie-fluid-landscape body #vn-ui #input-row .reply-send-column #reply-image-attach {
+  position: relative !important;
+  inset: auto !important;
+  width: 27px !important;
+  height: 23px !important;
+  min-width: 27px !important;
+  min-height: 23px !important;
+  flex: 0 0 27px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}

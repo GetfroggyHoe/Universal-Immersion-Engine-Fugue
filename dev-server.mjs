@@ -3,8 +3,10 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import os from "node:os";
 import net from "node:net";
+import crypto from "node:crypto";
+import readline from "node:readline/promises";
 import { fileURLToPath } from "node:url";
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -19,16 +21,608 @@ const getArgValue = (key, fallback) => {
 
 const host = getArgValue("--host", "localhost");
 const port = Number.parseInt(getArgValue("--port", "8093"), 10) || 8093;
+const reuseExistingServer = args.includes("--reuse-existing");
 const backendHost = getArgValue("--backend-host", process.env.UIE_BACKEND_HOST || "127.0.0.1");
 const configuredBackendPort = Number.parseInt(getArgValue("--backend-port", process.env.UIE_BACKEND_PORT || "28101"), 10) || 28101;
 let activeBackendPort = configuredBackendPort;
-const shouldAutoStartBackend = !args.includes("--no-backend") && process.env.UIE_AUTO_START_BACKEND !== "0";
-const pythonCmd = process.env.PYTHON || (process.platform === "win32" ? "python" : "python3");
+let shouldAutoStartBackend = !args.includes("--no-backend") && process.env.UIE_AUTO_START_BACKEND !== "0";
+const configuredPython = process.env.PYTHON || (process.platform === "win32" ? "python" : "python3");
+const venvDir = path.resolve(process.env.UIE_VENV_DIR || path.join(rootDir, ".venv"));
+const venvPython = path.join(venvDir, process.platform === "win32" ? "Scripts/python.exe" : "bin/python");
+const requirementsPath = path.join(rootDir, "python", "requirements-backend.txt");
+const venvMarker = path.join(venvDir, ".uie-requirements.sha256");
+const venvInstallLock = path.join(venvDir, ".uie-install-lock");
+let pythonCmd = venvPython;
 let backendProcess = null;
+let selectedBasePython = null;
+let backendStartupState = "pending";
+let backendStartupError = "";
+const REQUIRED_BACKEND_PACKAGES = [
+  "websockets>=12,<16",
+  "wsproto>=1.2,<2",
+  "numpy>=1.26,<3",
+  "scipy>=1.11,<2",
+  "onnxruntime>=1.16,<2",
+  "sentencepiece>=0.2,<1",
+  "soundfile>=0.12,<1",
+  "safetensors>=0.4,<1",
+  "kokoro-onnx>=0.5,<1",
+];
+const BACKEND_INSTALL_SCHEMA = "uie-backend-v6-voicebridge-runtime";
+const CORE_IMPORT_CHECK = "import fastapi, uvicorn, pydantic, pydantic_core, websockets, wsproto, numpy, scipy, onnxruntime, soundfile, sentencepiece, kokoro_onnx; from uvicorn.protocols.websockets.wsproto_impl import WSProtocol; import python.pocket_tts_onnx; import python.uie_backend";
+const PYTHON_VERSION_CHECK = "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')";
+
+async function askYesNo(question, defaultYes = false) {
+  const configuredAnswer = String(process.env.UIE_VENV_SETUP || "").trim().toLowerCase();
+  if (["1", "true", "yes", "y"].includes(configuredAnswer)) return true;
+  if (["0", "false", "no", "n"].includes(configuredAnswer)) return false;
+  if (!process.stdin.isTTY || !process.stdout.isTTY) {
+    console.log("[setup] No interactive terminal is available; continuing with the safe default (install locally). Set UIE_VENV_SETUP=0 to opt out.");
+    return true;
+  }
+  const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+  try {
+    const suffix = defaultYes ? "[Y/n]" : "[y/N]";
+    const answer = (await rl.question(`${question} ${suffix}: `)).trim().toLowerCase();
+    if (!answer) return defaultYes;
+    return answer === "y" || answer === "yes";
+  } finally {
+    rl.close();
+  }
+}
+
+function runPython(command, args, options = {}) {
+  return spawnSync(command, args, {
+    cwd: rootDir,
+    encoding: "utf8",
+    shell: false,
+    stdio: options.inherit ? "inherit" : "pipe",
+  });
+}
+
+function parsedPythonVersion(result) {
+  if (result?.error || result?.status !== 0) return null;
+  const text = String(result.stdout || "").trim();
+  const [major, minor] = text.split(".").map(Number);
+  return { text, supported: major === 3 && minor >= 10 };
+}
+
+function resolveBasePython() {
+  if (selectedBasePython) return selectedBasePython;
+  const candidates = [
+    { command: configuredPython, prefixArgs: [] },
+    ...(process.platform === "win32" ? ["3.13", "3.12", "3.11", "3.10", "3"].map((version) => ({ command: "py", prefixArgs: [`-${version}`] })) : []),
+    ...(process.platform === "win32" ? [
+      process.env.LOCALAPPDATA ? path.join(process.env.LOCALAPPDATA, "Programs", "Python", "Python313", "python.exe") : "",
+      process.env.ProgramFiles ? path.join(process.env.ProgramFiles, "Python313", "python.exe") : "",
+    ].filter(Boolean).map((command) => ({ command, prefixArgs: [] })) : []),
+    { command: process.platform === "win32" ? "python" : "python3", prefixArgs: [] },
+    ...(process.platform === "win32" ? [] : [{ command: "python", prefixArgs: [] }]),
+  ];
+  const seen = new Set();
+  const unsupported = [];
+  for (const candidate of candidates) {
+    const key = `${candidate.command}\0${candidate.prefixArgs.join("\0")}`;
+    if (!candidate.command || seen.has(key)) continue;
+    seen.add(key);
+    const result = runPython(candidate.command, [...candidate.prefixArgs, "-c", PYTHON_VERSION_CHECK]);
+    const version = parsedPythonVersion(result);
+    if (version?.supported) {
+      selectedBasePython = candidate;
+      return candidate;
+    }
+    if (version?.text) unsupported.push(version.text);
+  }
+  if (unsupported.length) throw new Error(`Only unsupported Python version(s) were found (${[...new Set(unsupported)].join(", ")}); Python 3.10 or newer is required.`);
+  throw new Error("Python 3.10 or newer was not found.");
+}
+
+async function ensureBasePythonAvailable() {
+  try {
+    return resolveBasePython();
+  } catch (initialError) {
+    if (process.platform !== "win32") {
+      throw new Error(`${initialError.message} Run ./start.sh to install missing system prerequisites automatically.`);
+    }
+    const winget = spawnSync("winget", ["--version"], { encoding: "utf8", shell: false });
+    if (winget.error || winget.status !== 0) {
+      throw new Error(`${initialError.message} Windows Package Manager (winget) is unavailable, so automatic Python installation cannot continue.`);
+    }
+    const approved = await askYesNo("Python 3.13 is missing. Download and install it automatically now?", true);
+    if (!approved) throw new Error("Automatic Python installation was declined. Run this launcher again when ready.");
+    console.log("[setup] Installing Python 3.13 with Windows Package Manager...");
+    const install = spawnSync("winget", [
+      "install", "--id", "Python.Python.3.13", "-e", "--source", "winget",
+      "--accept-package-agreements", "--accept-source-agreements", "--silent",
+    ], { cwd: rootDir, stdio: "inherit", shell: false, timeout: 600_000 });
+    if (install.error || install.status !== 0) throw new Error("Windows Package Manager could not install Python 3.13.");
+    selectedBasePython = null;
+    return resolveBasePython();
+  }
+}
+
+function runBasePython(args, options = {}) {
+  const base = resolveBasePython();
+  return runPython(base.command, [...base.prefixArgs, ...args], options);
+}
+
+const wait = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
+
+function createOrRepairVenv(clearExisting = false) {
+  console.log(clearExisting
+    ? "[backend] Repairing the incomplete project-local .venv..."
+    : "[backend] Creating project-local .venv...");
+  const args = ["-m", "venv"];
+  if (clearExisting) args.push("--clear");
+  if (process.env.PREFIX && process.env.PREFIX.includes("com.termux")) { args.push("--system-site-packages"); }
+  args.push(venvDir);
+  const created = runBasePython(args, { inherit: true });
+  if (created.error || created.status !== 0) {
+    throw new Error(`Could not ${clearExisting ? "repair" : "create"} .venv${created.error?.message ? `: ${created.error.message}` : ""}.`);
+  }
+}
+
+function ensureVenvPip() {
+  let pip = runPython(venvPython, ["-m", "pip", "--version"]);
+  if (pip.status === 0) return;
+  console.log("[backend] pip is missing from .venv; installing it with ensurepip...");
+  const ensured = runPython(venvPython, ["-m", "ensurepip", "--upgrade"], { inherit: true });
+  pip = runPython(venvPython, ["-m", "pip", "--version"]);
+  if (ensured.status === 0 && pip.status === 0) return;
+  createOrRepairVenv(true);
+  pip = runPython(venvPython, ["-m", "pip", "--version"]);
+  if (pip.status !== 0) throw new Error("The repaired .venv does not contain pip.");
+}
+
+async function acquireVenvInstallLock() {
+  await fs.mkdir(path.dirname(venvInstallLock), { recursive: true });
+  for (let attempt = 0; attempt < 300; attempt += 1) {
+    try {
+      const handle = await fs.open(venvInstallLock, "wx");
+      await handle.writeFile(`${process.pid}\n`);
+      return handle;
+    } catch (error) {
+      if (error?.code !== "EEXIST") throw error;
+      try {
+        const lockPid = Number.parseInt((await fs.readFile(venvInstallLock, "utf8")).trim(), 10);
+        if (Number.isFinite(lockPid)) process.kill(lockPid, 0);
+      } catch {
+        await fs.unlink(venvInstallLock).catch(() => {});
+        continue;
+      }
+      const ready = runPython(venvPython, ["-c", CORE_IMPORT_CHECK]);
+      if (ready.status === 0) return null;
+      if (attempt === 0) console.log("[backend] Another launcher is preparing .venv; waiting for it to finish...");
+      await wait(1_000);
+    }
+  }
+  throw new Error("Timed out waiting for another .venv dependency installation.");
+}
+
+function openLocalBrowser(url) {
+  if (!args.includes("--open")) return;
+  let command = "";
+  let commandArgs = [];
+  if (process.platform === "win32") {
+    command = "cmd.exe";
+    commandArgs = ["/d", "/s", "/c", "start", "", url];
+  } else if (process.platform === "darwin") {
+    command = "open";
+    commandArgs = [url];
+  } else if (process.env.TERMUX_VERSION) {
+    command = "termux-open-url";
+    commandArgs = [url];
+  } else {
+    command = "xdg-open";
+    commandArgs = [url];
+  }
+  try {
+    const opener = spawn(command, commandArgs, {
+      cwd: rootDir,
+      detached: true,
+      stdio: "ignore",
+      windowsHide: true,
+      shell: false,
+    });
+    opener.unref();
+  } catch (error) {
+    console.warn(`[launcher] Could not open the browser automatically: ${error?.message || error}`);
+  }
+}
+
+const isTermux = Boolean(
+  process.env.TERMUX_VERSION ||
+  (process.env.PREFIX && process.env.PREFIX.includes("com.termux"))
+);
+
+const PROOT_DISTRO_NAME = process.env.UIE_PROOT_DISTRO || "uie-debian";
+const PROOT_APP_DIR = "/app";
+const PROOT_VENV_DIR = "/root/uie-venv";
+const PROOT_PYTHON = `${PROOT_VENV_DIR}/bin/python`;
+const PROOT_SETUP_MARKER = "/root/.uie-proot-setup-v3";
+const PROOT_CLEAN_ENV = [
+  "/usr/bin/env", "-i",
+  "HOME=/root",
+  "USER=root",
+  "LOGNAME=root",
+  "SHELL=/bin/bash",
+  `TERM=${process.env.TERM || "xterm-256color"}`,
+  "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+  "TMPDIR=/tmp",
+  `PYTHONPATH=${PROOT_APP_DIR}`,
+];
+const PROOT_IMPORT_CHECK = `import sys; sys.path.insert(0, ${JSON.stringify(PROOT_APP_DIR)}); ${CORE_IMPORT_CHECK}`;
+const PROOT_PLATFORM_CHECK = [
+  "import sys, sysconfig",
+  "soabi = str(sysconfig.get_config_var('SOABI') or '')",
+  "print(sys.executable)",
+  "print(sys.platform)",
+  "print(soabi)",
+  "raise SystemExit(0 if sys.platform == 'linux' and 'android' not in soabi.lower() else 1)",
+].join("; ");
+
+function prootLoginArgs(commandArgs, { bindApp = true, cleanEnv = true } = {}) {
+  const command = ["login", PROOT_DISTRO_NAME];
+  if (bindApp) command.push("--bind", `${rootDir}:${PROOT_APP_DIR}`);
+  command.push("--");
+  if (cleanEnv) command.push(...PROOT_CLEAN_ENV);
+  command.push(...commandArgs);
+  return command;
+}
+
+function runProot(commandArgs, options = {}) {
+  const { bindApp = true, cleanEnv = true, inherit = false, timeout } = options;
+  return spawnSync(
+    "proot-distro",
+    prootLoginArgs(commandArgs, { bindApp, cleanEnv }),
+    {
+      cwd: rootDir,
+      encoding: inherit ? undefined : "utf8",
+      stdio: inherit ? "inherit" : "pipe",
+      shell: false,
+      timeout,
+    },
+  );
+}
+
+function spawnProot(commandArgs, options = {}) {
+  return spawn(
+    "proot-distro",
+    prootLoginArgs(commandArgs),
+    {
+      cwd: rootDir,
+      stdio: options.stdio || "inherit",
+      shell: false,
+      windowsHide: true,
+    },
+  );
+}
+
+function commandSucceeded(result) {
+  return !result?.error && result?.status === 0;
+}
+
+function installDedicatedProotDistro() {
+  console.log(`[setup] Installing dedicated Debian environment '${PROOT_DISTRO_NAME}'...`);
+  const installed = spawnSync(
+    "proot-distro",
+    ["install", "debian", "--name", PROOT_DISTRO_NAME],
+    { cwd: rootDir, stdio: "inherit", shell: false },
+  );
+  if (!commandSucceeded(installed)) {
+    throw new Error(`Failed to install dedicated PRoot Debian environment '${PROOT_DISTRO_NAME}'.`);
+  }
+}
+
+function dedicatedProotExists() {
+  const check = spawnSync(
+    "proot-distro",
+    ["login", PROOT_DISTRO_NAME, "--", "/bin/sh", "-c", "exit 0"],
+    { cwd: rootDir, encoding: "utf8", shell: false },
+  );
+  return commandSucceeded(check);
+}
+
+function ensureProotBasePackages() {
+  const ready = runProot(
+    ["/bin/sh", "-c", `test -f ${PROOT_SETUP_MARKER} && test -x /usr/bin/python3`],
+    { bindApp: false, cleanEnv: false },
+  );
+  if (commandSucceeded(ready)) return;
+
+  console.log("[setup] Initializing Debian Python environment...");
+  const aptUpdate = runProot(
+    ["/usr/bin/apt-get", "update"],
+    { bindApp: false, cleanEnv: false, inherit: true, timeout: 900_000 },
+  );
+  if (!commandSucceeded(aptUpdate)) {
+    throw new Error("Failed to update packages inside the dedicated Debian environment.");
+  }
+
+  const aptInstall = runProot(
+    ["/usr/bin/apt-get", "install", "-y", "python3", "python3-pip", "python3-venv", "ca-certificates", "libgomp1", "libsndfile1", "espeak-ng"],
+    { bindApp: false, cleanEnv: false, inherit: true, timeout: 900_000 },
+  );
+  if (!commandSucceeded(aptInstall)) {
+    throw new Error("Failed to install Debian Python, pip, or venv support.");
+  }
+
+  const marked = runProot(
+    ["/usr/bin/touch", PROOT_SETUP_MARKER],
+    { bindApp: false, cleanEnv: false },
+  );
+  if (!commandSucceeded(marked)) {
+    throw new Error("Debian setup completed, but its setup marker could not be written.");
+  }
+}
+
+function validateGuestPython() {
+  return runProot(
+    ["/usr/bin/python3", "-c", PROOT_PLATFORM_CHECK],
+    { bindApp: false, cleanEnv: true },
+  );
+}
+
+function resetDedicatedProotDistro() {
+  console.warn(`[setup] '${PROOT_DISTRO_NAME}' is incomplete or is using Android Python. Rebuilding this UIE-only environment automatically...`);
+  const removed = spawnSync(
+    "proot-distro",
+    ["remove", PROOT_DISTRO_NAME],
+    { cwd: rootDir, stdio: "inherit", shell: false },
+  );
+  if (!commandSucceeded(removed)) {
+    throw new Error(`Could not remove the invalid UIE PRoot environment '${PROOT_DISTRO_NAME}'.`);
+  }
+  installDedicatedProotDistro();
+  ensureProotBasePackages();
+}
+
+function ensureDedicatedProotDistro() {
+  const pdCheck = spawnSync(
+    "sh",
+    ["-lc", "command -v proot-distro >/dev/null 2>&1"],
+    { cwd: rootDir, encoding: "utf8", shell: false },
+  );
+  if (!commandSucceeded(pdCheck)) {
+    console.log("[setup] Installing proot-distro...");
+    const pdInstall = spawnSync(
+      "pkg",
+      ["install", "proot-distro", "-y"],
+      { cwd: rootDir, stdio: "inherit", shell: false },
+    );
+    if (!commandSucceeded(pdInstall)) {
+      throw new Error("Failed to install proot-distro through Termux pkg.");
+    }
+  }
+
+  if (!dedicatedProotExists()) {
+    // A container with this name may exist but be unusable. Because the name is
+    // UIE-specific, it is safe to remove that broken instance and recreate it.
+    spawnSync(
+      "proot-distro",
+      ["remove", PROOT_DISTRO_NAME],
+      { cwd: rootDir, stdio: "ignore", shell: false },
+    );
+    installDedicatedProotDistro();
+  }
+  ensureProotBasePackages();
+
+  let pythonCheck = validateGuestPython();
+  if (!commandSucceeded(pythonCheck)) {
+    resetDedicatedProotDistro();
+    pythonCheck = validateGuestPython();
+  }
+  if (!commandSucceeded(pythonCheck)) {
+    const details = `${pythonCheck?.stdout || ""}${pythonCheck?.stderr || ""}`.trim();
+    throw new Error(`The dedicated Debian environment does not provide Linux Python${details ? `: ${details}` : "."}`);
+  }
+}
+
+function ensureProotVenv() {
+  let venvCheck = runProot([PROOT_PYTHON, "-c", PROOT_PLATFORM_CHECK]);
+  if (commandSucceeded(venvCheck)) return;
+
+  console.log(`[setup] Creating isolated backend environment at ${PROOT_VENV_DIR}...`);
+  runProot(["/bin/rm", "-rf", PROOT_VENV_DIR], { bindApp: false });
+  const created = runProot(
+    ["/usr/bin/python3", "-m", "venv", "--copies", PROOT_VENV_DIR],
+    { bindApp: false, inherit: true },
+  );
+  if (!commandSucceeded(created)) {
+    throw new Error("Failed to create the isolated Python environment inside Debian.");
+  }
+
+  venvCheck = runProot([PROOT_PYTHON, "-c", PROOT_PLATFORM_CHECK]);
+  if (!commandSucceeded(venvCheck)) {
+    throw new Error("The newly created Debian venv is not using Linux Python.");
+  }
+}
+
+async function prepareProotDebian() {
+  console.log(`[backend] Termux detected. Using dedicated PRoot environment '${PROOT_DISTRO_NAME}'.`);
+
+  try {
+    await fs.access(requirementsPath);
+  } catch {
+    throw new Error("Backend setup failed: python/requirements-backend.txt is missing.");
+  }
+
+  ensureDedicatedProotDistro();
+  ensureProotVenv();
+
+  const requirements = await fs.readFile(requirementsPath);
+  const fingerprint = crypto.createHash("sha256")
+    .update(requirements)
+    .update("\n" + BACKEND_INSTALL_SCHEMA + "\n" + REQUIRED_BACKEND_PACKAGES.join("\n"))
+    .digest("hex");
+  const prootMarker = path.join(rootDir, "data", ".proot-requirements.sha256");
+  await fs.mkdir(path.dirname(prootMarker), { recursive: true });
+
+  let installedFingerprint = "";
+  try {
+    installedFingerprint = (await fs.readFile(prootMarker, "utf8")).trim();
+  } catch (_) {}
+
+  let guestImports = runProot([PROOT_PYTHON, "-c", PROOT_IMPORT_CHECK]);
+  if (installedFingerprint !== fingerprint || !commandSucceeded(guestImports)) {
+    console.log("[backend] Installing/updating FastAPI, WebSocket, and VoiceBridge dependencies inside Debian...");
+    const pipInstall = runProot(
+      [
+        PROOT_PYTHON, "-m", "pip", "install",
+        "--disable-pip-version-check", "--no-input",
+        "-r", `${PROOT_APP_DIR}/python/requirements-backend.txt`,
+        ...REQUIRED_BACKEND_PACKAGES,
+      ],
+      { inherit: true, timeout: 1_800_000 },
+    );
+    if (!commandSucceeded(pipInstall)) {
+      throw new Error("Backend or VoiceBridge dependency installation failed inside Debian. See the package error above.");
+    }
+    await fs.writeFile(prootMarker, `${fingerprint}\n`);
+    guestImports = runProot([PROOT_PYTHON, "-c", PROOT_IMPORT_CHECK]);
+  }
+
+  if (!commandSucceeded(guestImports)) {
+    const details = `${guestImports?.stdout || ""}${guestImports?.stderr || ""}`.trim();
+    throw new Error(`Backend import validation failed${details ? `: ${details}` : "."}`);
+  }
+
+  console.log("[backend] Validating Debian backend environment...");
+  const validateCode = [
+    "import sys, sysconfig",
+    "sys.path.insert(0, '/app')",
+    "import fastapi, pydantic, pydantic_core, uvicorn, websockets, wsproto",
+    "import numpy, scipy, onnxruntime, soundfile, sentencepiece, kokoro_onnx",
+    "from uvicorn.protocols.websockets.wsproto_impl import WSProtocol",
+    "import python.pocket_tts_onnx",
+    "import python.uie_backend",
+    "print('Interpreter:', sys.executable)",
+    "print('Platform:', sys.platform)",
+    "print('SOABI:', sysconfig.get_config_var('SOABI'))",
+    "print('FastAPI:', fastapi.__version__)",
+    "print('Pydantic:', pydantic.__version__)",
+    "print('pydantic-core:', pydantic_core.__version__)",
+    "print('Uvicorn:', uvicorn.__version__)",
+    "print('WebSockets:', websockets.__version__)",
+    "print('NumPy:', numpy.__version__)",
+    "print('SciPy:', scipy.__version__)",
+    "print('ONNX Runtime:', onnxruntime.__version__)",
+    "import importlib.metadata as metadata",
+    "print('SoundFile:', metadata.version('soundfile'))",
+    "print('SentencePiece:', metadata.version('sentencepiece'))",
+    "print('Kokoro ONNX:', metadata.version('kokoro-onnx'))",
+    "print('wsproto:', metadata.version('wsproto'))",
+  ].join("; ");
+  const validation = runProot([PROOT_PYTHON, "-c", validateCode], { inherit: true });
+  if (!commandSucceeded(validation)) {
+    throw new Error("Backend validation failed inside the dedicated Debian environment.");
+  }
+
+  console.log("[backend] Running pip check inside Debian...");
+  const pipCheck = runProot([PROOT_PYTHON, "-m", "pip", "check"], { inherit: true });
+  if (!commandSucceeded(pipCheck)) {
+    throw new Error("Installed backend packages have incompatible dependencies.");
+  }
+
+  console.log("[backend] PRoot Debian backend and VoiceBridge runtime are ready.");
+}
+
+async function prepareBackendVenv() {
+  if (!shouldAutoStartBackend && !shouldAutoStartImageService) return;
+  if (isTermux) {
+    await prepareProotDebian();
+    return;
+  }
+  try {
+    await fs.access(requirementsPath);
+  } catch {
+    throw new Error("Backend startup failed: python/requirements-backend.txt is missing.");
+  }
+  const requirements = await fs.readFile(requirementsPath);
+  const fingerprint = crypto.createHash("sha256")
+    .update(requirements)
+    .update("\n" + BACKEND_INSTALL_SCHEMA + "\n" + REQUIRED_BACKEND_PACKAGES.join("\n"))
+    .digest("hex");
+  const probe = runPython(venvPython, ["-c", "import sys; print(sys.prefix)"]);
+  const venvVersion = probe.status === 0 ? parsedPythonVersion(runPython(venvPython, ["-c", PYTHON_VERSION_CHECK])) : null;
+  const pipProbe = probe.status === 0 ? runPython(venvPython, ["-m", "pip", "--version"]) : probe;
+  const imports = probe.status === 0 ? runPython(venvPython, ["-c", CORE_IMPORT_CHECK]) : probe;
+  let installed = "";
+  try { installed = (await fs.readFile(venvMarker, "utf8")).trim(); } catch (_) {}
+
+  let includeSystemSitePackages = false;
+  if (isTermux && probe.status === 0) {
+    try {
+      const cfg = await fs.readFile(path.join(venvDir, "pyvenv.cfg"), "utf8");
+      if (cfg.includes("include-system-site-packages = true")) {
+        includeSystemSitePackages = true;
+      }
+    } catch (_) {}
+  }
+
+  const setupReasons = [];
+  if (probe.error || probe.status !== 0) setupReasons.push("the project-local .venv is missing or incomplete");
+  else if (!venvVersion?.supported) setupReasons.push(`.venv uses unsupported Python ${venvVersion?.text || "unknown"}`);
+  else if (pipProbe.status !== 0) setupReasons.push("pip is missing from .venv");
+  else if (isTermux && !includeSystemSitePackages) setupReasons.push("Termux requires .venv to use --system-site-packages");
+  if (installed !== fingerprint) setupReasons.push("the backend dependency list is new or changed");
+  if (imports.status !== 0) setupReasons.push("required FastAPI packages are missing");
+
+  if (setupReasons.length) {
+    console.log("");
+    console.log("[setup] Python environment setup is required:");
+    for (const reason of setupReasons) console.log(`[setup]   - ${reason}`);
+    console.log("[setup] UIE creates .venv inside this game folder and downloads packages listed in python/requirements-backend.txt.");
+    console.log("[setup] Nothing is installed into your global Python. This prompt is expected for fresh downloads and upgrades from pre-.venv releases.");
+    const approved = await askYesNo("Create/update .venv and install the missing Python packages now?", true);
+    if (!approved) {
+      throw new Error("Local Python environment setup was declined. Run `npm run backend:install` when you are ready.");
+    }
+  }
+
+  if (probe.error || probe.status !== 0 || !venvVersion?.supported || pipProbe.status !== 0 || (isTermux && !includeSystemSitePackages)) {
+    await ensureBasePythonAvailable();
+  }
+  if (probe.error || probe.status !== 0) createOrRepairVenv(false);
+  else if (!venvVersion?.supported || (isTermux && !includeSystemSitePackages)) createOrRepairVenv(true);
+  ensureVenvPip();
+  const currentImports = runPython(venvPython, ["-c", CORE_IMPORT_CHECK]);
+  if (installed !== fingerprint || currentImports.status !== 0) {
+    const lock = await acquireVenvInstallLock();
+    try {
+      ensureVenvPip();
+      const recheck = runPython(venvPython, ["-c", CORE_IMPORT_CHECK]);
+      let currentFingerprint = "";
+      try { currentFingerprint = (await fs.readFile(venvMarker, "utf8")).trim(); } catch (_) {}
+      if (recheck.status !== 0 || currentFingerprint !== fingerprint) {
+        console.log("[backend] Installing core FastAPI dependencies into .venv...");
+        console.log("[backend] Installation progress will appear below. This happens only when the core requirements change.");
+        const pip = runPython(
+          venvPython,
+          ["-m", "pip", "install", "--disable-pip-version-check", "--no-input", "-r", requirementsPath, ...REQUIRED_BACKEND_PACKAGES],
+          { inherit: true },
+        );
+        if (pip.error || pip.status !== 0) {
+          throw new Error(`Backend dependency installation failed${pip.error?.message ? `: ${pip.error.message}` : ""}.`);
+        }
+        await fs.writeFile(venvMarker, `${fingerprint}\n`);
+      }
+    } finally {
+      if (lock) {
+        await lock.close().catch(() => {});
+        await fs.unlink(venvInstallLock).catch(() => {});
+      }
+    }
+  }
+  const validated = runPython(venvPython, ["-c", `${CORE_IMPORT_CHECK}; print('FastAPI backend dependencies ready')`]);
+  if (validated.status !== 0) throw new Error("Backend dependency validation failed: FastAPI, Uvicorn, or WebSocket support could not be imported from .venv.");
+  console.log("[backend] Running pip check...");
+  runPython(venvPython, ["-m", "pip", "check"], { inherit: true });
+}
 
 // ---- SDXS Image Service sidecar ----
 const IMAGE_SERVICE_PORT = Number.parseInt(process.env.UIE_IMAGE_SERVICE_PORT || "28094", 10) || 28094;
-const shouldAutoStartImageService = !args.includes("--no-image-service") && process.env.UIE_AUTO_IMAGE_SERVICE !== "0";
+let shouldAutoStartImageService = !args.includes("--no-image-service") && process.env.UIE_AUTO_IMAGE_SERVICE === "1";
 let imageServiceProcess = null;
 
 const mimeTypes = {
@@ -190,16 +784,44 @@ const readBody = (req) => {
   });
 };
 
-function requestUrl(url, timeoutMs = 900) {
+function requestUrl(url, timeoutMs = 900, expectedText = "") {
   return new Promise((resolve) => {
+    let finished = false;
+    const finish = (value) => {
+      if (finished) return;
+      finished = true;
+      resolve(value);
+    };
     const req = http.get(url, (res) => {
-      res.resume();
-      res.on("end", () => resolve(res.statusCode && res.statusCode >= 200 && res.statusCode < 500));
+      const successful = Boolean(res.statusCode && res.statusCode >= 200 && res.statusCode < 300);
+      if (!successful) {
+        res.resume();
+        res.on("end", () => finish(false));
+        return;
+      }
+      if (!expectedText) {
+        res.resume();
+        res.on("end", () => finish(true));
+        return;
+      }
+      let body = "";
+      res.setEncoding("utf8");
+      res.on("data", (chunk) => {
+        body += chunk;
+        if (body.includes(expectedText)) {
+          finish(true);
+          req.destroy();
+        } else if (body.length > 131_072) {
+          finish(false);
+          req.destroy();
+        }
+      });
+      res.on("end", () => finish(body.includes(expectedText)));
     });
-    req.on("error", () => resolve(false));
+    req.on("error", () => finish(false));
     req.setTimeout(timeoutMs, () => {
       req.destroy();
-      resolve(false);
+      finish(false);
     });
   });
 }
@@ -224,49 +846,217 @@ async function isBackendRunning(portNumber = activeBackendPort) {
   return requestUrl(`http://${backendHost}:${portNumber}/health`);
 }
 
+async function isBackendWebSocketRunning(portNumber = activeBackendPort) {
+  return new Promise((resolve) => {
+    const socket = net.connect({ host: backendHost, port: portNumber });
+    const key = crypto.randomBytes(16).toString("base64");
+    let response = "";
+    let settled = false;
+    const finish = (value) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      socket.destroy();
+      resolve(value);
+    };
+    const timer = setTimeout(() => finish(false), 2_000);
+    socket.once("connect", () => {
+      socket.write([
+        "GET /ws/stream HTTP/1.1",
+        `Host: ${backendHost}:${portNumber}`,
+        "Upgrade: websocket",
+        "Connection: Upgrade",
+        `Sec-WebSocket-Key: ${key}`,
+        "Sec-WebSocket-Version: 13",
+        "",
+        "",
+      ].join("\r\n"));
+    });
+    socket.on("data", (chunk) => {
+      response += chunk.toString("latin1");
+      if (response.includes("\r\n\r\n")) {
+        finish(/^HTTP\/1\.[01] 101\b/.test(response));
+      }
+    });
+    socket.once("error", () => finish(false));
+    socket.once("end", () => finish(/^HTTP\/1\.[01] 101\b/.test(response)));
+  });
+}
+
 async function selectBackendPort() {
   const candidates = [configuredBackendPort, 28102, 28000, 28001, 28002]
     .filter((value, index, arr) => Number.isFinite(value) && value > 0 && arr.indexOf(value) === index);
   for (const candidate of candidates) {
-    if (await isBackendRunning(candidate)) return { port: candidate, alreadyRunning: true };
+    if (!(await isBackendRunning(candidate))) continue;
+    if (await isBackendWebSocketRunning(candidate)) {
+      return { port: candidate, alreadyRunning: true };
+    }
+    console.warn(`Backend on port ${candidate} answers /health but failed the WebSocket handshake; it will not be reused.`);
   }
   for (const candidate of candidates) {
     if (!(await tcpPortOpen(backendHost, candidate))) return { port: candidate, alreadyRunning: false };
-    console.warn(`FastAPI backend port ${candidate} is occupied but did not answer /health; trying next port.`);
+    console.warn(`FastAPI backend port ${candidate} is occupied or stale; trying next port.`);
   }
   return { port: candidates[0] || configuredBackendPort, alreadyRunning: false };
 }
 
+async function stopExistingTermuxBackendProcesses(portNumber) {
+  if (!isTermux) return;
+
+  const signalMatchingBackends = (signalNumber) => {
+    const code = [
+      "import os, signal",
+      `sig = ${signalNumber}`,
+      "killed = []",
+      "for entry in os.listdir('/proc'):",
+      "    if not entry.isdigit():",
+      "        continue",
+      "    pid = int(entry)",
+      "    if pid == os.getpid():",
+      "        continue",
+      "    try:",
+      "        cmd = open(f'/proc/{pid}/cmdline', 'rb').read()",
+      "    except Exception:",
+      "        continue",
+      "    if b'uvicorn' not in cmd or b'python.uie_backend:app' not in cmd:",
+      "        continue",
+      "    try:",
+      "        os.kill(pid, sig)",
+      "        killed.append(pid)",
+      "    except (ProcessLookupError, PermissionError):",
+      "        pass",
+      "print(' '.join(map(str, killed)))",
+    ].join("\\n");
+    return runProot([PROOT_PYTHON, "-c", code], { bindApp: false });
+  };
+
+  const terminated = signalMatchingBackends(15);
+  const terminatedPids = String(terminated?.stdout || "").trim();
+  if (terminatedPids) {
+    console.log(`[backend] Restarting stale UIE backend process(es): ${terminatedPids}`);
+  }
+
+  const gracefulDeadline = Date.now() + 5_000;
+  while (Date.now() < gracefulDeadline) {
+    if (!(await isBackendRunning(portNumber))) return;
+    await wait(200);
+  }
+
+  signalMatchingBackends(9);
+  const forcedDeadline = Date.now() + 2_000;
+  while (Date.now() < forcedDeadline) {
+    if (!(await isBackendRunning(portNumber))) return;
+    await wait(100);
+  }
+
+  throw new Error(
+    `An older UIE backend is still occupying port ${portNumber}. Close the previous Termux session and launch UIE again.`,
+  );
+}
+
 async function startBackendIfNeeded() {
-  if (!shouldAutoStartBackend) return;
-  const selected = await selectBackendPort();
+  if (!shouldAutoStartBackend) {
+    backendStartupState = "disabled";
+    return false;
+  }
+  let selected = await selectBackendPort();
   activeBackendPort = selected.port;
   process.env.UIE_BACKEND_PORT = String(activeBackendPort);
+  if (selected.alreadyRunning && isTermux) {
+    // A backend that was started before an installer update keeps its old
+    // imports in memory. Restart it after dependency validation so newly
+    // installed transports such as websockets are actually loaded.
+    await stopExistingTermuxBackendProcesses(activeBackendPort);
+    selected = { port: activeBackendPort, alreadyRunning: false };
+  }
   if (selected.alreadyRunning) {
     console.log(`FastAPI audio/living backend already running: http://${backendHost}:${activeBackendPort}`);
-    return;
+    backendStartupState = "ready";
+    return true;
   }
-  backendProcess = spawn(pythonCmd, ["-m", "uvicorn", "python.uie_backend:app", "--host", backendHost, "--port", String(activeBackendPort)], {
-    cwd: rootDir,
-    stdio: "inherit",
-    shell: false,
-    windowsHide: true,
-  });
+  backendStartupState = "starting";
+  backendStartupError = "";
+
+  const pidFile = path.join(rootDir, "data", "backend.pid");
+  try {
+    const stalePidText = await fs.readFile(pidFile, "utf8");
+    const stalePid = Number.parseInt(stalePidText.trim(), 10);
+    if (Number.isFinite(stalePid)) {
+      try {
+        process.kill(stalePid, 0); // Check if running
+        console.log(`[backend] Stopping stale backend process (PID ${stalePid})...`);
+        process.kill(stalePid, "SIGTERM");
+        await wait(1000);
+        try {
+          process.kill(stalePid, 0);
+          process.kill(stalePid, "SIGKILL");
+        } catch (_) {}
+      } catch (_) {}
+    }
+  } catch (_) {}
+
+  if (isTermux) {
+    console.log(`Starting FastAPI audio/living backend inside PRoot Debian: http://${backendHost}:${activeBackendPort}`);
+    backendProcess = spawnProot([
+      PROOT_PYTHON,
+      "-m", "uvicorn", "python.uie_backend:app",
+      "--host", backendHost,
+      "--port", String(activeBackendPort),
+      "--ws", "wsproto",
+    ]);
+  } else {
+    console.log(`Starting FastAPI audio/living backend: http://${backendHost}:${activeBackendPort}`);
+    backendProcess = spawn(pythonCmd, ["-m", "uvicorn", "python.uie_backend:app", "--host", backendHost, "--port", String(activeBackendPort), "--ws", "wsproto"], {
+      cwd: rootDir,
+      stdio: "inherit",
+      shell: false,
+      windowsHide: true,
+    });
+  }
+
+  if (backendProcess && backendProcess.pid) {
+    await fs.mkdir(path.join(rootDir, "data"), { recursive: true });
+    await fs.writeFile(pidFile, String(backendProcess.pid));
+  }
   backendProcess.on("error", (err) => {
     console.warn(`[backend] failed to start: ${err.message}`);
+    backendStartupState = "error";
+    backendStartupError = err.message;
     backendProcess = null;
   });
   backendProcess.on("exit", (code, signal) => {
     if (signal) console.log(`[backend] stopped by ${signal}`);
     else if (code) console.log(`[backend] exited with ${code}`);
+    const wasReady = backendStartupState === "ready";
+    backendStartupState = "error";
+    backendStartupError = wasReady
+      ? `Backend stopped unexpectedly (code ${code ?? "unknown"}).`
+      : `Backend exited before it became ready (code ${code ?? "unknown"}).`;
     backendProcess = null;
   });
   console.log(`Starting FastAPI audio/living backend: http://${backendHost}:${activeBackendPort}`);
+  const timeoutMs = Math.max(5_000, Number(process.env.UIE_BACKEND_START_TIMEOUT_MS || 25_000));
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    if (await isBackendRunning(activeBackendPort) && await isBackendWebSocketRunning(activeBackendPort)) {
+      backendStartupState = "ready";
+      console.log(`FastAPI audio/living backend ready with WebSocket support: http://${backendHost}:${activeBackendPort}`);
+      return true;
+    }
+    if (backendStartupState === "error") throw new Error(backendStartupError || "FastAPI backend failed during startup.");
+    await wait(200);
+  }
+  backendStartupState = "error";
+  backendStartupError = `FastAPI backend did not pass HTTP and WebSocket readiness checks within ${Math.round(timeoutMs / 1000)} seconds.`;
+  stopBackend();
+  throw new Error(backendStartupError);
 }
 
 function stopBackend() {
   if (!backendProcess || backendProcess.killed) return;
   try { backendProcess.kill(); } catch (_) {}
+  const pidFile = path.join(rootDir, "data", "backend.pid");
+  fs.unlink(pidFile).catch(() => {});
 }
 
 async function isImageServiceRunning(p) {
@@ -289,16 +1079,25 @@ async function startImageServiceIfNeeded() {
     return;
   }
   console.log(`[image-service] Starting SDXS image service on port ${IMAGE_SERVICE_PORT}...`);
-  imageServiceProcess = spawn(
-    pythonCmd,
-    ["-m", "uvicorn", "python.image_service:app", "--host", "127.0.0.1", "--port", String(IMAGE_SERVICE_PORT)],
-    {
-      cwd: rootDir,
-      stdio: "inherit",
-      shell: false,
-      windowsHide: true,
-    }
-  );
+  if (isTermux) {
+    imageServiceProcess = spawnProot([
+      PROOT_PYTHON,
+      "-m", "uvicorn", "python.image_service:app",
+      "--host", "127.0.0.1",
+      "--port", String(IMAGE_SERVICE_PORT),
+    ]);
+  } else {
+    imageServiceProcess = spawn(
+      pythonCmd,
+      ["-m", "uvicorn", "python.image_service:app", "--host", "127.0.0.1", "--port", String(IMAGE_SERVICE_PORT)],
+      {
+        cwd: rootDir,
+        stdio: "inherit",
+        shell: false,
+        windowsHide: true,
+      }
+    );
+  }
   imageServiceProcess.on("error", (err) => {
     console.warn(`[image-service] failed to start: ${err.message}`);
     imageServiceProcess = null;
@@ -424,9 +1223,36 @@ const handleProxyRequest = async (req, res, targetUrl, method, headers, body) =>
     const arrayBuffer = await response.arrayBuffer();
     res.end(Buffer.from(arrayBuffer));
   } catch (err) {
+    const causeMsg = err.cause ? ` (cause: ${err.cause.message || err.cause})` : "";
     console.error(`[Proxy Error] Failed to proxy to ${targetUrl}:`, err);
-    res.writeHead(502, { "Content-Type": "text/plain; charset=utf-8", "Access-Control-Allow-Origin": "*" });
-    res.end(`Proxy error: ${err.message}`);
+    if (err.cause?.code === "ECONNREFUSED") {
+      try {
+        const u = new URL(targetUrl);
+        if (u.port === String(activeBackendPort) || u.port === String(IMAGE_SERVICE_PORT)) {
+          console.warn(`[Proxy Warning] Connection was refused to local service on port ${u.port}. Is the backend uvicorn process running?`);
+        }
+      } catch (_) {}
+    }
+    let isBackendTarget = false;
+    try {
+      const failed = new URL(targetUrl);
+      isBackendTarget = failed.hostname === backendHost && failed.port === String(activeBackendPort);
+    } catch (_) {}
+    const status = isBackendTarget ? 503 : 502;
+    res.writeHead(status, {
+      "Content-Type": "application/json; charset=utf-8",
+      "Cache-Control": "no-store",
+      "Access-Control-Allow-Origin": "*",
+      "Retry-After": isBackendTarget ? "2" : "0"
+    });
+    res.end(JSON.stringify({
+      ok: false,
+      service: isBackendTarget ? "uie-backend" : "proxy",
+      status: isBackendTarget ? backendStartupState : "error",
+      error: isBackendTarget
+        ? (backendStartupError || "The local backend is not ready.")
+        : `Proxy error: ${err.message}${causeMsg}`
+    }));
   }
 };
 
@@ -492,6 +1318,24 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // Stable same-origin sidecar routes. These keep browser clients working when the
+  // UI is accessed from another device or mounted behind an HTTPS reverse proxy.
+  if (reqUrl === "/api/backend" || reqUrl.startsWith("/api/backend/")) {
+    const suffix = reqUrl.slice("/api/backend".length) || "/";
+    const targetUrl = `http://${backendHost}:${activeBackendPort}${suffix}${parsedUrl.search}`;
+    const body = req.method === "GET" || req.method === "HEAD" ? null : await readBody(req);
+    await handleProxyRequest(req, res, targetUrl, req.method || "GET", req.headers, body);
+    return;
+  }
+
+  if (reqUrl === "/api/image-service" || reqUrl.startsWith("/api/image-service/")) {
+    const suffix = reqUrl.slice("/api/image-service".length) || "/";
+    const targetUrl = `http://127.0.0.1:${IMAGE_SERVICE_PORT}${suffix}${parsedUrl.search}`;
+    const body = req.method === "GET" || req.method === "HEAD" ? null : await readBody(req);
+    await handleProxyRequest(req, res, targetUrl, req.method || "GET", req.headers, body);
+    return;
+  }
+
   if (req.method === "GET" && reqUrl === "/api/sprites/get") {
     const sprites = await listCharacterSprites(parsedUrl.searchParams.get("name"));
     res.writeHead(200, {
@@ -504,7 +1348,7 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (req.method === "GET" && reqUrl === "/api/backend-info") {
-    const backendUrl = `http://${backendHost}:${activeBackendPort}`;
+    const backendUrl = "./api/backend";
     res.writeHead(200, {
       "Content-Type": "application/json; charset=utf-8",
       "Cache-Control": "no-store",
@@ -513,7 +1357,11 @@ const server = http.createServer(async (req, res) => {
     res.end(JSON.stringify({
       port: activeBackendPort,
       url: backendUrl,
+      internalUrl: `http://${backendHost}:${activeBackendPort}`,
       host: backendHost,
+      enabled: shouldAutoStartBackend,
+      status: backendStartupState,
+      error: backendStartupError,
       isRunning: await isBackendRunning(activeBackendPort)
     }));
     return;
@@ -809,15 +1657,72 @@ const server = http.createServer(async (req, res) => {
   await sendFile(req, res, safePath);
 });
 
+server.on("upgrade", (req, socket, head) => {
+  let parsedUrl;
+  try {
+    parsedUrl = new URL(req.url || "/", `http://${req.headers.host || "localhost"}`);
+  } catch (_) {
+    socket.end("HTTP/1.1 400 Bad Request\r\nConnection: close\r\n\r\n");
+    return;
+  }
+
+  const prefix = "/api/backend";
+  if (parsedUrl.pathname !== prefix && !parsedUrl.pathname.startsWith(`${prefix}/`)) {
+    socket.end("HTTP/1.1 404 Not Found\r\nConnection: close\r\n\r\n");
+    return;
+  }
+
+  const upstreamPath = `${parsedUrl.pathname.slice(prefix.length) || "/"}${parsedUrl.search}`;
+  const upstream = net.connect({ host: backendHost, port: activeBackendPort });
+  let connected = false;
+
+  const fail = () => {
+    if (!socket.destroyed) {
+      socket.end("HTTP/1.1 502 Bad Gateway\r\nConnection: close\r\n\r\n");
+    }
+    if (!upstream.destroyed) upstream.destroy();
+  };
+
+  upstream.once("connect", () => {
+    connected = true;
+    const headerLines = [];
+    for (let index = 0; index < req.rawHeaders.length; index += 2) {
+      const name = req.rawHeaders[index];
+      const value = req.rawHeaders[index + 1];
+      if (String(name).toLowerCase() === "host") {
+        headerLines.push(`Host: ${backendHost}:${activeBackendPort}`);
+      } else if (String(name).toLowerCase() !== "proxy-connection") {
+        headerLines.push(`${name}: ${value}`);
+      }
+    }
+    upstream.write(`${req.method || "GET"} ${upstreamPath} HTTP/${req.httpVersion}\r\n${headerLines.join("\r\n")}\r\n\r\n`);
+    if (head?.length) upstream.write(head);
+    socket.pipe(upstream);
+    upstream.pipe(socket);
+  });
+
+  upstream.once("error", fail);
+  socket.once("error", () => {
+    if (!upstream.destroyed) upstream.destroy();
+  });
+  socket.once("close", () => {
+    if (!connected && !upstream.destroyed) upstream.destroy();
+  });
+});
+
 server.on("error", (err) => {
   if (err?.code === "EADDRINUSE") {
     void (async () => {
-      const existingUi = await requestUrl(`http://127.0.0.1:${port}/game.html`, 700)
-        || await requestUrl(`http://localhost:${port}/game.html`, 700);
+      const existingUi = await requestUrl(`http://127.0.0.1:${port}/game.html`, 1200, "<title>UIE: Fugue</title>")
+        || await requestUrl(`http://localhost:${port}/game.html`, 1200, "<title>UIE: Fugue</title>");
       if (existingUi) {
         console.log(`UIE is already running on port ${port}.`);
         console.log(`Open: http://localhost:${port}/game.html`);
-        process.exit(0);
+        openLocalBrowser(`http://localhost:${port}/game.html`);
+        // npm treats every non-zero exit as a startup failure. Its start script
+        // opts into a successful no-op when this exact UIE server is already
+        // healthy; the Windows launcher keeps exit 3 for its existing contract.
+        process.exit(reuseExistingServer ? 0 : 3);
         return;
       }
       console.error(`UIE server cannot start: ${host}:${port} is already in use by another app.`);
@@ -835,6 +1740,30 @@ server.on("error", (err) => {
   process.exit(1);
 });
 
+try {
+  await prepareBackendVenv();
+} catch (err) {
+  console.error(`[backend] ${err?.message || err}`);
+  console.error("Starting the frontend in offline/procedural mode; resolve the backend error to restore FastAPI features.");
+  shouldAutoStartBackend = false;
+  shouldAutoStartImageService = false;
+}
+
+if (args.includes("--prepare-only")) {
+  if (!shouldAutoStartBackend) process.exit(1);
+  console.log("[backend] .venv setup and dependency validation completed successfully.");
+  process.exit(0);
+}
+
+try {
+  await startBackendIfNeeded();
+} catch (err) {
+  backendStartupState = "error";
+  backendStartupError = String(err?.message || err || "Backend startup failed.");
+  console.error(`[backend] ${backendStartupError}`);
+  console.error("The browser will show this backend failure on the loading screen instead of silently opening a partially working game.");
+}
+
 server.listen(port, host, () => {
   const localUrl = `http://localhost:${port}/game.html`;
   console.log("UIE local server is running.");
@@ -851,7 +1780,7 @@ server.listen(port, host, () => {
     console.log("LAN: no non-loopback IPv4 found; other devices may still reach this host via its IP.");
   }
   console.log("Press Ctrl+C to stop.");
-  void startBackendIfNeeded();
+  openLocalBrowser(localUrl);
   void startImageServiceIfNeeded();
 });
 

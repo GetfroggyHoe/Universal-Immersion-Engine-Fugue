@@ -1,4 +1,5 @@
 import { getSettings, saveSettings } from "../core.js";
+import { recoverElementToViewport } from "../viewportSafe.js";
 import { notify } from "../notifications.js";
 import { injectRpEvent } from "./rp_log.js";
 
@@ -182,6 +183,43 @@ export function initQuickBag() {
            renderQuickBag();
        });
 
+    doc.off("pointerdown.uieQbMove", ".quick-bag-header")
+       .on("pointerdown.uieQbMove", ".quick-bag-header", function(e) {
+           if ($(e.target).closest("button").length) return;
+           const overlay = document.getElementById("uie-quick-bag-overlay");
+           if (!overlay) return;
+           const start = overlay.getBoundingClientRect();
+           const offsetX = e.clientX - start.left;
+           const offsetY = e.clientY - start.top;
+           const pointerId = e.originalEvent?.pointerId;
+           try { this.setPointerCapture(pointerId); } catch (_) {}
+
+           const move = (event) => {
+               const width = overlay.offsetWidth || start.width;
+               const height = overlay.offsetHeight || start.height;
+               const left = Math.max(8, Math.min(window.innerWidth - width - 8, event.clientX - offsetX));
+               const top = Math.max(8, Math.min(window.innerHeight - height - 8, event.clientY - offsetY));
+               overlay.style.left = `${left}px`;
+               overlay.style.top = `${top}px`;
+               overlay.style.right = "auto";
+               overlay.style.bottom = "auto";
+           };
+           const end = () => {
+               window.removeEventListener("pointermove", move);
+               window.removeEventListener("pointerup", end);
+               window.removeEventListener("pointercancel", end);
+               const rect = overlay.getBoundingClientRect();
+               const s = getSettings();
+               s.ui = s.ui || {};
+               s.ui.quickBagPosition = { left: Math.round(rect.left), top: Math.round(rect.top) };
+               saveSettings();
+           };
+           window.addEventListener("pointermove", move);
+           window.addEventListener("pointerup", end, { once: true });
+           window.addEventListener("pointercancel", end, { once: true });
+           e.preventDefault();
+       });
+
     doc.off("pointerenter.uieQbDragMark mouseenter.uieQbDragMark", "#uie-items-grid-inner .uie-item, #uie-view-items .uie-item, .uie-skill-card")
        .on("pointerenter.uieQbDragMark mouseenter.uieQbDragMark", "#uie-items-grid-inner .uie-item, #uie-view-items .uie-item, .uie-skill-card", function() {
            $(this).attr("draggable", "true");
@@ -233,32 +271,55 @@ export function initQuickBag() {
 }
 
 function ensureQuickBagLauncher() {
+    const s = getSettings();
+    const defaultIcon = "https://user.uploads.dev/file/d0ab82cdfafc169c41c8ff7be6932710.png";
+    const configuredIcon = String(s?.launcher?.src || s?.launcherIcon || "").trim();
+    const iconSrc = configuredIcon && configuredIcon !== "custom" ? configuredIcon : defaultIcon;
     let launcher = document.getElementById("uie-launcher");
     if (!launcher) {
         launcher = document.createElement("button");
         launcher.id = "uie-launcher";
         launcher.type = "button";
-        launcher.title = "Open QuickBag";
-        launcher.setAttribute("aria-label", "Open QuickBag");
-        launcher.innerHTML = '<i class="fa-solid fa-bag-shopping" aria-hidden="true"></i>';
         document.body.appendChild(launcher);
     }
-    launcher.style.display = getSettings()?.ui?.quickBagHidden === true ? "none" : "grid";
-    $(launcher).off("click.uieQbLauncher").on("click.uieQbLauncher", (e) => {
+    launcher.title = "Open QuickBag";
+    launcher.setAttribute("aria-label", "Open QuickBag");
+
+    // QuickBag can initialize before the launcher template. Always hydrate the
+    // launcher from the user's saved image so that race never leaves a generic
+    // square Font Awesome fallback in place.
+    let image = launcher.querySelector(".uie-launcher-img");
+    if (!image) {
+        launcher.replaceChildren();
+        image = document.createElement("div");
+        image.className = "uie-launcher-img";
+        launcher.appendChild(image);
+    }
+    image.style.backgroundImage = `url(${JSON.stringify(iconSrc)})`;
+    image.style.backgroundPosition = "center";
+    image.style.backgroundRepeat = "no-repeat";
+    image.style.backgroundSize = "contain";
+
+    const hidden = s?.launcher?.hidden === true || s?.ui?.quickBagHidden === true;
+    launcher.style.display = hidden ? "none" : "flex";
+    $(launcher).off("click.uieLauncher").on("click.uieLauncher", (e) => {
         e.preventDefault();
         e.stopPropagation();
         toggleQuickBag();
     });
 }
 
-export function toggleQuickBagVisibility() {
+export function toggleQuickBagVisibility(forceVisible = null) {
     initQuickBag();
     const s = getSettings();
     s.ui = s.ui || {};
-    s.ui.quickBagHidden = s.ui.quickBagHidden !== true;
+    s.ui.quickBagHidden = forceVisible == null ? s.ui.quickBagHidden !== true : !forceVisible;
     saveSettings();
     const launcher = document.getElementById("uie-launcher");
-    if (launcher) launcher.style.display = s.ui.quickBagHidden ? "none" : "grid";
+    if (launcher) {
+        launcher.style.display = s.ui.quickBagHidden ? "none" : "flex";
+        if (!s.ui.quickBagHidden) requestAnimationFrame(() => recoverElementToViewport(launcher, { anchor: "bottom-left", margin: 18, reset: true }));
+    }
     if (s.ui.quickBagHidden) hideQuickBag();
     return !s.ui.quickBagHidden;
 }
@@ -288,6 +349,19 @@ export function showQuickBag() {
     const visualViewport = window.visualViewport;
     const viewportWidth = visualViewport?.width || window.innerWidth;
     const viewportHeight = visualViewport?.height || window.innerHeight;
+    const savedPosition = getSettings()?.ui?.quickBagPosition;
+    if (savedPosition && Number.isFinite(Number(savedPosition.left)) && Number.isFinite(Number(savedPosition.top))) {
+        const panelWidth = overlay.offsetWidth || 270;
+        const panelHeight = overlay.offsetHeight || 410;
+        recoverElementToViewport(overlay, { left: savedPosition.left, top: savedPosition.top, anchor: "bottom-left", margin: 8 });
+        overlay.style.right = "auto";
+        overlay.style.bottom = "auto";
+        overlay.style.width = "270px";
+        overlay.style.maxHeight = "min(68dvh, 410px)";
+        overlay.style.pointerEvents = "auto";
+        overlay.classList.add("active");
+        return;
+    }
     const landscape = viewportWidth > viewportHeight;
     if (landscape) {
         // Root landscape layout owns this panel's region. Do not anchor it to
@@ -296,7 +370,7 @@ export function showQuickBag() {
         overlay.style.top = "var(--ui-top-safe)";
         overlay.style.right = "auto";
         overlay.style.bottom = "auto";
-        overlay.style.width = "clamp(330px, 35vw, 500px)";
+        overlay.style.width = "270px";
         overlay.style.maxHeight = "calc(100% - var(--ui-top-safe) - var(--desktop-nav-reserved-height) - var(--ui-bottom-gap))";
         overlay.style.pointerEvents = "auto";
         overlay.classList.add("active");
@@ -305,11 +379,11 @@ export function showQuickBag() {
 
     if (window.matchMedia?.("(max-width: 640px)")?.matches || window.innerWidth <= 640) {
         overlay.style.left = "10px";
-        overlay.style.right = "10px";
-        overlay.style.top = "auto";
-        overlay.style.bottom = "calc(10px + env(safe-area-inset-bottom))";
-        overlay.style.width = "auto";
-        overlay.style.maxHeight = "min(70dvh, 480px)";
+        overlay.style.right = "auto";
+        overlay.style.top = "10px";
+        overlay.style.bottom = "auto";
+        overlay.style.width = "min(270px, calc(100vw - 20px))";
+        overlay.style.maxHeight = "min(68dvh, 410px)";
         overlay.style.pointerEvents = "auto";
         overlay.classList.add("active");
         return;
@@ -333,7 +407,7 @@ export function showQuickBag() {
         let top = lRect.top - panelH - 10;
 
         if (left < 10) left = 10;
-        if (left + 300 > vw) left = vw - 310;
+        if (left + 270 > vw) left = vw - 280;
         
         if (top < 10) {
             top = lRect.bottom + 10;
@@ -347,8 +421,8 @@ export function showQuickBag() {
     } else {
         const vw = window.innerWidth;
         const vh = window.innerHeight;
-        overlay.style.left = `${Math.max(10, (vw - 300) / 2)}px`;
-        overlay.style.top = `${Math.max(10, (vh - 380) / 2)}px`;
+        overlay.style.left = `${Math.max(10, (vw - 270) / 2)}px`;
+        overlay.style.top = `${Math.max(10, (vh - 410) / 2)}px`;
     }
 
     overlay.classList.add("active");
@@ -358,6 +432,10 @@ export function hideQuickBag() {
     const overlay = document.getElementById("uie-quick-bag-overlay");
     if (overlay) {
         overlay.classList.remove("active");
+        // showQuickBag() uses an inline pointer-events override so the floating
+        // panel can sit above managed modals. Clear it when hidden; otherwise
+        // the transparent panel keeps swallowing mobile taps and map drags.
+        overlay.style.pointerEvents = "none";
     }
     $("#uie-quick-bag-options").remove();
 }

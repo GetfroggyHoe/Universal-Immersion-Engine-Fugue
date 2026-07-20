@@ -1,4 +1,4 @@
-<div id="uie-factions-window" data-uie-factions-template="organizations-v2" style="display:none;">
+<div id="uie-factions-window" data-uie-factions-template="workspace-v5" style="display:none;">
   <style>
     #uie-factions-window {
       position: fixed !important;
@@ -1039,7 +1039,100 @@
       .uie-org-template-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .uie-org-intel-toolbar { padding: 6px 10px; }
     }
-  </style>
+
+    /* Full-screen organization workspace should use the full canvas. */
+    #uie-factions-window {
+      width: 100vw !important;
+      height: 100dvh !important;
+      max-width: none !important;
+      max-height: none !important;
+      border: 0 !important;
+      border-radius: 0 !important;
+    }
+    #uie-factions-window .uie-org-shell {
+      width: 100%;
+      height: 100%;
+      padding: clamp(12px,2vw,28px);
+      gap: clamp(10px,1.4vw,20px);
+    }
+    #uie-factions-window .uie-org-board {
+      grid-template-columns: clamp(150px,13vw,210px) clamp(390px,34vw,540px) minmax(0,1fr);
+      width:100%;
+      height:100%;
+      min-height:0;
+    }
+    #uie-factions-window .uie-org-directory,
+    #uie-factions-window .uie-org-stage,
+    #uie-factions-window #uie-organization-list,
+    #uie-factions-window .uie-org-stage-scrollable {
+      min-height:0;
+    }
+    #uie-factions-window .uie-org-intel-toolbar {
+      flex-wrap:wrap;
+      overflow:visible;
+    }
+    @media not all {
+      #uie-factions-window .uie-org-shell { padding:10px; }
+      #uie-factions-window .uie-org-top { min-height:58px; }
+      #uie-factions-window .uie-org-heading h2 { font-size:clamp(24px,5vw,34px); }
+      #uie-factions-window .uie-org-heading p { display:none; }
+      #uie-factions-window .uie-org-sigil { width:46px;height:46px; }
+      #uie-factions-window .uie-org-board {
+        grid-template-columns:112px minmax(240px,34vw) minmax(0,1fr);
+        gap:10px;
+      }
+    }
+  
+
+/* UIE_TERMUX_V2_ORGANIZATIONS_LANDSCAPE */
+@media (pointer: coarse) and (orientation: landscape) {
+  #uie-factions-window { font-size: 12px !important; }
+  #uie-factions-window .uie-org-shell {
+    padding: clamp(7px, 1.8dvh, 12px) !important;
+    gap: clamp(6px, 1.4dvh, 10px) !important;
+  }
+  #uie-factions-window .uie-org-top { min-height: 46px !important; gap: 8px !important; }
+  #uie-factions-window .uie-org-sigil { width: 38px !important; height: 38px !important; }
+  #uie-factions-window .uie-org-heading h2 {
+    font-size: clamp(20px, 5dvh, 28px) !important;
+    line-height: 1 !important;
+  }
+  #uie-factions-window .uie-org-heading p {
+    margin-top: 3px !important;
+    font-size: clamp(9px, 2.2dvh, 11px) !important;
+    line-height: 1.2 !important;
+  }
+  #uie-factions-window .uie-org-board {
+    grid-template-columns: clamp(150px, 25vw, 220px) minmax(0, 1fr) !important;
+    gap: 8px !important;
+  }
+  #uie-factions-window .uie-org-panel-head {
+    min-height: 34px !important;
+    padding: 7px 9px !important;
+    font-size: 9px !important;
+  }
+  #uie-factions-window .uie-org-btn {
+    min-height: 30px !important;
+    padding: 0 9px !important;
+    gap: 5px !important;
+    font-size: 10px !important;
+  }
+  #uie-factions-window .uie-org-stage { padding: 10px !important; gap: 8px !important; }
+  #uie-factions-window .uie-org-constellation { min-height: 100px !important; }
+  #uie-factions-window .uie-org-stage-copy { padding: 10px !important; }
+  #uie-factions-window .uie-org-stage-copy h3 { font-size: clamp(17px, 4dvh, 23px) !important; }
+  #uie-factions-window .uie-org-stage-copy p {
+    margin-top: 5px !important;
+    font-size: 10px !important;
+    line-height: 1.3 !important;
+  }
+  #uie-factions-window .uie-org-snapshot { gap: 6px !important; }
+  #uie-factions-window .uie-org-stat { min-height: 58px !important; padding: 8px !important; }
+  #uie-factions-window .uie-org-stat span { font-size: 8px !important; }
+  #uie-factions-window .uie-org-stat b { margin-top: 4px !important; font-size: 14px !important; }
+}
+
+</style>
 
   <div class="uie-org-shell">
     <header class="uie-org-top">

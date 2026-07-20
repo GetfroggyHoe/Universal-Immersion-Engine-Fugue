@@ -1,5 +1,11 @@
 function getDefaultBackendUrl() {
-    return `http://${typeof window !== "undefined" && window.location ? window.location.hostname : "127.0.0.1"}:28101`;
+    const base = typeof window !== "undefined" ? String(window.UIE_BASEURL || "./").trim() : "./";
+    return `${base.replace(/\/?$/, "/")}api/backend`;
+}
+
+function getBackendInfoUrl() {
+    const base = typeof window !== "undefined" ? String(window.UIE_BASEURL || "./").trim() : "./";
+    return `${base.replace(/\/?$/, "/")}api/backend-info`;
 }
 const DEFAULT_SCAN_PORTS = [28101, 28102, 28000, 28001, 28002];
 const DEFAULT_TIMEOUT_MS = 1200;
@@ -37,18 +43,25 @@ function yieldToFrame() {
 
 function isLocalBackendUrl(rawUrl) {
     try {
-        const u = new URL(String(rawUrl || ""));
+        const pageUrl = typeof window !== "undefined" && window.location ? window.location.href : "http://127.0.0.1/";
+        const u = new URL(String(rawUrl || ""), pageUrl);
+        const page = new URL(pageUrl);
         return (u.protocol === "http:" || u.protocol === "https:")
-            && ["127.0.0.1", "localhost", "[::1]"].includes(u.hostname);
+            && (u.origin === page.origin || ["127.0.0.1", "localhost", "[::1]"].includes(u.hostname));
     } catch (_) {
         return false;
     }
 }
 
 function normalizeBaseUrl(rawUrl) {
-    const url = String(rawUrl || "").trim().replace(/\/+$/, "");
-    if (!url || !isLocalBackendUrl(url)) return "";
-    return url;
+    const raw = String(rawUrl || "").trim();
+    if (!raw || !isLocalBackendUrl(raw)) return "";
+    try {
+        const pageUrl = typeof window !== "undefined" && window.location ? window.location.href : "http://127.0.0.1/";
+        return new URL(raw, pageUrl).toString().replace(/\/+$/, "");
+    } catch (_) {
+        return "";
+    }
 }
 
 function authHeaders(connection) {
@@ -89,8 +102,19 @@ function candidateConnections(seedConnection = null) {
         });
     }
 
-    out.push({ baseUrl: getDefaultBackendUrl(), token: "", source: "default" });
-    for (const port of DEFAULT_SCAN_PORTS) out.push({ baseUrl: `http://127.0.0.1:${port}`, token: "", port, source: "scan" });
+    out.push({ baseUrl: getDefaultBackendUrl(), token: "", source: "same-origin-proxy" });
+    let mayScanLoopback = false;
+    try {
+        const host = String(window.location?.hostname || "").toLowerCase();
+        mayScanLoopback = window.location?.protocol === "file:"
+            || ["localhost", "127.0.0.1", "0.0.0.0", "::1", "[::1]"].includes(host);
+    } catch (_) {}
+    // A browser opened through LAN/HTTPS/reverse proxy must never be redirected
+    // to its own 127.0.0.1. The stable same-origin /api/backend route above is
+    // the correct route for those deployments.
+    if (mayScanLoopback) {
+        for (const port of DEFAULT_SCAN_PORTS) out.push({ baseUrl: `http://127.0.0.1:${port}`, token: "", port, source: "scan" });
+    }
 
     const seen = new Set();
     return out.filter((candidate) => {
@@ -115,6 +139,34 @@ function missingPathsFromOpenApi(openapi = {}) {
 export async function pingBackend(connection, { timeoutMs = DEFAULT_TIMEOUT_MS } = {}) {
     const baseUrl = normalizeBaseUrl(connection?.baseUrl);
     if (!baseUrl) return null;
+
+    if (typeof window !== "undefined" && baseUrl.endsWith("/api/backend")) {
+        try {
+            const now = Date.now();
+            let isRunning = false;
+            if (window.__uieCachedBackendInfo && (now - (window.__uieCachedBackendInfoTime || 0) < 5000)) {
+                isRunning = window.__uieCachedBackendInfo.isRunning;
+            } else {
+                const infoRes = await fetch(getBackendInfoUrl(), {
+                    method: "GET",
+                    cache: "no-store",
+                    signal: createAbortController(timeoutMs).signal
+                });
+                if (infoRes.ok) {
+                    const info = await infoRes.json().catch(() => ({}));
+                    window.__uieCachedBackendInfo = info;
+                    window.__uieCachedBackendInfoTime = now;
+                    isRunning = info?.isRunning;
+                }
+            }
+            if (!isRunning) {
+                return null;
+            }
+        } catch (_) {
+            return null;
+        }
+    }
+
     const abort = createAbortController(timeoutMs);
     try {
         const res = await fetch(`${baseUrl}/health`, {
@@ -172,7 +224,7 @@ export async function verifyBackendCapabilities(connection, { timeoutMs = DEFAUL
 
 export async function discoverBackend({ timeoutMs = DEFAULT_TIMEOUT_MS } = {}) {
     try {
-        const infoRes = await fetch("/api/backend-info", {
+        const infoRes = await fetch(getBackendInfoUrl(), {
             method: "GET",
             cache: "no-store",
             signal: createAbortController(timeoutMs).signal
@@ -444,6 +496,34 @@ export async function syncMap(payload = {}, options = {}) {
     });
 }
 
+export async function generateMapLocation(payload = {}, options = {}) {
+    logMapPayload("generate-location", payload);
+    return backendJson("/map/generate-location", { method: "POST", json: payload, timeoutMs: 22000, ...options });
+}
+
+export async function generateMapWorld(payload = {}, options = {}) {
+    logMapPayload("generate-world", payload);
+    return backendJson("/map/generate-world", { method: "POST", json: payload, timeoutMs: 30000, ...options });
+}
+
+export async function scanMapLocations(payload = {}, options = {}) {
+    logMapPayload("scan-locations", payload);
+    return backendJson("/map/scan-locations", { method: "POST", json: payload, timeoutMs: 22000, ...options });
+}
+
+function logMapPayload(operation, payload) {
+    try {
+        const text = JSON.stringify(payload || {});
+        const context = payload?.context || {};
+        console.debug("[map-diagnostic]", {
+            operation, route: `/map/${operation}`, topLevelFields: Object.keys(payload || {}),
+            inboundBytes: new TextEncoder().encode(text).byteLength,
+            contextBytes: new TextEncoder().encode(JSON.stringify(context)).byteLength,
+            loreCount: Array.isArray(context.lore) ? context.lore.length : 0,
+        });
+    } catch (_) {}
+}
+
 export async function getMapPlacements(location = "", options = {}) {
     const suffix = location ? `?location=${encodeURIComponent(location)}` : "";
     return backendJson(`/map/placements${suffix}`, options);
@@ -565,10 +645,12 @@ export async function textPhone(payload, options = {}) {
     });
 }
 
-function toWebSocketUrl(connection, path = "/ws/stream") {
+export function toWebSocketUrl(connection, path = "/ws/stream") {
     const base = new URL(connection.baseUrl);
     base.protocol = base.protocol === "https:" ? "wss:" : "ws:";
-    base.pathname = path;
+    const basePath = base.pathname.replace(/\/+$/, "");
+    const socketPath = String(path || "/ws/stream").replace(/^\/+/, "");
+    base.pathname = `${basePath}/${socketPath}`.replace(/\/{2,}/g, "/");
     base.search = "";
     if (connection.token) base.searchParams.set("token", connection.token);
     return base.toString();
@@ -648,10 +730,10 @@ export async function sendInstavibeEvent(capsule = {}) {
     });
 }
 
-export async function createSocialPost(author, content, tag = "Cozy", tone = "Neutral") {
+export async function createSocialPost(author, content, tag = "Cozy", tone = "Neutral", mentions = []) {
     return backendJson("/social/posts", {
         method: "POST",
-        body: JSON.stringify({ author, content, tag, tone })
+        body: JSON.stringify({ author, content, tag, tone, mentions: Array.isArray(mentions) ? mentions : [] })
     });
 }
 

@@ -1,0 +1,19 @@
+# Core backend and VoiceBridge runtime used by the standard launcher.
+# Termux installs these inside the dedicated Debian PRoot venv, never against
+# Android's native Python ABI.
+fastapi>=0.115,<1
+uvicorn[standard]>=0.30,<1
+pydantic>=2.7,<3
+websockets>=12,<16
+wsproto>=1.2,<2
+
+# Pocket TTS / VoiceBridge runtime
+numpy>=1.26,<3
+scipy>=1.11,<2
+onnxruntime>=1.16,<2
+sentencepiece>=0.2,<1
+soundfile>=0.12,<1
+safetensors>=0.4,<1
+
+# Kokoro is installed automatically when its bundled model assets are present.
+kokoro-onnx>=0.5,<1

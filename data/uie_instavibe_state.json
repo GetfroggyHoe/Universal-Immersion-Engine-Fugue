@@ -1,0 +1,30 @@
+{
+  "enabled": false,
+  "sort_mode": "for_you",
+  "trend_tag": "Money",
+  "trend_updated_at": 1784225788923.247,
+  "last_tick_at": 1784225788923.247,
+  "followers": 12,
+  "influence": 0.12,
+  "reputation": 0.58,
+  "shadowban_risk": 0.0,
+  "queued_count": 0,
+  "notifications": [
+    {
+      "id": "insta_notif_1784225788961_58",
+      "app": "Instavibe",
+      "sender": "Smoke Jun",
+      "preview_text": "Today's task list is looking at me like it wants a duel.",
+      "timestamp": "2026-07-16T18:16:28.961637+00:00",
+      "priority": "high"
+    },
+    {
+      "id": "insta_notif_1784225788959_76",
+      "app": "Instavibe",
+      "sender": "Smoke Mira",
+      "preview_text": "Budget survived the morning. That counts as a win.",
+      "timestamp": "2026-07-16T18:16:28.959145+00:00",
+      "priority": "high"
+    }
+  ]
+}

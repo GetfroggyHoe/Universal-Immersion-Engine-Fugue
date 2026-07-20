@@ -64,7 +64,111 @@ export function ensureTaxJailState(s = getSettings()) {
         s.primaryHome.bills = [];
     }
 
+    // 6. Central bill register. Legacy home bills remain mirrored for older UI,
+    // while every bill type is managed from one place.
+    if (!s.billing || typeof s.billing !== "object") {
+        s.billing = { bills: [], cycleDays: 30, lastGeneratedDay: Number(s.playerRoom?.day || 1) };
+    }
+    if (!Array.isArray(s.billing.bills)) s.billing.bills = [];
+    if (!Number.isFinite(Number(s.billing.cycleDays))) s.billing.cycleDays = 30;
+    if (!Number.isFinite(Number(s.billing.lastGeneratedDay))) s.billing.lastGeneratedDay = Number(s.playerRoom?.day || 1);
+    for (const legacy of s.primaryHome.bills) {
+        if (!legacy?.id || s.billing.bills.some((bill) => bill.id === legacy.id)) continue;
+        s.billing.bills.push({ ...legacy, category: legacy.category || "home", source: legacy.source || s.primaryHome.name || "Primary Home" });
+    }
+
     return s;
+}
+
+function addRecurringBill(s, bill) {
+    const cycleKey = String(bill.cycleKey || "");
+    if (cycleKey && s.billing.bills.some((existing) => String(existing.cycleKey || "") === cycleKey)) return null;
+    const next = {
+        id: bill.id || `bill_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+        name: String(bill.name || "Bill"),
+        amount: Math.max(0, Math.round(Number(bill.amount || 0))),
+        dueDay: Math.max(1, Number(bill.dueDay || 1)),
+        status: "unpaid",
+        category: String(bill.category || "general"),
+        source: String(bill.source || ""),
+        cycleKey,
+        createdAt: Date.now(),
+    };
+    s.billing.bills.push(next);
+    if (next.category === "home" && !s.primaryHome.bills.some((legacy) => legacy.id === next.id)) {
+        s.primaryHome.bills.push(next);
+    }
+    return next;
+}
+
+function ownedAssets(s) {
+    const pools = [s.inventory?.assets, s.assets, s.ownedAssets, s.phone?.bank?.assets];
+    const out = [];
+    for (const pool of pools) {
+        if (Array.isArray(pool)) out.push(...pool);
+        else if (pool && typeof pool === "object") out.push(...Object.values(pool));
+    }
+    return out.filter((asset) => asset && typeof asset === "object");
+}
+
+function assetBillProfile(asset) {
+    const label = String(asset.name || asset.title || asset.type || asset.category || "Asset").trim();
+    const hay = `${label} ${asset.type || ""} ${asset.category || ""}`.toLowerCase();
+    const value = Math.max(0, Number(asset.value || asset.price || asset.worth || 0));
+    if (/(car|truck|vehicle|motorcycle|bike|van)/.test(hay)) {
+        return { name: `${label} insurance & registration`, amount: Math.max(18, Math.round(value * 0.012)), category: "vehicle" };
+    }
+    if (/(house|home|apartment|property|land|estate|condo)/.test(hay)) {
+        return { name: `${label} property tax / upkeep`, amount: Math.max(35, Math.round(value * 0.009)), category: "property" };
+    }
+    if (/(boat|ship|yacht)/.test(hay)) {
+        return { name: `${label} mooring & insurance`, amount: Math.max(24, Math.round(value * 0.011)), category: "vehicle" };
+    }
+    if (/(aircraft|plane|jet|spacecraft|starship)/.test(hay)) {
+        return { name: `${label} hangar & registration`, amount: Math.max(45, Math.round(value * 0.014)), category: "vehicle" };
+    }
+    if (/(business|shop|store|company|farm)/.test(hay)) {
+        return { name: `${label} license & operating costs`, amount: Math.max(30, Math.round(value * 0.01)), category: "business" };
+    }
+    return null;
+}
+
+function generateBillingCycle(s, simulatedDay) {
+    const cycle = Math.floor(simulatedDay / Math.max(1, Number(s.billing.cycleDays || 30)));
+    const dueDay = simulatedDay + 10;
+    const issued = [];
+
+    if (s.primaryHome?.name) {
+        issued.push(addRecurringBill(s, { name: "Rent / Property Tax", amount: 80, dueDay, category: "home", source: s.primaryHome.name, cycleKey: `${cycle}:home:rent:${s.primaryHome.id || s.primaryHome.name}` }));
+        issued.push(addRecurringBill(s, { name: "Power & Water Utilities", amount: 30, dueDay, category: "home", source: s.primaryHome.name, cycleKey: `${cycle}:home:utilities:${s.primaryHome.id || s.primaryHome.name}` }));
+        issued.push(addRecurringBill(s, { name: "Home Maintenance / Insurance", amount: 15, dueDay, category: "home", source: s.primaryHome.name, cycleKey: `${cycle}:home:maintenance:${s.primaryHome.id || s.primaryHome.name}` }));
+        s.primaryHome.lastBilledDay = simulatedDay;
+    }
+
+    const phonePower = s.phone?.power;
+    const planCost = Math.max(0, Number(phonePower?.monthlyPlanCost ?? 35));
+    if (planCost > 0) {
+        issued.push(addRecurringBill(s, { name: "Phone & Network Plan", amount: planCost, dueDay, category: "phone", source: "Mobile carrier", cycleKey: `${cycle}:phone:plan` }));
+    }
+
+    ownedAssets(s).forEach((asset, index) => {
+        const profile = assetBillProfile(asset);
+        if (!profile) return;
+        const assetId = String(asset.id || asset.assetId || asset.name || index);
+        issued.push(addRecurringBill(s, { ...profile, dueDay, source: String(asset.name || asset.title || "Owned asset"), cycleKey: `${cycle}:asset:${assetId}:${profile.category}` }));
+    });
+
+    s.billing.lastGeneratedDay = simulatedDay;
+    return issued.filter(Boolean);
+}
+
+export function listBills(s = getSettings(), { status = "" } = {}) {
+    ensureTaxJailState(s);
+    const wanted = String(status || "").trim();
+    return s.billing.bills
+        .filter((bill) => !wanted || String(bill.status || "") === wanted)
+        .slice()
+        .sort((a, b) => Number(a.dueDay || 0) - Number(b.dueDay || 0));
 }
 
 // Determines if player should pay taxes based on RPG settings and active theme
@@ -153,36 +257,24 @@ export function processDailyTaxJailTick(s = getSettings(), deltaDays = 1) {
             s.taxRefundState.lastRefundAbsoluteDay = simulatedDay;
         }
 
-        // 4. Primary Home Bills Generation (Every 30 days)
-        if (s.primaryHome && s.primaryHome.name) {
-            const lastBilled = Number(s.primaryHome.lastBilledDay || 0);
-            if (simulatedDay - lastBilled >= 30) {
-                s.primaryHome.lastBilledDay = simulatedDay;
-                
-                // Generate 3 standard bills
-                const rentAmount = 80;
-                const utilityAmount = 30;
-                const maintAmount = 15;
-                
-                const billDueDay = simulatedDay + 10; // due in 10 days
-                
-                s.primaryHome.bills.push(
-                    { id: `bill_rent_${Date.now()}_${d}`, name: "Rent / Property Tax", amount: rentAmount, dueDay: billDueDay, status: "unpaid" },
-                    { id: `bill_util_${Date.now()}_${d}`, name: "Power & Water Utilities", amount: utilityAmount, dueDay: billDueDay, status: "unpaid" },
-                    { id: `bill_maint_${Date.now()}_${d}`, name: "Home Maintenance", amount: maintAmount, dueDay: billDueDay, status: "unpaid" }
-                );
-                
-                notify("warning", `New billing cycle invoice issued for primary home ${s.primaryHome.name}.`, "Bills");
-                injectRpEvent(`[System: Invoices issued for ${s.primaryHome.name}. Due on Day ${billDueDay}. Pay them via the phone banking app to avoid utility cutoff.]`);
+        // 4. Central billing cycle: home, phone plan, and owned assets.
+        const lastBilled = Number(s.billing.lastGeneratedDay || 0);
+        if (simulatedDay - lastBilled >= Number(s.billing.cycleDays || 30)) {
+            const issued = generateBillingCycle(s, simulatedDay);
+            if (issued.length) {
+                notify("warning", `${issued.length} new bill${issued.length === 1 ? "" : "s"} issued.`, "Bills", "bills");
+                injectRpEvent(`[System: A new billing cycle issued ${issued.length} invoice(s), including applicable home, phone, vehicle, property, and business costs. Manage them in the phone Bills app.]`);
             }
-            
-            // Check for unpaid overdue bills (older than due date) and apply penalties
-            const unpaidOverdue = s.primaryHome.bills.filter(b => b.status === "unpaid" && simulatedDay > b.dueDay);
-            if (unpaidOverdue.length > 0 && simulatedDay % 5 === 0) { // warn every 5 days
-                const penalty = unpaidOverdue.length * 5;
-                if (spendCurrency(s, penalty)) {
-                    injectRpEvent(`[System Warning: Overdue bills on your primary home. Late fees of ${penalty} ${s.currencySymbol || "G"} charged to checking account.]`);
-                }
+        }
+
+        const unpaidOverdue = listBills(s, { status: "unpaid" }).filter((bill) => simulatedDay > Number(bill.dueDay || 0));
+        const overduePhone = unpaidOverdue.some((bill) => bill.category === "phone");
+        if (s.phone?.power) s.phone.power.serviceSuspended = overduePhone;
+        if (unpaidOverdue.length > 0 && simulatedDay % 5 === 0) {
+            const penalty = unpaidOverdue.length * 5;
+            if (spendCurrency(s, penalty)) {
+                notify("warning", `${unpaidOverdue.length} overdue bill${unpaidOverdue.length === 1 ? "" : "s"}; ${penalty} ${s.currencySymbol || "G"} in late fees charged.`, "Bills", "bills");
+                injectRpEvent(`[System Warning: Overdue bills triggered late fees of ${penalty} ${s.currencySymbol || "G"}. Phone service is suspended while a phone-plan invoice is overdue.]`);
             }
         }
     }
@@ -210,7 +302,8 @@ export function setPrimaryHome(nodeId, nodeName, details = {}) {
         ? Number(s.primaryHome.relocationCount || 0) + 1
         : Number(s.primaryHome.relocationCount || 0);
     s.primaryHome.lastBilledDay = currentDay;
-    s.primaryHome.bills = []; // Reset bills for the new home
+    s.primaryHome.bills = [];
+    s.billing.bills = s.billing.bills.filter((bill) => bill.category !== "home" || bill.status === "paid");
     
     saveSettings();
     notify("success", `${nodeName} is now your primary home and return anchor.`, "Primary Home");
@@ -222,7 +315,8 @@ export function payBill(billId) {
     const s = getSettings();
     ensureTaxJailState(s);
     
-    const bill = s.primaryHome.bills.find(b => b.id === billId && b.status === "unpaid");
+    const bill = s.billing.bills.find(b => b.id === billId && b.status === "unpaid")
+        || s.primaryHome.bills.find(b => b.id === billId && b.status === "unpaid");
     if (!bill) return { ok: false, reason: "Bill not found or already paid." };
     
     const amount = Number(bill.amount);
@@ -231,6 +325,12 @@ export function payBill(billId) {
     }
     
     bill.status = "paid";
+    const legacy = s.primaryHome.bills.find((entry) => entry.id === bill.id);
+    if (legacy) legacy.status = "paid";
+    if (bill.category === "phone" && s.phone?.power) {
+        const stillOverdue = listBills(s, { status: "unpaid" }).some((entry) => entry.category === "phone" && Number(entry.dueDay || 0) < Number(s.playerRoom?.day || 1));
+        s.phone.power.serviceSuspended = stillOverdue;
+    }
     
     // Add transaction to bank history if bank exists
     if (s.phone && s.phone.bank) {
@@ -240,7 +340,7 @@ export function payBill(billId) {
     }
     
     saveSettings();
-    notify("success", `Paid bill: ${bill.name} (${amount} ${s.currencySymbol || "G"})`, "Bills");
+    notify("success", `Paid bill: ${bill.name} (${amount} ${s.currencySymbol || "G"})`, "Bills", "bills");
     injectRpEvent(`[System: Successfully paid bill "${bill.name}" for ${amount} ${s.currencySymbol || "G"}.]`);
     return { ok: true };
 }

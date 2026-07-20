@@ -69,15 +69,16 @@ def write_apak(pack_id: str, name: str, records: list[dict]) -> dict:
 
 def main() -> None:
     manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))
-    summary = {
-        "food": write_apak("food", "Food Item Pack", manifest.get("food", [])),
-        "misc": write_apak("misc", "Misc Item Pack", manifest.get("misc", [])),
-    }
+    summary = {}
+    # Keep previously shipped packs intact when their original source images
+    # are not in the checkout; build only packs with available records.
+    for pack_id, display_name in (("food", "Food Item Pack"), ("misc", "Misc Item Pack"), ("unedited", "Unedited Asset Pack")):
+        records = manifest.get(pack_id, [])
+        if records:
+            summary[pack_id] = write_apak(pack_id, display_name, records)
     public = json.loads(PUBLIC_MANIFEST.read_text(encoding="utf-8"))
-    public["paks"] = {
-        "food": "assets/paks/food.apak",
-        "misc": "assets/paks/misc.apak",
-    }
+    public.setdefault("paks", {})
+    public["paks"].update({pack_id: f"assets/paks/{pack_id}.apak" for pack_id in summary})
     PUBLIC_MANIFEST.write_text(json.dumps(public, indent=2) + "\n", encoding="utf-8")
     print(json.dumps(summary, indent=2))
 

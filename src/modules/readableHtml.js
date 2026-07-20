@@ -4,8 +4,33 @@ import { generateContent } from "./apiClient.js";
 const READ_ACTION_RE = /\b(read|open|study|inspect|examine|look\s+at|check|view|unroll|browse|flip\s+through|decode|translate)\b/i;
 const READABLE_NOUN_RE = /\b(book|books|letter|letters|scroll|scrolls|board|notice\s+board|bulletin\s+board|sign|signs|document|documents|dpocument|dpocuments|paper|papers|note|notes|journal|journals|ledger|ledgers|codex|tome|tomes|manual|manuals|tablet|tablets|file|files|dossier|dossiers|page|pages)\b/i;
 
+export const READABLE_OPTIONS = [
+  { value: "auto", label: "Auto", family: "paper" },
+  { value: "book", label: "Book / Tome / Codex", family: "book" },
+  { value: "letter", label: "Letter", family: "letter" },
+  { value: "scroll", label: "Scroll / Decree", family: "scroll" },
+  { value: "note", label: "Note", family: "note" },
+  { value: "document", label: "Document / Paper / Report", family: "document" },
+  { value: "journal", label: "Journal", family: "journal" },
+  { value: "ledger", label: "Ledger", family: "ledger" },
+  { value: "manual", label: "Manual", family: "manual" },
+  { value: "board", label: "Board / Notice", family: "board" },
+  { value: "sign", label: "Sign", family: "sign" },
+  { value: "tablet", label: "Tablet / Terminal", family: "tablet" },
+  { value: "file", label: "File / Dossier / Chart", family: "file" },
+  { value: "menu", label: "Menu", family: "menu" },
+  { value: "receipt", label: "Receipt / Invoice", family: "receipt" },
+  { value: "assignment", label: "Assignment / Syllabus", family: "assignment" },
+  { value: "script", label: "Script / Set list", family: "script" },
+];
+const READABLE_KIND_ALIASES = {
+  tome: "book", codex: "book", decree: "scroll", parchment: "scroll", paper: "document", report: "document",
+  diary: "journal", notice: "board", terminal: "tablet", dossier: "file", chart: "file", invoice: "receipt",
+  syllabus: "assignment", "set-list": "script", "set list": "script", screenplay: "script",
+};
+
 let mounted = false;
-let activeReader = { title: "Readable", pages: [], index: 0 };
+let activeReader = { title: "Readable", pages: [], rawPages: [], index: 0, kind: "book" };
 const askedKeys = new Set();
 
 function escapeHtml(value) {
@@ -51,6 +76,16 @@ function detectReadableKind(text) {
   if (READ_ACTION_RE.test(raw)) return noun.toLowerCase();
   if (/\b(page\s+1|chapter\s+1|dear\s+\w+|posted\s+notice|notice:)\b/i.test(raw)) return noun.toLowerCase();
   return "";
+}
+
+export function normalizeReadableKind(input = "auto", hint = "") {
+  let kind = String(input || "auto").trim().toLowerCase().replace(/[_]+/g, "-");
+  kind = READABLE_KIND_ALIASES[kind] || kind;
+  if (kind === "auto") {
+    const detected = String(detectReadableKind(hint) || "").toLowerCase();
+    kind = READABLE_KIND_ALIASES[detected] || detected || "document";
+  }
+  return READABLE_OPTIONS.some((option) => option.value === kind && option.value !== "auto") ? kind : "document";
 }
 
 function titleFromRequest(kind, seedText, fallback = "Readable") {
@@ -110,7 +145,8 @@ function chatContextSnippet(seedText = "") {
 }
 
 function fallbackPageHtml(page, index, total, request = {}) {
-  const kind = escapeHtml(request.kind || "readable");
+  const normalizedKind = normalizeReadableKind(request.kind || request.type || "auto", `${request.title || ""} ${page.text || ""}`);
+  const kind = escapeHtml(normalizedKind);
   const title = escapeHtml(page.title || `Page ${index + 1}`);
   const body = escapeHtml(page.text || "")
     .split(/\n{2,}/)
@@ -119,17 +155,19 @@ function fallbackPageHtml(page, index, total, request = {}) {
   const contextNote = request.context
     ? `<aside class="uie-readable-html-context">Context-bound ${kind} reconstructed from the current scene.</aside>`
     : "";
+  const familyLabel = READABLE_OPTIONS.find((option) => option.value === normalizedKind)?.label || "Document";
+  const rule = normalizedKind === "receipt" ? `<div class="uie-readable-rule">--------------------------------</div>` : "";
   return `
-    <section class="uie-readable-html-page" data-page="${index + 1}">
-      <div class="uie-readable-sheet uie-readable-sheet-${kind.replace(/[^a-z0-9_-]/gi, "") || "item"}">
+    <section class="uie-readable-html-page" data-page="${index + 1}" data-template="${kind}">
+      <article class="uie-readable-sheet uie-readable-sheet-${kind}">
         <header>
-          <div class="uie-readable-kicker">${escapeHtml(String(request.kind || "Readable").toUpperCase())}</div>
+          <div class="uie-readable-kicker">${escapeHtml(familyLabel.toUpperCase())}</div>
           <h1>${title}</h1>
           <div class="uie-readable-folio">Page ${index + 1} of ${total}</div>
         </header>
-        <main>${body || "<p>The page is blank.</p>"}</main>
+        ${rule}<main>${body || "<p>The page is blank.</p>"}</main>${rule}
         ${contextNote}
-      </div>
+      </article>
     </section>`;
 }
 
@@ -211,6 +249,14 @@ function installReadableHtmlStyle() {
   style.textContent = `
 #uie-readable-html-modal{position:fixed;inset:0;z-index:2147483638;display:none;align-items:center;justify-content:center;padding:18px;background:rgba(2,6,23,.62);backdrop-filter:blur(7px);-webkit-backdrop-filter:blur(7px);}
 #uie-readable-html-modal .uie-readable-frame{width:min(980px,96vw);height:min(860px,92dvh);display:grid;grid-template-rows:auto minmax(0,1fr) auto;border:1px solid rgba(148,163,184,.28);border-radius:8px;background:rgba(6,10,18,.98);color:#f8fafc;box-shadow:0 24px 80px rgba(0,0,0,.58);overflow:hidden;}
+#uie-readable-html-modal[data-readable-kind="scroll"] .uie-readable-frame{transform-origin:center;animation:uieReadableUnroll .42s cubic-bezier(.2,.8,.2,1) both;}
+#uie-readable-html-modal:not([data-readable-kind="scroll"]) .uie-readable-frame{transform-origin:center left;animation:uieReadableBookOpen .42s cubic-bezier(.2,.8,.2,1) both;}
+#uie-readable-html-modal.is-closing[data-readable-kind="scroll"] .uie-readable-frame{animation:uieReadableRoll .3s ease-in both;}
+#uie-readable-html-modal.is-closing:not([data-readable-kind="scroll"]) .uie-readable-frame{animation:uieReadableBookClose .3s ease-in both;}
+@keyframes uieReadableUnroll{from{opacity:.25;transform:scaleY(.06);clip-path:inset(47% 0)}to{opacity:1;transform:scaleY(1);clip-path:inset(0)}}
+@keyframes uieReadableRoll{to{opacity:0;transform:scaleY(.06);clip-path:inset(47% 0)}}
+@keyframes uieReadableBookOpen{from{opacity:.3;transform:perspective(1200px) rotateY(-72deg) scale(.94)}to{opacity:1;transform:perspective(1200px) rotateY(0) scale(1)}}
+@keyframes uieReadableBookClose{to{opacity:0;transform:perspective(1200px) rotateY(-72deg) scale(.94)}}
 #uie-readable-html-modal .uie-readable-head,#uie-readable-html-modal .uie-readable-foot{display:flex;align-items:center;gap:10px;padding:10px 12px;border-color:rgba(148,163,184,.18);background:rgba(15,23,42,.92);}
 #uie-readable-html-modal .uie-readable-head{border-bottom:1px solid rgba(148,163,184,.18);}
 #uie-readable-html-modal .uie-readable-foot{border-top:1px solid rgba(148,163,184,.18);justify-content:space-between;}
@@ -225,12 +271,28 @@ function installReadableHtmlStyle() {
 #uie-readable-html-body .uie-readable-folio{font-size:12px;color:#6f4b2c;}
 #uie-readable-html-body p{font-size:16px;line-height:1.72;margin:0 0 1em;color:inherit;}
 #uie-readable-html-body .uie-readable-html-context{margin-top:24px;padding-top:12px;border-top:1px dashed rgba(82,59,39,.28);font-size:12px;color:#6f4b2c;}
-#uie-readable-html-modal button,#uie-readable-page-select{min-height:34px;border:1px solid rgba(148,163,184,.28);border-radius:8px;background:rgba(15,23,42,.88);color:#f8fafc;padding:0 11px;font:inherit;}
+#uie-readable-html-body .uie-readable-sheet-letter{max-width:680px;background:#fffdf8;font-family:Georgia,serif;box-shadow:0 18px 56px rgba(0,0,0,.24);}
+#uie-readable-html-body .uie-readable-sheet-scroll{max-width:660px;border-width:0 10px;border-color:#9a6b35;border-radius:2px;background:linear-gradient(90deg,#e7c98b,#fff2c2 8%,#f7e2aa 92%,#c99852);font-family:Georgia,serif;}
+#uie-readable-html-body .uie-readable-sheet-note{max-width:620px;background:#fff4a8;transform:rotate(-.35deg);box-shadow:8px 12px 30px rgba(0,0,0,.28);}
+#uie-readable-html-body .uie-readable-sheet-document{max-width:760px;background:#f8fafc;color:#182232;border-color:#cbd5e1;box-shadow:0 14px 42px rgba(0,0,0,.22);}
+#uie-readable-html-body .uie-readable-sheet-journal{max-width:700px;background:#f3ead9;border-left:14px solid #684b36;font-family:Georgia,serif;}
+#uie-readable-html-body .uie-readable-sheet-ledger{max-width:820px;background:repeating-linear-gradient(#fffdf5 0 31px,#b9c9d6 32px);font-family:"Courier New",monospace;}
+#uie-readable-html-body .uie-readable-sheet-manual{max-width:800px;background:#edf2f4;color:#17242b;border-top:10px solid #e2a13c;}
+#uie-readable-html-body .uie-readable-sheet-board{max-width:780px;border:12px solid #67462e;background:#dfc99b;box-shadow:inset 0 0 40px rgba(72,44,24,.18),0 20px 60px rgba(0,0,0,.35);}
+#uie-readable-html-body .uie-readable-sheet-sign{display:grid;align-content:center;max-width:700px;min-height:320px;border:14px solid #5b3c25;background:#d6aa69;text-align:center;text-transform:uppercase;letter-spacing:.05em;}
+#uie-readable-html-body .uie-readable-sheet-tablet{max-width:820px;border:8px solid #26364b;border-radius:18px;background:#07131e;color:#b8f7ff;box-shadow:inset 0 0 40px rgba(34,211,238,.12),0 20px 60px rgba(0,0,0,.45);font-family:"Courier New",monospace;}
+#uie-readable-html-body .uie-readable-sheet-tablet h1,#uie-readable-html-body .uie-readable-sheet-tablet .uie-readable-kicker,#uie-readable-html-body .uie-readable-sheet-tablet .uie-readable-folio{color:#67e8f9;}
+#uie-readable-html-body .uie-readable-sheet-file{max-width:800px;padding-top:54px;border-top:18px solid #355a7a;background:#f5f0df;box-shadow:0 18px 58px rgba(0,0,0,.3);}
+#uie-readable-html-body .uie-readable-sheet-menu{max-width:680px;border:6px double #b9914c;background:#16241f;color:#fff7df;text-align:center;}.uie-readable-sheet-menu h1,.uie-readable-sheet-menu .uie-readable-kicker,.uie-readable-sheet-menu .uie-readable-folio{color:#f5d487!important;}
+#uie-readable-html-body .uie-readable-sheet-receipt{max-width:420px;background:#fff;color:#1f2937;font-family:"Courier New",monospace;box-shadow:0 14px 40px rgba(0,0,0,.3);}.uie-readable-rule{overflow:hidden;color:#64748b;white-space:nowrap;}
+#uie-readable-html-body .uie-readable-sheet-assignment{max-width:760px;background:#f8fbff;color:#172033;border-top:12px solid #3b6ea8;}
+#uie-readable-html-body .uie-readable-sheet-script{max-width:760px;background:#fff;color:#111;font-family:"Courier New",monospace;}.uie-readable-sheet-script main p{max-width:62ch;margin-right:auto!important;margin-left:auto!important;}
+#uie-readable-html-modal button,#uie-readable-page-select,#uie-readable-kind-select{min-height:34px;border:1px solid rgba(148,163,184,.28);border-radius:8px;background:rgba(15,23,42,.88);color:#f8fafc;padding:0 11px;font:inherit;}
 #uie-readable-html-modal button{cursor:pointer;}
 #uie-readable-html-modal button:disabled{opacity:.45;cursor:not-allowed;}
 #uie-readable-html-modal button:hover:not(:disabled){border-color:rgba(83,186,242,.68);background:rgba(30,41,59,.96);}
-#uie-readable-page-select{max-width:min(260px,42vw);}
-@media (max-width:640px){#uie-readable-html-modal{padding:8px;}#uie-readable-html-modal .uie-readable-frame{height:94dvh;width:98vw;}#uie-readable-html-body{padding:8px;}#uie-readable-html-modal .uie-readable-head{align-items:flex-start;}#uie-readable-page-select{max-width:38vw;}}
+#uie-readable-page-select{max-width:min(260px,42vw);}#uie-readable-kind-select{max-width:min(230px,30vw);}
+@media (max-width:640px){#uie-readable-html-modal{padding:0;align-items:stretch;}#uie-readable-html-modal .uie-readable-frame{height:100dvh;width:100vw;border:0;border-radius:0;}#uie-readable-html-body{padding:8px;}#uie-readable-html-modal .uie-readable-head{align-items:center;flex-wrap:wrap;padding:8px;}#uie-readable-html-modal .uie-readable-head>div{flex-basis:calc(100% - 70px)!important;}#uie-readable-kind-select{order:3;width:100%;max-width:none;}#uie-readable-page-select{max-width:44vw;}#uie-readable-html-body .uie-readable-sheet{padding:20px 16px;}#uie-readable-html-body .uie-readable-sheet-sign{min-height:240px;}}
 `;
   document.head.appendChild(style);
 }
@@ -238,7 +300,12 @@ function installReadableHtmlStyle() {
 export function closeReadableHtmlPopup() {
   try {
     const modal = document.getElementById("uie-readable-html-modal");
-    if (modal) modal.style.display = "none";
+    if (!modal || modal.style.display === "none") return;
+    modal.classList.add("is-closing");
+    window.setTimeout(() => {
+      modal.style.display = "none";
+      modal.classList.remove("is-closing");
+    }, 310);
   } catch (_) {}
 }
 
@@ -255,6 +322,7 @@ function ensureModal() {
           <div id="uie-readable-html-title">Readable</div>
           <div id="uie-readable-html-meta">HTML reader</div>
         </div>
+        <select id="uie-readable-kind-select" aria-label="Readable template">${READABLE_OPTIONS.map((option) => `<option value="${option.value}">${option.label}</option>`).join("")}</select>
         <button id="uie-readable-html-close" type="button">Close</button>
       </div>
       <div id="uie-readable-html-body"></div>
@@ -269,6 +337,13 @@ function ensureModal() {
   modal.querySelector("#uie-readable-html-prev")?.addEventListener("click", () => setReadablePage(activeReader.index - 1));
   modal.querySelector("#uie-readable-html-next")?.addEventListener("click", () => setReadablePage(activeReader.index + 1));
   modal.querySelector("#uie-readable-page-select")?.addEventListener("change", (event) => setReadablePage(Number(event.target.value) || 0));
+  modal.querySelector("#uie-readable-kind-select")?.addEventListener("change", (event) => {
+    const requested = String(event.target.value || "document");
+    activeReader.kind = requested === "auto" ? normalizeReadableKind("auto", `${activeReader.title} ${activeReader.rawPages.map((page) => page.text).join(" ")}`) : normalizeReadableKind(requested);
+    activeReader.pages = activeReader.rawPages.map((page, index, pages) => fallbackPageHtml(page, index, pages.length, { title: activeReader.title, kind: activeReader.kind }));
+    renderReadablePage();
+    try { window.dispatchEvent(new CustomEvent("uie:readable_template_changed", { detail: { kind: activeReader.kind, title: activeReader.title, source: activeReader.source || null } })); } catch (_) {}
+  });
   modal.addEventListener("click", (event) => {
     if (event.target === modal) closeReadableHtmlPopup();
   });
@@ -285,6 +360,7 @@ function renderReadablePage() {
   const prev = modal.querySelector("#uie-readable-html-prev");
   const next = modal.querySelector("#uie-readable-html-next");
   const select = modal.querySelector("#uie-readable-page-select");
+  const kindSelect = modal.querySelector("#uie-readable-kind-select");
   if (title) title.textContent = activeReader.title || "Readable";
   if (meta) meta.textContent = `Page ${activeReader.index + 1} of ${total}`;
   if (body) {
@@ -306,6 +382,11 @@ function renderReadablePage() {
     }
     select.value = wanted;
   }
+  const kind = String(activeReader.kind || "book").toLowerCase();
+  modal.dataset.readableKind = kind;
+  modal.dataset.readableAnimation = kind === "scroll" ? "scroll" : "book";
+  if (kindSelect) kindSelect.value = READABLE_OPTIONS.some((option) => option.value === kind) ? kind : "document";
+  modal.classList.remove("is-closing");
   modal.style.display = "flex";
 }
 
@@ -318,6 +399,8 @@ function openLoading(title = "Readable") {
   activeReader = {
     title,
     index: 0,
+    kind: "document",
+    rawPages: [{ title, text: "Building readable HTML..." }],
     pages: ['<section class="uie-readable-html-page"><div class="uie-readable-sheet"><p>Building readable HTML...</p></div></section>'],
   };
   renderReadablePage();
@@ -325,10 +408,12 @@ function openLoading(title = "Readable") {
 
 export function openReadableHtmlPopup(request = {}) {
   const title = String(request.title || "Readable").trim() || "Readable";
+  const rawPages = normalizeReadablePages({ pages: request.pages || [] }, request.seedText || "");
+  const kind = normalizeReadableKind(request.kind || request.type || "auto", `${title} ${rawPages.map((page) => page.text).join(" ")}`);
   const pages = Array.isArray(request.htmlPages) && request.htmlPages.length
     ? request.htmlPages
-    : normalizeReadablePages({ pages: request.pages || [] }, request.seedText || "").map((page, index, arr) => fallbackPageHtml(page, index, arr.length, request));
-  activeReader = { title, pages, index: 0 };
+    : rawPages.map((page, index, arr) => fallbackPageHtml(page, index, arr.length, { ...request, kind }));
+  activeReader = { title, pages, rawPages, index: 0, kind, source: request.source || null };
   renderReadablePage();
 }
 
@@ -390,9 +475,13 @@ export function initReadableHtml() {
     try { handleChatReadable(event.detail || {}); } catch (_) {}
   });
   window.UIE_readableHtml = {
+    READABLE_OPTIONS,
+    readableOptions: READABLE_OPTIONS,
+    normalizeReadableKind,
     maybeBuildReadableHtmlForBook,
     openReadableHtmlPopup,
     normalizeReadablePages,
+    getActiveReader: () => ({ ...activeReader, pages: activeReader.pages.slice(), rawPages: activeReader.rawPages.slice() }),
   };
 }
 

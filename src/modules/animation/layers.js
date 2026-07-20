@@ -26,7 +26,7 @@ const LAYER_SELECTORS = {
     [Layer.ENVIRONMENT_EFFECTS]: ["#re-weather-layer", "#uie-effects-layer", "#re-time-filter"],
     [Layer.CHARACTER_SPRITES]: ["#re-sprites-layer", "#vn-sprite-layer"],
     [Layer.FOREGROUND_PROPS]: ["#uie-foreground-layer", "#re-sprites-layer"],
-    [Layer.CAMERA_VIEWPORT]: ["#game-viewport", "#game-scale-root"],
+    [Layer.CAMERA_VIEWPORT]: ["#game-root"],
     [Layer.DIALOGUE_BOX]: ["#re-vn-box", "#message-box-wrap", "#message-box"],
     [Layer.DIALOGUE_TEXT]: ["#re-text", "#message-box"],
     [Layer.HUD]: ["#hud"],
@@ -122,7 +122,7 @@ export function ensureForegroundLayer() {
     let el = document.getElementById("uie-foreground-layer");
     if (el) return el;
     const stage = document.getElementById("vn-stage")
-        || document.getElementById("game-scale-root")
+        || document.getElementById("game-root")
         || document.getElementById("game-root");
     if (!stage) return null;
     el = document.createElement("div");

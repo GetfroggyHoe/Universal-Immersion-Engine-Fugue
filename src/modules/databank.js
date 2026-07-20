@@ -1548,6 +1548,28 @@ function renderState() {
         return;
     }
 
+    // World state contains both player-facing facts and engine structures. Render
+    // nested values as concise summaries so the UI never leaks "[object Object]".
+    const displayStateValue = (value, depth = 0) => {
+        if (value === null || value === undefined || value === "") return "—";
+        if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") return String(value);
+        if (Array.isArray(value)) {
+            if (!value.length) return "None";
+            const items = value.slice(0, 4).map((item) => displayStateValue(item, depth + 1));
+            return `${items.join(", ")}${value.length > 4 ? ` +${value.length - 4} more` : ""}`;
+        }
+        if (typeof value === "object") {
+            const entries = Object.entries(value).filter(([, v]) => v !== null && v !== undefined && v !== "");
+            if (!entries.length) return "None";
+            if (depth > 2) return `${entries.length} detail${entries.length === 1 ? "" : "s"}`;
+            return entries.slice(0, 4).map(([key, val]) => `${String(key).replace(/([A-Z])/g, " $1")}: ${displayStateValue(val, depth + 1)}`).join(" · ") + (entries.length > 4 ? ` · +${entries.length - 4} more` : "");
+        }
+        return String(value);
+    };
+    const displayStateKey = (key) => String(key || "")
+        .replace(/([A-Z])/g, " $1").replace(/[_-]+/g, " ")
+        .replace(/\b\w/g, (c) => c.toUpperCase()).trim();
+
     // Status Block
     const tmplStatus = document.getElementById("uie-template-db-state-status");
     const tmplRow = document.getElementById("uie-template-db-state-row");
@@ -1578,12 +1600,12 @@ function renderState() {
             keyEl.style.fontWeight = "900";
             keyEl.style.letterSpacing = "0.4px";
             keyEl.style.wordBreak = "break-word";
-            keyEl.textContent = String(k);
+            keyEl.textContent = displayStateKey(k);
 
             const valEl = document.createElement("div");
             valEl.style.color = "rgba(255,255,255,0.88)";
             valEl.style.wordBreak = "break-word";
-            valEl.textContent = String(v);
+            valEl.textContent = displayStateValue(v);
 
             grid.appendChild(keyEl);
             grid.appendChild(valEl);
@@ -1598,12 +1620,12 @@ function renderState() {
                 keyEl.style.fontWeight = "900";
                 keyEl.style.letterSpacing = "0.4px";
                 keyEl.style.wordBreak = "break-word";
-                keyEl.textContent = String(k);
+                keyEl.textContent = displayStateKey(k);
 
                 const valEl = document.createElement("div");
                 valEl.style.color = "rgba(255,255,255,0.88)";
                 valEl.style.wordBreak = "break-word";
-                valEl.textContent = String(v);
+                valEl.textContent = displayStateValue(v);
 
                 grid2.appendChild(keyEl);
                 grid2.appendChild(valEl);
@@ -1624,8 +1646,8 @@ function renderState() {
             const cloneRow = tmplRow.content.cloneNode(true);
             const keyEl = cloneRow.querySelector(".db-state-key");
             const valEl = cloneRow.querySelector(".db-state-val");
-            keyEl.textContent = esc(k);
-            valEl.textContent = esc(String(v));
+            keyEl.textContent = displayStateKey(k);
+            valEl.textContent = displayStateValue(v);
             grid.appendChild(cloneRow);
         });
         
@@ -1645,8 +1667,8 @@ function renderState() {
                 const cloneRow = tmplCustomRow.content.cloneNode(true);
                 const keyEl = cloneRow.querySelector(".db-custom-key");
                 const valEl = cloneRow.querySelector(".db-custom-val");
-                keyEl.textContent = esc(k);
-                valEl.textContent = esc(String(v));
+                keyEl.textContent = displayStateKey(k);
+                valEl.textContent = displayStateValue(v);
                 grid.appendChild(cloneRow);
             });
             

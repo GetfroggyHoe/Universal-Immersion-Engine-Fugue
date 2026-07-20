@@ -64,7 +64,9 @@ export function getEmptyStatePayload() {
 // ─── Parser ────────────────────────────────────────────────────
 export function parseAIResponse(rawText) {
     const text = String(rawText || "");
-    const idx = text.indexOf(DATA_SEPARATOR);
+    // The separator may be echoed in model commentary before the real payload.
+    // The contract places the actual separator immediately before the final JSON.
+    const idx = text.lastIndexOf(DATA_SEPARATOR);
     let narrative = "";
     let data = null;
 
@@ -87,7 +89,9 @@ export function parseAIResponse(rawText) {
     }
 
     if (!data || typeof data !== "object") {
-        console.warn("[StateMutator] JSON parse failed, using empty template");
+        // Missing state data is recoverable: narrative-only replies intentionally
+        // apply a no-op payload and should not surface as a console warning.
+        console.debug("[StateMutator] No valid state JSON; using empty template");
         data = getEmptyStatePayload();
     }
     // Merge with template to ensure all keys exist
@@ -835,6 +839,226 @@ function openCodexEntry(entryName) {
 }
 
 // ─── Action Wheel ──────────────────────────────────────────────
+const ACTION_WHEEL_BOUNDARY_LIMIT = 32;
+const ACTION_WHEEL_MACRO_LIMIT = 12;
+
+function makeBoundaryId() {
+    return `boundary_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function normalizeBoundary(raw, index = 0) {
+    if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+    const label = String(raw.label ?? raw.name ?? raw.title ?? "").trim().slice(0, 80);
+    const instruction = String(raw.instruction ?? raw.body ?? raw.text ?? raw.boundary ?? raw.command ?? "").trim().slice(0, 1200);
+    if (!label || !instruction) return null;
+    return {
+        id: String(raw.id || makeBoundaryId() || `boundary_${index}`),
+        label,
+        instruction,
+        enabled: raw.enabled !== false && raw.active !== false,
+    };
+}
+
+export function ensureActionWheelState(settings = null) {
+    const s = settings && typeof settings === "object" && !Array.isArray(settings) ? settings : getSettings();
+    if (!s.actionWheel || typeof s.actionWheel !== "object" || Array.isArray(s.actionWheel)) s.actionWheel = {};
+    const aw = s.actionWheel;
+    const rawBoundaries = Array.isArray(aw.boundaries)
+        ? aw.boundaries
+        : (Array.isArray(aw.constraints) ? aw.constraints : []);
+    aw.boundaries = rawBoundaries
+        .map((item, index) => normalizeBoundary(item, index))
+        .filter(Boolean)
+        .slice(0, ACTION_WHEEL_BOUNDARY_LIMIT);
+    if (!Array.isArray(aw.customMacros)) aw.customMacros = [];
+    aw.customMacros = aw.customMacros
+        .filter((item) => item && typeof item === "object" && !Array.isArray(item))
+        .map((item) => ({
+            label: String(item.label || "").trim().slice(0, 80),
+            command: String(item.command || item.prompt || "").trim().slice(0, 1200),
+            icon: String(item.icon || "fa-wand-magic-sparkles").trim() || "fa-wand-magic-sparkles",
+        }))
+        .filter((item) => item.label && item.command)
+        .slice(0, ACTION_WHEEL_MACRO_LIMIT);
+    if (typeof aw.askDirectlyActive !== "boolean") {
+        const legacyAsk = aw.askDirectly ?? aw.askDirectlyEnabled ?? aw.directAddressActive;
+        aw.askDirectlyActive = legacyAsk === true || legacyAsk === "true";
+    }
+    if (typeof aw.hidden !== "boolean") aw.hidden = false;
+    return aw;
+}
+
+export function getActionWheelPromptContext(settings = null) {
+    const aw = ensureActionWheelState(settings);
+    const blocks = [];
+    const activeBoundaries = aw.boundaries.filter((boundary) => boundary.enabled);
+    if (activeBoundaries.length) {
+        blocks.push([
+            "[ACTIVE PLAYER BOUNDARIES]",
+            "The following player-authored boundaries are hard constraints for this game. Preserve them in the response and do not narrate, weaken, or override them unless the player changes the boundary.",
+            ...activeBoundaries.map((boundary, index) => `${index + 1}. ${boundary.label}: ${boundary.instruction}`),
+        ].join("\n"));
+    }
+    if (aw.askDirectlyActive) {
+        blocks.push([
+            "[ASK DIRECTLY MODE]",
+            "Treat the user's next message as direct address to the AI/narrator. Answer the question or request directly and naturally, without turning it into an in-world action unless the user explicitly asks for that.",
+        ].join("\n"));
+    }
+    return blocks.join("\n\n");
+}
+
+export function setAskDirectlyActive(active, { persist = true, rerender = true } = {}) {
+    const s = getSettings();
+    const aw = ensureActionWheelState(s);
+    aw.askDirectlyActive = active === true;
+    if (persist) saveSettings();
+    if (rerender && typeof document !== "undefined") renderActionWheel(window._uieActionWheelOptions || []);
+    return aw.askDirectlyActive;
+}
+
+export function resetAskDirectly() {
+    const s = getSettings();
+    const aw = ensureActionWheelState(s);
+    if (!aw.askDirectlyActive) return false;
+    setAskDirectlyActive(false);
+    return true;
+}
+
+function openBoundaryManagerLegacy() {
+    const s = getSettings();
+    const aw = ensureActionWheelState(s);
+    let draft = JSON.parse(JSON.stringify(aw.boundaries || []));
+    let editingIndex = null;
+    let modal = document.getElementById("uie-boundary-modal");
+    if (!modal) {
+        modal = document.createElement("div");
+        modal.id = "uie-boundary-modal";
+        modal.className = "aw-modal-backdrop";
+        modal.addEventListener("click", (event) => {
+            if (event.target === modal) modal.style.display = "none";
+        });
+        document.body.appendChild(modal);
+    }
+
+    const render = () => {
+        const current = editingIndex == null ? null : draft[editingIndex];
+        modal.innerHTML = `
+            <section class="aw-modal aw-boundary-modal" role="dialog" aria-modal="true" aria-labelledby="aw-boundary-title">
+                <header class="aw-modal-header">
+                    <div>
+                        <div class="aw-modal-kicker"><i class="fas fa-shield-halved" aria-hidden="true"></i> Player controls</div>
+                        <h2 id="aw-boundary-title">Boundaries</h2>
+                    </div>
+                    <button type="button" class="aw-modal-close" data-aw-boundary-close aria-label="Close boundaries"><i class="fas fa-xmark" aria-hidden="true"></i></button>
+                </header>
+                <p class="aw-modal-copy">Enabled boundaries are hard constraints added to the AI system prompt for this game. Turn them off when you want to temporarily relax a rule.</p>
+                <div class="aw-boundary-list" aria-live="polite">
+                    ${draft.length ? draft.map((boundary, index) => `
+                        <article class="aw-boundary-row ${boundary.enabled ? "is-enabled" : "is-disabled"}">
+                            <label class="aw-boundary-toggle">
+                                <input type="checkbox" data-aw-boundary-toggle="${index}" ${boundary.enabled ? "checked" : ""}>
+                                <span class="aw-switch" aria-hidden="true"></span>
+                            </label>
+                            <div class="aw-boundary-copy">
+                                <strong>${escHtml(boundary.label)}</strong>
+                                <span>${escHtml(boundary.instruction)}</span>
+                            </div>
+                            <div class="aw-row-actions">
+                                <button type="button" class="aw-row-btn" data-aw-boundary-edit="${index}" title="Edit boundary" aria-label="Edit ${escHtml(boundary.label)}"><i class="fas fa-pen" aria-hidden="true"></i></button>
+                                <button type="button" class="aw-row-btn is-danger" data-aw-boundary-delete="${index}" title="Delete boundary" aria-label="Delete ${escHtml(boundary.label)}"><i class="fas fa-trash-can" aria-hidden="true"></i></button>
+                            </div>
+                        </article>
+                    `).join("") : `<div class="aw-empty-state"><i class="fas fa-shield-heart" aria-hidden="true"></i><strong>No boundaries yet</strong><span>Add a rule for the AI to follow in this game.</span></div>`}
+                </div>
+                <form class="aw-boundary-editor" data-aw-boundary-form>
+                    <div class="aw-editor-heading"><span>${current ? "Edit boundary" : "Add a boundary"}</span>${current ? `<button type="button" class="aw-text-btn" data-aw-boundary-new>New boundary</button>` : ""}</div>
+                    <label>Label<input name="label" maxlength="80" required placeholder="No mind-reading" value="${escHtml(current?.label || "")}"></label>
+                    <label>Instruction<textarea name="instruction" maxlength="1200" required placeholder="Do not state what my character thinks or feels unless I say it.">${escHtml(current?.instruction || "")}</textarea></label>
+                    <div class="aw-form-actions">
+                        <button type="button" class="aw-secondary-btn" data-aw-boundary-cancel>${current ? "Cancel edit" : "Close"}</button>
+                        <button type="submit" class="aw-primary-btn"><i class="fas fa-check" aria-hidden="true"></i> ${current ? "Save changes" : "Add boundary"}</button>
+                    </div>
+                </form>
+            </section>
+        `;
+
+        modal.querySelector("[data-aw-boundary-close]")?.addEventListener("click", () => { modal.style.display = "none"; });
+        modal.querySelectorAll("[data-aw-boundary-toggle]").forEach((input) => {
+            input.addEventListener("change", () => {
+                const index = Number(input.dataset.awBoundaryToggle);
+                if (!draft[index]) return;
+                draft[index].enabled = input.checked;
+                aw.boundaries = JSON.parse(JSON.stringify(draft));
+                saveSettings();
+                commitStateUpdate();
+                renderActionWheel(window._uieActionWheelDynamicOptions || []);
+                render();
+            });
+        });
+        modal.querySelectorAll("[data-aw-boundary-edit]").forEach((button) => {
+            button.addEventListener("click", () => {
+                editingIndex = Number(button.dataset.awBoundaryEdit);
+                render();
+                modal.querySelector("input[name='label']")?.focus();
+            });
+        });
+        modal.querySelectorAll("[data-aw-boundary-delete]").forEach((button) => {
+            button.addEventListener("click", () => {
+                const index = Number(button.dataset.awBoundaryDelete);
+                if (!draft[index]) return;
+                if (typeof window.confirm === "function" && !window.confirm(`Delete boundary \"${draft[index].label}\"?`)) return;
+                draft.splice(index, 1);
+                editingIndex = null;
+                aw.boundaries = JSON.parse(JSON.stringify(draft));
+                saveSettings();
+                commitStateUpdate();
+                renderActionWheel(window._uieActionWheelDynamicOptions || []);
+                notify("success", "Boundary deleted.", "Boundaries");
+                render();
+            });
+        });
+        modal.querySelector("[data-aw-boundary-new]")?.addEventListener("click", () => {
+            editingIndex = null;
+            render();
+            modal.querySelector("input[name='label']")?.focus();
+        });
+        modal.querySelector("[data-aw-boundary-cancel]")?.addEventListener("click", () => {
+            if (editingIndex != null) {
+                editingIndex = null;
+                render();
+            } else {
+                modal.style.display = "none";
+            }
+        });
+        modal.querySelector("[data-aw-boundary-form]")?.addEventListener("submit", (event) => {
+            event.preventDefault();
+            const form = event.currentTarget;
+            const label = String(form.elements.label?.value || "").trim();
+            const instruction = String(form.elements.instruction?.value || "").trim();
+            if (!label || !instruction) {
+                notify("warning", "Add both a label and an instruction.", "Boundaries");
+                return;
+            }
+            const next = { id: current?.id || makeBoundaryId(), label, instruction, enabled: current?.enabled !== false };
+            if (editingIndex == null) draft.push(next);
+            else draft[editingIndex] = next;
+            if (draft.length > ACTION_WHEEL_BOUNDARY_LIMIT) draft = draft.slice(-ACTION_WHEEL_BOUNDARY_LIMIT);
+            aw.boundaries = JSON.parse(JSON.stringify(draft));
+            saveSettings();
+            commitStateUpdate();
+            editingIndex = null;
+            renderActionWheel(window._uieActionWheelDynamicOptions || []);
+            notify("success", current ? "Boundary updated." : "Boundary added.", "Boundaries");
+            render();
+        });
+    };
+
+    modal.style.display = "flex";
+    render();
+    setTimeout(() => modal.querySelector("input[name='label']")?.focus(), 0);
+}
+
 const ACTION_TYPE_CLASSES = {
     combat: "aw-combat", attack: "aw-combat", fight: "aw-combat",
     social: "aw-social", talk: "aw-social", dialogue: "aw-social", persuade: "aw-social",
@@ -843,11 +1067,12 @@ const ACTION_TYPE_CLASSES = {
     stealth: "aw-stealth", sneak: "aw-stealth", hide: "aw-stealth",
 rest: "aw-rest", heal: "aw-rest", recover: "aw-rest",
     trade: "aw-trade", shop: "aw-trade", buy: "aw-trade", sell: "aw-trade",
+    utility: "aw-utility", macro: "aw-custom", custom: "aw-custom", progression: "aw-progression",
 };
 
 function getTypeClass(type) {
     const key = String(type || "").trim().toLowerCase();
-    return ACTION_TYPE_CLASSES[key] || "aw-neutral";
+    return ACTION_TYPE_CLASSES[key] || "aw-progression";
 }
 
 function formatCostLabel(cost) {
@@ -882,21 +1107,51 @@ export function renderActionWheel(options) {
         document.body.appendChild(fab);
     }
     const s = getSettings();
-    s.actionWheel = s.actionWheel || {};
+    const aw = ensureActionWheelState(s);
     const builtIns = [
-        { label: "Observe", command: "Observe the immediate situation and respond to the most important visible change.", icon: "fa-eye" },
-        { label: "Ask directly", command: "Ask one clear, grounded question about what matters right now.", icon: "fa-comment-dots" },
-        { label: "Offer support", command: "Offer practical support without assuming anyone's feelings or choices.", icon: "fa-hand-holding-heart" },
-        { label: "Set a boundary", command: "State a calm, specific boundary and leave room for a response.", icon: "fa-shield-heart" },
-        { label: "Advance scene", command: "Advance to the next plausible beat, preserving established positions and agency.", icon: "fa-forward" }
-    ].map((item) => ({ ...item, type: "macro", isBuiltInMacro: true }));
-    const custom = Array.isArray(s.actionWheel.customMacros) ? s.actionWheel.customMacros.filter((item) => item?.label && item?.command && !isRemovedActionLabel(item.label)).map((item) => ({ ...item, type: "macro", isCustomMacro: true, icon: item.icon || "fa-wand-magic-sparkles" })) : [];
-    const displayOptions = [...(Array.isArray(options) ? options.filter((item) => item?.label && !isRemovedActionLabel(item.label)) : []), ...builtIns, ...custom].slice(0, 12);
+        { label: "Observe", command: "Observe the immediate situation and respond to the most important visible change.", icon: "fa-eye", action: "send", type: "utility" },
+        { label: "Ask directly", command: "Ask one clear, grounded question about what matters right now.", icon: "fa-comment-dots", action: "toggle-ask-directly", type: "utility" },
+        { label: "Offer support", command: "Offer practical support without assuming anyone's feelings or choices.", icon: "fa-hand-holding-heart", action: "send", type: "utility" },
+        { label: "Set a boundary", icon: "fa-shield-heart", action: "open-boundaries", type: "utility" },
+        { label: "Advance scene", command: "Advance to the next plausible beat, preserving established positions and agency.", icon: "fa-forward", action: "send", type: "utility" }
+    ].map((item) => ({ ...item, isBuiltInMacro: true }));
+    const supplied = Array.isArray(options) ? options : [];
+    const dynamicSource = Array.isArray(window._uieActionWheelDynamicOptions)
+        ? window._uieActionWheelDynamicOptions
+        : supplied.filter((item) => item && !item.isBuiltInMacro && !item.isCustomMacro && !["toggle-ask-directly", "open-boundaries"].includes(item.action));
+    window._uieActionWheelDynamicOptions = dynamicSource;
+    const dynamic = dynamicSource
+        .filter((item) => item?.label && !isRemovedActionLabel(item.label))
+        .map((item) => ({ ...item, type: item.type || "progression" }));
+    const custom = aw.customMacros
+        .filter((item) => item?.label && item?.command && !isRemovedActionLabel(item.label))
+        .map((item) => ({ ...item, type: "custom", isCustomMacro: true, icon: item.icon || "fa-wand-magic-sparkles", action: "send" }));
+    // Player-owned controls stay visible even when the scene contributes many
+    // generated actions.
+    const displayOptions = [...builtIns, ...custom, ...dynamic.slice(0, 12)].slice(0, 29);
     window._uieActionWheelOptions = displayOptions;
-    container.innerHTML = `<section class="aw-menu" id="uie-action-wheel-widget" role="menu" aria-label="Actions"><header class="aw-menu-header"><span><i class="fas fa-bolt" aria-hidden="true"></i> Actions</span><button class="aw-menu-close" type="button" data-aw-close="true" aria-label="Close actions"><i class="fas fa-xmark" aria-hidden="true"></i></button></header><div class="aw-menu-actions">${displayOptions.length ? displayOptions.map((opt, idx) => `<button class="aw-menu-action ${getTypeClass(opt.type)}" type="button" role="menuitem" data-aw-idx="${idx}" ${opt.disabled ? "disabled" : ""}><i class="fas ${opt.icon || "fa-hand-pointer"}" aria-hidden="true"></i><span>${escHtml(opt.label)}${formatCostLabel(opt.cost) ? `<small>${escHtml(formatCostLabel(opt.cost))}</small>` : ""}</span></button>`).join("") : `<p class="aw-empty">No actions are available here yet.</p>`}</div></section>`;
+    const askActive = aw.askDirectlyActive === true;
+    container.innerHTML = `<section class="aw-menu" id="uie-action-wheel-widget" role="menu" aria-label="Actions">
+        <header class="aw-menu-header">
+            <span class="aw-menu-title"><i class="fas fa-bolt" aria-hidden="true"></i><span>Actions</span></span>
+            <div class="aw-menu-header-actions">
+                <button class="aw-header-btn" type="button" data-aw-add="true" title="Add a custom action"><i class="fas fa-plus" aria-hidden="true"></i><span>Add action</span></button>
+                <button class="aw-header-btn" type="button" data-aw-boundaries="true" title="Manage player boundaries"><i class="fas fa-shield-halved" aria-hidden="true"></i><span>Boundaries</span></button>
+                <button class="aw-menu-close" type="button" data-aw-close="true" aria-label="Close actions"><i class="fas fa-xmark" aria-hidden="true"></i></button>
+            </div>
+        </header>
+        <div class="aw-mode-note ${askActive ? "is-active" : ""}" role="status"><i class="fas ${askActive ? "fa-circle-check" : "fa-circle-info"}" aria-hidden="true"></i><span>${askActive ? "Ask directly is active — your next message goes straight to the AI." : "Choose an action or set a mode for your next message."}</span></div>
+        <div class="aw-menu-actions">${displayOptions.length ? displayOptions.map((opt, idx) => {
+            const isAsk = opt.action === "toggle-ask-directly";
+            const pressed = isAsk ? ` aria-pressed="${askActive ? "true" : "false"}"` : "";
+            const activeClass = isAsk && askActive ? " is-active" : "";
+            return `<button class="aw-menu-action ${getTypeClass(opt.type)}${activeClass}" type="button" role="menuitem" data-aw-idx="${idx}" data-aw-action="${escHtml(opt.action || "send")}"${pressed}${opt.disabled ? " disabled" : ""}><i class="fas ${opt.icon || "fa-hand-pointer"}" aria-hidden="true"></i><span>${escHtml(opt.label)}${isAsk ? `<small>${askActive ? "Active · next message" : "Toggle direct address"}</small>` : formatCostLabel(opt.cost) ? `<small>${escHtml(formatCostLabel(opt.cost))}</small>` : ""}</span></button>`;
+        }).join("") : `<p class="aw-empty">No actions are available here yet.</p>`}</div>
+    </section>`;
     container.onclick = handleActionWheelClick;
-    container.style.display = container.dataset.open === "true" ? "block" : "none";
-    fab.style.display = "grid";
+    const isHidden = aw.hidden === true;
+    container.style.display = !isHidden && container.dataset.open === "true" ? "flex" : "none";
+    fab.style.display = isHidden ? "none" : "grid";
 }
 export function toggleActionWheel(forceOpen) {
     let container = document.getElementById("uie-action-wheel");
@@ -926,13 +1181,146 @@ export function toggleActionWheel(forceOpen) {
     return open;
 }
 
+export function openBoundaryManager() {
+    const s = getSettings();
+    const aw = ensureActionWheelState(s);
+    let localBoundaries = aw.boundaries.map((boundary) => ({ ...boundary }));
+    let editingIndex = -1;
+    let draft = null;
+    let modal = document.getElementById("uie-boundary-modal");
+    if (!modal) {
+        modal = document.createElement("div");
+        modal.id = "uie-boundary-modal";
+        modal.className = "aw-modal-backdrop";
+        modal.setAttribute("role", "dialog");
+        modal.setAttribute("aria-modal", "true");
+        modal.setAttribute("aria-labelledby", "uie-boundary-title");
+        document.body.appendChild(modal);
+        modal.addEventListener("click", (event) => {
+            if (event.target === modal) close();
+        });
+        modal.addEventListener("keydown", (event) => {
+            if (event.key === "Escape") close();
+        });
+    }
+
+    function close() {
+        modal.style.display = "none";
+        modal.setAttribute("aria-hidden", "true");
+        draft = null;
+        editingIndex = -1;
+    }
+
+    function render() {
+        const editing = draft && typeof draft === "object";
+        modal.innerHTML = `
+            <section class="aw-modal aw-boundary-modal" role="document">
+                <header class="aw-modal-head">
+                    <div><span class="aw-modal-kicker"><i class="fas fa-shield-halved" aria-hidden="true"></i> AI guardrails</span><h2 id="uie-boundary-title">Boundary manager</h2></div>
+                    <button type="button" class="aw-modal-close" data-boundary-close aria-label="Close boundary manager"><i class="fas fa-xmark" aria-hidden="true"></i></button>
+                </header>
+                <p class="aw-modal-copy">Enabled boundaries are hard constraints added to this game's AI system prompt before your action. They stay private from the visible chat.</p>
+                <div class="aw-boundary-list" aria-live="polite">
+                    ${localBoundaries.length ? localBoundaries.map((boundary, index) => `
+                        <article class="aw-boundary-row ${boundary.enabled ? "is-enabled" : "is-disabled"}" data-boundary-index="${index}">
+                            <label class="aw-boundary-toggle"><input type="checkbox" data-boundary-toggle ${boundary.enabled ? "checked" : ""} aria-label="Enable ${escHtml(boundary.label)}"><span class="aw-toggle-track" aria-hidden="true"></span></label>
+                            <div class="aw-boundary-content"><strong>${escHtml(boundary.label)}</strong><p>${escHtml(boundary.instruction)}</p><small>${boundary.enabled ? "Enabled constraint" : "Disabled"}</small></div>
+                            <div class="aw-boundary-actions"><button type="button" class="aw-icon-btn aw-edit-btn" data-boundary-edit title="Edit ${escHtml(boundary.label)}" aria-label="Edit ${escHtml(boundary.label)}"><i class="fas fa-pen" aria-hidden="true"></i></button><button type="button" class="aw-icon-btn aw-delete-btn" data-boundary-delete title="Delete ${escHtml(boundary.label)}" aria-label="Delete ${escHtml(boundary.label)}"><i class="fas fa-trash-can" aria-hidden="true"></i></button></div>
+                        </article>`).join("") : `<div class="aw-boundary-empty"><i class="fas fa-shield-heart" aria-hidden="true"></i><strong>No boundaries yet</strong><span>Add one when the scene needs a clear, player-owned constraint.</span></div>`}
+                </div>
+                <button type="button" class="aw-add-boundary" data-boundary-add><i class="fas fa-plus" aria-hidden="true"></i> Add boundary</button>
+                <form class="aw-boundary-form ${editing ? "is-visible" : ""}" data-boundary-form ${editing ? "" : "hidden"}>
+                    <div class="aw-form-head"><strong>${editingIndex >= 0 ? "Edit boundary" : "New boundary"}</strong><span>Short label + clear instruction</span></div>
+                    <label>Label<input type="text" maxlength="80" data-boundary-label value="${escHtml(editing?.label || "")}" placeholder="e.g. Keep my character's agency"></label>
+                    <label>Instruction<textarea maxlength="1200" data-boundary-instruction rows="4" placeholder="What must the AI always respect?">${escHtml(editing?.instruction || "")}</textarea></label>
+                    <div class="aw-form-actions"><button type="button" class="aw-secondary-btn" data-boundary-cancel-edit>Cancel</button><button type="button" class="aw-save-btn" data-boundary-save-edit><i class="fas fa-check" aria-hidden="true"></i> Save boundary</button></div>
+                </form>
+                <footer class="aw-modal-footer"><button type="button" class="aw-secondary-btn" data-boundary-cancel>Cancel</button><button type="button" class="aw-save-btn" data-boundary-save><i class="fas fa-floppy-disk" aria-hidden="true"></i> Save changes</button></footer>
+            </section>`;
+
+        modal.querySelector("[data-boundary-close]")?.addEventListener("click", close);
+        modal.querySelector("[data-boundary-cancel]")?.addEventListener("click", close);
+        modal.querySelector("[data-boundary-add]")?.addEventListener("click", () => {
+            draft = { id: makeBoundaryId(), label: "", instruction: "", enabled: true };
+            editingIndex = -1;
+            render();
+            modal.querySelector("[data-boundary-label]")?.focus();
+        });
+        modal.querySelectorAll("[data-boundary-toggle]").forEach((input) => {
+            input.addEventListener("change", () => {
+                const index = Number(input.closest("[data-boundary-index]")?.dataset.boundaryIndex);
+                if (!Number.isInteger(index) || !localBoundaries[index]) return;
+                localBoundaries[index].enabled = input.checked;
+                input.closest(".aw-boundary-row")?.classList.toggle("is-enabled", input.checked);
+                input.closest(".aw-boundary-row")?.classList.toggle("is-disabled", !input.checked);
+                const status = input.closest(".aw-boundary-row")?.querySelector(".aw-boundary-content small");
+                if (status) status.textContent = input.checked ? "Enabled constraint" : "Disabled";
+            });
+        });
+        modal.querySelectorAll("[data-boundary-edit]").forEach((button) => {
+            button.addEventListener("click", () => {
+                const index = Number(button.closest("[data-boundary-index]")?.dataset.boundaryIndex);
+                if (!Number.isInteger(index) || !localBoundaries[index]) return;
+                draft = { ...localBoundaries[index] };
+                editingIndex = index;
+                render();
+                modal.querySelector("[data-boundary-label]")?.focus();
+            });
+        });
+        modal.querySelectorAll("[data-boundary-delete]").forEach((button) => {
+            button.addEventListener("click", () => {
+                const index = Number(button.closest("[data-boundary-index]")?.dataset.boundaryIndex);
+                if (!Number.isInteger(index)) return;
+                localBoundaries.splice(index, 1);
+                if (editingIndex === index) { draft = null; editingIndex = -1; }
+                else if (editingIndex > index) editingIndex -= 1;
+                render();
+            });
+        });
+        modal.querySelector("[data-boundary-cancel-edit]")?.addEventListener("click", () => {
+            draft = null;
+            editingIndex = -1;
+            render();
+        });
+        modal.querySelector("[data-boundary-save-edit]")?.addEventListener("click", () => {
+            const label = String(modal.querySelector("[data-boundary-label]")?.value || "").trim();
+            const instruction = String(modal.querySelector("[data-boundary-instruction]")?.value || "").trim();
+            if (!label || !instruction) {
+                notify("warning", "Add both a short label and an instruction before saving.", "Boundaries");
+                return;
+            }
+            const next = { id: String(draft?.id || makeBoundaryId()), label, instruction, enabled: draft?.enabled !== false };
+            if (editingIndex >= 0) localBoundaries[editingIndex] = next;
+            else localBoundaries.push(next);
+            draft = null;
+            editingIndex = -1;
+            render();
+        });
+        modal.querySelector("[data-boundary-save]")?.addEventListener("click", () => {
+            if (draft) {
+                notify("info", "Finish or cancel the boundary currently being edited first.", "Boundaries");
+                return;
+            }
+            aw.boundaries = localBoundaries.map((item, index) => normalizeBoundary(item, index)).filter(Boolean).slice(0, ACTION_WHEEL_BOUNDARY_LIMIT);
+            saveSettings();
+            commitStateUpdate();
+            close();
+            renderActionWheel(window._uieActionWheelOptions || []);
+            notify("success", "Boundaries saved.", "Boundaries");
+        });
+    }
+
+    modal.style.display = "flex";
+    modal.setAttribute("aria-hidden", "false");
+    render();
+}
+
 export function openCustomMacroModal() {
     const s = getSettings();
-    if (!s.actionWheel) s.actionWheel = {};
-    if (!Array.isArray(s.actionWheel.customMacros)) s.actionWheel.customMacros = [];
+    const aw = ensureActionWheelState(s);
 
     // Clone custom macros locally to support cancel
-    let localMacros = JSON.parse(JSON.stringify(s.actionWheel.customMacros));
+    let localMacros = JSON.parse(JSON.stringify(aw.customMacros));
 
     let modal = document.getElementById("uie-macro-modal");
     if (!modal) {
@@ -1134,7 +1522,7 @@ export function openCustomMacroModal() {
                     </div>
                 </div>
                 <div class="macro-desc">
-                    Build custom shortcut macros to easily execute complex narrative actions or commands. Macros will appear dynamically as slices in your Action Wheel menu (up to 7 items total, ordered sequentially).
+                    Build custom shortcut actions to execute repeatable narrative commands. They appear in the Action Wheel and can be edited or deleted whenever you want.
                 </div>
                 <div class="macro-list" id="uie-macro-list-container">
                     ${localMacros.length === 0 ? `
@@ -1163,8 +1551,8 @@ export function openCustomMacroModal() {
 
         // Attach event listeners
         modal.querySelector("#uie-macro-add-row-btn").addEventListener("click", () => {
-            if (localMacros.length >= 7) {
-                notify("warning", "You can have a maximum of 7 custom macros!", "Macro Builder");
+            if (localMacros.length >= ACTION_WHEEL_MACRO_LIMIT) {
+                notify("warning", `You can have a maximum of ${ACTION_WHEEL_MACRO_LIMIT} custom actions.`, "Action Wheel");
                 return;
             }
             localMacros.push({ label: "", command: "" });
@@ -1201,7 +1589,7 @@ export function openCustomMacroModal() {
                 return;
             }
 
-            s.actionWheel.customMacros = cleaned;
+            aw.customMacros = cleaned.slice(0, ACTION_WHEEL_MACRO_LIMIT);
             saveSettings();
             commitStateUpdate();
             modal.style.display = "none";
@@ -1230,6 +1618,21 @@ function handleActionWheelClick(e) {
         toggleActionWheel(false);
         return;
     }
+    const addAction = e.target.closest("[data-aw-add]");
+    if (addAction) {
+        e.preventDefault();
+        e.stopPropagation();
+        openCustomMacroModal();
+        return;
+    }
+    const boundaries = e.target.closest("[data-aw-boundaries]");
+    if (boundaries) {
+        e.preventDefault();
+        e.stopPropagation();
+        toggleActionWheel(false);
+        openBoundaryManager();
+        return;
+    }
     const hide = e.target.closest("[data-aw-hide]");
     if (hide) {
         const s = getSettings();
@@ -1250,6 +1653,19 @@ function handleActionWheelClick(e) {
 
     e.preventDefault();
     e.stopPropagation();
+
+    const wheelAction = String(btn.dataset.awAction || "send");
+    if (wheelAction === "toggle-ask-directly") {
+        const active = setAskDirectlyActive(!ensureActionWheelState().askDirectlyActive);
+        toggleActionWheel(true);
+        notify("info", active ? "Ask directly is active for your next message." : "Ask directly is off.", "Action Wheel");
+        return;
+    }
+    if (wheelAction === "open-boundaries") {
+        toggleActionWheel(false);
+        openBoundaryManager();
+        return;
+    }
 
     if (opt.isObstacle) {
         toggleActionWheel(false);
@@ -1298,8 +1714,9 @@ function handleActionWheelClick(e) {
         if (fab) fab.style.display = "grid";
         btn.classList.remove("aw-burst-active");
 
-        // Send label or custom macro command back to AI as user input
-        const label = String(opt.isCustomMacro ? opt.command : (opt.label || "")).trim();
+        // Custom actions send their authored command; generated/built-in actions
+        // use their explicit command when supplied.
+        const label = String(opt.command || opt.label || "").trim();
         if (!label) return;
         const targets = [
             document.getElementById("user-input"),
@@ -1361,6 +1778,26 @@ export function initStateMutator() {
  */
 export function handleAIResponse(rawText) {
     const { narrative, data } = parseAIResponse(rawText);
+    const visibleNarrative = sanitizeVisibleNarrative(narrative, buildNarrativeFallback());
+
+    // A mechanical update is part of its narrated turn. If the provider only
+    // returned JSON (or its readable half was invalid), applying damage, defeat,
+    // travel, or inventory changes would create an unexplained state jump.
+    if (!visibleNarrative) {
+        console.warn("[StateMutator] Ignored state updates from a response with no readable narration.");
+        return "";
+    }
+
+    // Keep response-provided actions separate from the built-in utility controls so
+    // reopening the wheel never duplicates the same options.
+    try {
+        if (Array.isArray(data.action_wheel_options) && data.action_wheel_options.length) {
+            window._uieActionWheelDynamicOptions = data.action_wheel_options;
+        }
+        if (document.getElementById("uie-action-wheel") || (Array.isArray(data.action_wheel_options) && data.action_wheel_options.length)) {
+            renderActionWheel(window._uieActionWheelDynamicOptions || []);
+        }
+    } catch (_) {}
 
     // Process state updates
     try { processStateUpdates(data.state_updates); } catch (e) {
@@ -1378,8 +1815,6 @@ export function handleAIResponse(rawText) {
     } catch (e) {
         console.error("[StateMutator] applySecretPatches failed:", e);
     }
-
-    const visibleNarrative = sanitizeVisibleNarrative(narrative, buildNarrativeFallback());
 
     // Return narrative with codex links injected
     try {

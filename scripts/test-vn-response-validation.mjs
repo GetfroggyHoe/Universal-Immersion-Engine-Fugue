@@ -65,5 +65,17 @@ const good = validateResponse(`[Narrator]: The side room settles into evening qu
 {"state_updates":{"resource_impacts":{}},"action_wheel_options":[]}`, { type: "VN Dialogue" });
 assert.equal(good.issues.filter((issue) => /^VN response format:/i.test(issue)).length, 0);
 
+const goodMultiBox = validateResponse(`[Mara]: I hear it too. She raises the lantern and steps toward the archway. "Stay behind me."
+[Narrator]: Rainwater runs through the cracked stones. A shadow crosses the far wall. The bell above the gate begins to sway.
+[Mara]: She lowers her voice. "That is not the wind."
+[Narrator]: The shadow stops. For one breath, the entire courtyard goes still.
+===DATA===
+{"state_updates":{"resource_impacts":{}},"action_wheel_options":[]}`, { type: "VN Dialogue" });
+assert.equal(
+  goodMultiBox.issues.filter((issue) => /^VN response format:/i.test(issue)).length,
+  0,
+  "repeated character and Narrator boxes with up to three sentences must remain valid",
+);
+
 console.log("vn-response-validation tests: ok");
 process.exit(0);

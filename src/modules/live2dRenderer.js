@@ -108,7 +108,7 @@ async function ensureRuntime(runtime) {
 function spriteLayer() {
     return document.getElementById("vn-sprite-layer")
         || document.getElementById("re-sprites-layer")
-        || document.getElementById("game-scale-root")
+        || document.getElementById("game-root")
         || document.body;
 }
 

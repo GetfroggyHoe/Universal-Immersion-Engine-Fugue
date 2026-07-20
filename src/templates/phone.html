@@ -110,12 +110,13 @@
             animation: uie-codice-rollup .24s ease-in both !important;
         }
         @keyframes uie-codice-unroll {
-            from { opacity: 0; transform: scaleX(.08); clip-path: inset(0 46% 0 46%); }
-            to { opacity: 1; transform: scaleX(1); clip-path: inset(0 0 0 0); }
+            from { opacity: 0; transform: scaleY(.06); clip-path: inset(47% 0 47% 0); }
+            55% { opacity: 1; transform: scaleY(.74); clip-path: inset(13% 0 13% 0); }
+            to { opacity: 1; transform: scaleY(1); clip-path: inset(0 0 0 0); }
         }
         @keyframes uie-codice-rollup {
-            from { opacity: 1; transform: scaleX(1); clip-path: inset(0 0 0 0); }
-            to { opacity: 0; transform: scaleX(.08); clip-path: inset(0 46% 0 46%); }
+            from { opacity: 1; transform: scaleY(1); clip-path: inset(0 0 0 0); }
+            to { opacity: 0; transform: scaleY(.06); clip-path: inset(47% 0 47% 0); }
         }
         /* Left & Right scroll rollers */
         #uie-phone-window[data-device="scroll"]::before,
@@ -144,6 +145,7 @@
         #uie-phone-window[data-device="scroll"] #app-cookies,
         #uie-phone-window[data-device="scroll"] #app-travel,
         #uie-phone-window[data-device="scroll"] #app-bank,
+        #uie-phone-window[data-device="scroll"] #app-bills,
         #uie-phone-window[data-device="scroll"] #app-cardforge,
         #uie-phone-window[data-device="scroll"] #app-memories,
         #uie-phone-window[data-device="scroll"] #app-social,
@@ -159,6 +161,7 @@
         #uie-phone-window[data-codice="true"] #app-cookies,
         #uie-phone-window[data-codice="true"] #app-travel,
         #uie-phone-window[data-codice="true"] #app-bank,
+        #uie-phone-window[data-codice="true"] #app-bills,
         #uie-phone-window[data-codice="true"] #app-cardforge,
         #uie-phone-window[data-codice="true"] #app-memories,
         #uie-phone-window[data-codice="true"] #app-social,
@@ -656,7 +659,8 @@
             display: grid;
             grid-template-columns: repeat(4, 1fr);
             gap: 32px 10px;
-            padding: 20px;
+            /* Keep the launcher clear of the persistent lock control. */
+            padding: 92px 20px 20px;
             min-width: 0;
             width: 100%;
         }
@@ -691,48 +695,156 @@
         #app-settings::after { content:"Settings"; } #app-calc::after { content:"Calculator"; }
         #app-cookies::after { content:"Storage"; } #app-memories::after { content:"Memories"; }
         #app-travel::after { content:"Transit"; } #app-bank::after { content:"Bank"; }
+        #app-bills::after { content:"Bills"; }
+        #app-homestead::after { content:"Homestead"; }
         #app-cardforge::after { content:"Card Forge"; }
         #app-social::after { content:"Instavibe"; }
-        #uie-app-cardforge-view #forge-render-btn,
-        #uie-app-cardforge-view #forge-save-btn,
-        #uie-app-cardforge-view #forge-photo-select-btn,
-        #uie-app-cardforge-view #forge-tab-create,
-        #uie-app-cardforge-view #forge-tab-wallet {
-            width: 100% !important;
-            min-width: 0 !important;
-            box-sizing: border-box !important;
-            display: inline-flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-            gap: 6px !important;
-            white-space: normal !important;
-            overflow-wrap: anywhere !important;
-            line-height: 1.15 !important;
-            text-align: center !important;
-            pointer-events: auto !important;
-            touch-action: manipulation !important;
-            position: relative !important;
-            z-index: 2 !important;
-        }
-        #uie-app-cardforge-view input,
-        #uie-app-cardforge-view select,
-        #uie-app-cardforge-view canvas,
-        #uie-app-cardforge-view button {
-            pointer-events: auto !important;
-            touch-action: manipulation !important;
-        }
-        @media not all {
-            #uie-app-cardforge-view #forge-create-panel > div[style*="grid-template-columns:1fr 1fr"] {
-                grid-template-columns: 1fr !important;
-            }
-            #uie-app-cardforge-view #forge-render-btn,
-            #uie-app-cardforge-view #forge-save-btn {
-                min-height: 42px !important;
-                height: auto !important;
-                padding: 7px 8px !important;
-                font-size: 12px !important;
-            }
-        }
+        #uie-app-cardforge-view { --cf-brass:#cba35c; --cf-ink:#090a0b; --cf-panel:#131416; --cf-line:#303236; --cf-text:#f3f0e7; --cf-muted:#9b9da2; --cf-green:#54c57a; --cf-amber:#e4a93f; --cf-red:#e76464; --cf-cyan:#62d7e6; color:var(--cf-text); background:var(--cf-ink); }
+        #uie-app-cardforge-view .phone-app-header { background:#090a0b; border-bottom:1px solid #242528; font-size:17px; letter-spacing:0; }
+        #uie-app-cardforge-view .phone-app-content.cf-shell { padding:0; background:#090a0b; overflow:hidden; min-width:0; }
+        #uie-app-cardforge-view *, #uie-app-cardforge-view *::before, #uie-app-cardforge-view *::after { box-sizing:border-box; }
+        #uie-app-cardforge-view button, #uie-app-cardforge-view input, #uie-app-cardforge-view select, #uie-app-cardforge-view textarea { font:inherit; letter-spacing:0; }
+        .cf-tabs { display:grid; grid-template-columns:repeat(3,1fr); min-height:39px; border-bottom:1px solid var(--cf-line); background:#0d0e10; flex:none; }
+        .cf-tab { border:0; border-bottom:2px solid transparent; background:transparent; color:var(--cf-muted); font-size:11px; font-weight:800; cursor:pointer; }
+        .cf-tab i { margin-right:5px; }
+        .cf-tab.is-active { color:var(--cf-text); border-bottom-color:var(--cf-brass); }
+        .cf-tab:focus-visible, .cf-icon:focus-visible, .cf-command:focus-visible, .cf-list-row:focus-visible { outline:2px solid var(--cf-cyan); outline-offset:-2px; }
+        .cf-panels { min-height:0; flex:1; position:relative; }
+        .cf-panel { display:none; height:100%; overflow-y:auto; overflow-x:hidden; scrollbar-width:thin; scrollbar-color:#3a3b3e transparent; }
+        .cf-panel.is-active { display:block; }
+        .cf-toolbar { display:grid; grid-template-columns:1fr 94px; gap:6px; padding:9px 10px 7px; border-bottom:1px solid #242528; position:sticky; top:0; z-index:4; background:#0d0e10; }
+        .cf-search { display:flex; align-items:center; min-width:0; height:34px; padding:0 9px; border:1px solid var(--cf-line); background:#151619; }
+        .cf-search i { color:var(--cf-muted); font-size:11px; }
+        .cf-search input { min-width:0; width:100%; height:100%; border:0; outline:0; color:var(--cf-text); background:transparent; padding:0 7px; font-size:12px; }
+        .cf-select { min-width:0; width:100%; height:34px; border:1px solid var(--cf-line); border-radius:4px; color:var(--cf-text); background:#151619; padding:0 7px; font-size:11px; }
+        .cf-filter-row { grid-column:1/-1; display:grid; grid-template-columns:1fr 1fr; gap:6px; }
+        .cf-wallet-stage { padding:10px; min-width:0; }
+        .cf-stack-nav { display:grid; grid-template-columns:30px 1fr 30px; align-items:center; text-align:center; height:29px; color:var(--cf-muted); font-size:10px; }
+        .cf-icon { display:inline-grid; place-items:center; width:30px; height:30px; padding:0; border:1px solid var(--cf-line); border-radius:4px; background:#17181b; color:var(--cf-text); cursor:pointer; flex:none; }
+        .cf-icon:hover, .cf-command:hover { border-color:#625537; color:#fff7dc; }
+        .cf-card-object { position:relative; display:block; width:100%; aspect-ratio:340/210; max-height:210px; padding:0; overflow:hidden; border:1px solid #45464a; border-radius:8px; background:#111214; box-shadow:0 8px 18px rgba(0,0,0,.45); cursor:pointer; }
+        .cf-card-object.ticket, .cf-card-object.document, .cf-card-object.scroll { aspect-ratio:340/225; }
+        .cf-card-object img, .cf-card-object canvas { display:block; width:100%; height:100%; object-fit:cover; }
+        .cf-flip-mark { position:absolute; right:6px; bottom:6px; padding:3px 5px; background:rgba(0,0,0,.74); color:#eee; font-size:8px; text-transform:uppercase; }
+        .cf-badge-row { display:flex; flex-wrap:wrap; gap:4px; padding:8px 0 3px; }
+        .cf-badge { padding:3px 5px; border:1px solid #44464a; border-radius:3px; color:#c2c4c8; font-size:8px; font-weight:900; text-transform:uppercase; }
+        .cf-badge.active, .cf-badge.issued, .cf-badge.relevant { color:var(--cf-green); border-color:#275c3a; }
+        .cf-badge.expired, .cf-badge.frozen, .cf-badge.forged { color:var(--cf-amber); border-color:#62491f; }
+        .cf-badge.revoked, .cf-badge.confiscated { color:var(--cf-red); border-color:#642e2e; }
+        .cf-badge.default { color:var(--cf-brass); border-color:#63522d; }
+        .cf-credential-heading { display:flex; align-items:center; gap:8px; min-width:0; padding:5px 0 8px; border-bottom:1px solid #292a2e; }
+        .cf-credential-heading > div { min-width:0; flex:1; }
+        .cf-credential-heading strong, .cf-credential-heading span { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+        .cf-credential-heading strong { color:#fff; font-size:14px; }
+        .cf-credential-heading span { margin-top:2px; color:var(--cf-muted); font-size:10px; }
+        .cf-favorite.is-active { color:var(--cf-brass); }
+        .cf-meta { display:grid; grid-template-columns:1fr 1fr; gap:8px 12px; margin:9px 0; }
+        .cf-meta div { min-width:0; }
+        .cf-meta dt { color:var(--cf-muted); font-size:8px; font-weight:800; text-transform:uppercase; }
+        .cf-meta dd { margin:2px 0 0; overflow:hidden; color:var(--cf-text); font-size:11px; text-overflow:ellipsis; white-space:nowrap; }
+        .cf-linked { display:flex; align-items:center; min-width:0; gap:7px; padding:6px 0; border-top:1px solid #222326; color:var(--cf-muted); font-size:10px; }
+        .cf-linked i { width:14px; color:var(--cf-brass); text-align:center; }
+        .cf-linked span { min-width:0; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+        .cf-linked strong { color:var(--cf-text); }
+        .cf-primary-actions { display:grid; grid-template-columns:1fr 1fr 34px; gap:6px; margin-top:8px; }
+        .cf-command { min-height:34px; border:1px solid var(--cf-line); border-radius:4px; background:#1a1b1e; color:var(--cf-text); padding:6px 9px; font-size:11px; font-weight:800; cursor:pointer; }
+        .cf-command.brass { border-color:#8b7139; background:#6d572c; color:#fff5d9; }
+        .cf-command.danger { border-color:#743434; color:#ffaaaa; }
+        .cf-command:disabled { cursor:not-allowed; opacity:.45; }
+        .cf-history { margin-top:10px; border-top:1px solid #2b2c30; }
+        .cf-history summary { padding:8px 0; color:var(--cf-muted); font-size:10px; font-weight:800; cursor:pointer; }
+        .cf-history summary span { float:right; }
+        .cf-history div { display:grid; grid-template-columns:1fr 1fr auto; gap:5px; padding:5px 0; border-top:1px solid #202124; font-size:9px; }
+        .cf-history div strong { color:var(--cf-brass); overflow:hidden; text-overflow:ellipsis; }
+        .cf-history time { color:var(--cf-muted); }
+        .cf-wallet-list { border-top:1px solid var(--cf-line); }
+        .cf-list-row { display:flex; width:100%; min-width:0; align-items:center; gap:8px; padding:8px 10px; border:0; border-bottom:1px solid #25262a; background:#0e0f11; color:var(--cf-text); text-align:left; cursor:pointer; }
+        .cf-list-row.is-active { background:#191814; box-shadow:inset 3px 0 var(--cf-brass); }
+        .cf-list-icon { display:grid; place-items:center; width:29px; height:29px; border:1px solid #3c3e42; color:var(--cf-brass); flex:none; }
+        .cf-list-icon.travel { color:var(--cf-cyan); }
+        .cf-list-icon.access { color:var(--cf-green); }
+        .cf-list-copy { min-width:0; flex:1; }
+        .cf-list-copy strong, .cf-list-copy small { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+        .cf-list-copy strong { font-size:11px; }
+        .cf-list-copy small { color:var(--cf-muted); font-size:9px; margin-top:2px; }
+        .cf-list-status { width:7px; height:7px; border-radius:50%; background:#777; flex:none; }
+        .cf-list-status.active { background:var(--cf-green); }
+        .cf-list-status.expired, .cf-list-status.frozen { background:var(--cf-amber); }
+        .cf-list-status.revoked, .cf-list-status.confiscated { background:var(--cf-red); }
+        .cf-empty { display:flex; min-height:230px; align-items:center; justify-content:center; flex-direction:column; gap:8px; color:var(--cf-muted); text-align:center; font-size:10px; }
+        .cf-empty i { color:#55585e; font-size:30px; }
+        .cf-empty strong { color:var(--cf-text); font-size:13px; }
+        .cf-empty.compact { min-height:130px; }
+        .cf-create-head { display:flex; align-items:center; justify-content:space-between; padding:9px 10px 7px; border-bottom:1px solid var(--cf-line); }
+        .cf-create-head strong { display:block; font-size:13px; }
+        .cf-create-head span { display:block; margin-top:2px; color:var(--cf-muted); font-size:9px; }
+        .cf-paths { display:grid; grid-template-columns:1fr 1fr; width:150px; border:1px solid var(--cf-line); }
+        .cf-path { height:30px; border:0; background:#111214; color:var(--cf-muted); font-size:10px; font-weight:800; cursor:pointer; }
+        .cf-path.is-active { background:#6d572c; color:#fff4d4; }
+        .cf-create-preview { position:sticky; top:0; z-index:3; padding:9px 10px; border-bottom:1px solid var(--cf-line); background:#0d0e10; }
+        .cf-preview-toolbar { display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; }
+        .cf-preview-toolbar span { color:var(--cf-muted); font-size:9px; font-weight:800; text-transform:uppercase; }
+        #cf-create-canvas { display:block; width:100%; aspect-ratio:340/210; border:1px solid #3f4145; border-radius:8px; background:#111214; }
+        .cf-create-form { padding:10px; }
+        .cf-band { margin:0 -10px 9px; padding:6px 10px; border-top:1px solid #292a2e; border-bottom:1px solid #292a2e; background:#111214; color:var(--cf-brass); font-size:9px; font-weight:900; text-transform:uppercase; }
+        .cf-form-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+        .cf-field { display:block; min-width:0; margin-bottom:8px; }
+        .cf-field.wide { grid-column:1/-1; }
+        .cf-field > span { display:block; margin-bottom:4px; color:var(--cf-muted); font-size:9px; font-weight:800; }
+        .cf-field input:not([type="checkbox"]):not([type="range"]), .cf-field select, .cf-field textarea { width:100%; min-width:0; min-height:34px; border:1px solid var(--cf-line); border-radius:4px; background:#16171a; color:var(--cf-text); padding:7px 8px; font-size:11px; }
+        .cf-field textarea { min-height:56px; resize:vertical; }
+        .cf-field input[type="range"] { width:100%; accent-color:var(--cf-brass); }
+        .cf-requirements { min-height:25px; padding:6px 8px; border-left:2px solid var(--cf-brass); background:#15140f; color:#c7b78f; font-size:9px; }
+        .cf-risk { margin-bottom:9px; padding:8px; border:1px solid #614821; background:#1c1710; color:#ebbd68; font-size:10px; line-height:1.4; }
+        .cf-risk strong { display:block; margin-bottom:2px; color:#ffd07a; }
+        .cf-switches { display:grid; grid-template-columns:1fr 1fr; gap:5px 8px; margin-bottom:8px; }
+        .cf-check { display:flex; align-items:center; gap:6px; min-height:28px; color:#d4d5d7; font-size:10px; }
+        .cf-check input { accent-color:var(--cf-brass); }
+        .cf-upload-row { display:grid; grid-template-columns:1fr 1fr; gap:6px; }
+        .cf-form-actions { display:grid; grid-template-columns:34px 34px 34px 1fr; gap:6px; padding-top:4px; }
+        .cf-scanner-form { padding:10px; border-bottom:1px solid var(--cf-line); }
+        .cf-scanner-head { display:flex; align-items:center; gap:8px; margin-bottom:10px; color:var(--cf-cyan); }
+        .cf-scanner-head i { font-size:18px; }
+        .cf-scanner-head strong { display:block; color:var(--cf-text); font-size:13px; }
+        .cf-scanner-head span { color:var(--cf-muted); font-size:9px; }
+        .cf-scanner-form .cf-command { width:100%; border-color:#28616a; background:#12343a; color:#bff7ff; }
+        .cf-scan-results { padding:10px; }
+        .cf-scan-idle { display:flex; min-height:180px; align-items:center; justify-content:center; flex-direction:column; gap:8px; color:var(--cf-cyan); font-size:11px; }
+        .cf-scan-idle i { font-size:30px; }
+        .cf-scan-outcome { display:flex; align-items:center; gap:9px; padding:9px; border:1px solid #375f44; background:#101a13; }
+        .cf-scan-outcome.rejected { border-color:#6e3737; background:#1b1111; }
+        .cf-scan-outcome i { color:var(--cf-green); font-size:19px; }
+        .cf-scan-outcome.rejected i { color:var(--cf-red); }
+        .cf-scan-outcome strong, .cf-scan-outcome span { display:block; text-transform:capitalize; }
+        .cf-scan-outcome strong { font-size:12px; }
+        .cf-scan-outcome span { color:var(--cf-muted); font-size:9px; margin-top:2px; }
+        .cf-scan-grid { display:grid; grid-template-columns:1fr 1fr; gap:1px; margin:9px 0; background:#303236; }
+        .cf-scan-grid div { padding:7px; background:#121315; }
+        .cf-scan-grid dt { color:var(--cf-muted); font-size:8px; }
+        .cf-scan-grid dd { margin:3px 0 0; color:var(--cf-cyan); font-size:10px; font-weight:800; text-transform:capitalize; }
+        .cf-acceptance { padding:8px; border:1px solid #2d4f54; background:#101719; font-size:9px; }
+        .cf-acceptance > strong { float:right; color:var(--cf-cyan); text-transform:capitalize; }
+        .cf-acceptance > div { position:relative; height:5px; margin:8px 0 5px; background:#30373a; }
+        .cf-acceptance > div i { position:absolute; top:-3px; width:2px; height:11px; background:var(--cf-cyan); }
+        .cf-acceptance small { color:var(--cf-muted); }
+        .cf-usable { padding:9px 0; font-size:10px; }
+        .cf-usable strong, .cf-usable span { display:block; }
+        .cf-usable span { margin-top:3px; color:var(--cf-muted); }
+        .cf-action-sheet { display:none; position:absolute; inset:0; z-index:20; align-items:flex-end; }
+        .cf-action-sheet.is-open { display:flex; }
+        .cf-sheet-scrim { position:absolute; inset:0; border:0; background:rgba(0,0,0,.72); }
+        .cf-sheet { position:relative; width:100%; max-height:82%; overflow-y:auto; border-top:1px solid #4a4b4e; background:#121315; box-shadow:0 -12px 28px rgba(0,0,0,.55); }
+        .cf-sheet-head { display:flex; align-items:center; gap:8px; padding:10px; border-bottom:1px solid #2c2d31; }
+        .cf-sheet-head > div { min-width:0; flex:1; }
+        .cf-sheet-head strong, .cf-sheet-head span { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+        .cf-sheet-head strong { font-size:13px; }
+        .cf-sheet-head span { margin-top:2px; color:var(--cf-muted); font-size:9px; }
+        .cf-action-grid { display:grid; grid-template-columns:1fr 1fr; }
+        .cf-action-grid button { display:flex; align-items:center; gap:8px; min-height:39px; padding:8px 10px; border:0; border-right:1px solid #27282c; border-bottom:1px solid #27282c; background:#121315; color:var(--cf-text); font-size:10px; text-align:left; cursor:pointer; }
+        .cf-action-grid button i { width:15px; color:var(--cf-brass); text-align:center; }
+        .cf-action-grid button.danger { color:#ff9f9f; }
+        .cf-action-grid button.danger i { color:var(--cf-red); }
+        @media (max-width:340px) { .cf-toolbar { grid-template-columns:1fr 82px; } .cf-form-grid { grid-template-columns:1fr; } .cf-field.wide { grid-column:auto; } .cf-meta { grid-template-columns:1fr; gap:5px; } }
         #uie-phone-window #uie-app-settings-view .phone-app-content { background:linear-gradient(180deg,rgba(18,24,38,.98),rgba(7,11,20,.98)); }
         #uie-phone-window #uie-app-settings-view .p-setting-row { padding:12px; border:1px solid rgba(255,255,255,.1); border-radius:14px; background:rgba(255,255,255,.055); }
         #uie-phone-window #uie-app-settings-view .p-setting-label { display:block; margin-bottom:7px; font-size:11px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; opacity:.72; }
@@ -1451,14 +1563,14 @@
         }
 
         #uie-app-social-view {
-            --iv-bg: #0b0b0d;
-            --iv-surface: #121216;
-            --iv-card: #18181d;
-            --iv-border: #2a2a31;
-            --iv-text: #f6f6f8;
-            --iv-muted: #a4a4ad;
-            --iv-accent: #ff375f;
-            --iv-accent2: #7c5cff;
+            --iv-bg: #f7f8fa;
+            --iv-surface: #ffffff;
+            --iv-card: #ffffff;
+            --iv-border: #e2e7ee;
+            --iv-text: #172033;
+            --iv-muted: #667085;
+            --iv-accent: #e24d5e;
+            --iv-accent2: #2d6cdf;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
         }
         #uie-app-social-view .phone-app-header {
@@ -1469,17 +1581,17 @@
             font-weight: 800 !important;
             letter-spacing: -.02em !important;
         }
-        #uie-app-social-view .iv-post-card { border-radius: 16px !important; padding: 13px !important; background: var(--iv-card) !important; box-shadow: 0 5px 15px rgba(0,0,0,.16) !important; }
+        #uie-app-social-view .iv-post-card { border-radius:8px !important; padding:12px !important; background:var(--iv-card) !important; box-shadow:0 8px 18px rgba(16,24,40,.06) !important; }
         #uie-app-social-view .iv-avatar { border: 2px solid var(--iv-surface) !important; outline: 2px solid var(--iv-accent) !important; }
         #uie-app-social-view .iv-post-image { border-radius: 12px !important; border: 1px solid rgba(255,255,255,.06) !important; }
         #uie-app-social-view .iv-actions { justify-content: space-between !important; padding-top: 10px !important; }
         #uie-app-social-view .iv-action-btn { min-height: 28px !important; font-size: 12px !important; }
         #uie-app-social-view .iv-composer { padding: 12px !important; background: var(--iv-surface) !important; }
-        #uie-app-social-view .iv-composer textarea, #uie-app-social-view .iv-search-input { border-radius: 12px !important; background: #0e0e12 !important; }
-        #uie-app-social-view .iv-tab-bar { padding-bottom: env(safe-area-inset-bottom, 0px) !important; background: rgba(18,18,22,.98) !important; }
+        #uie-app-social-view .iv-composer textarea, #uie-app-social-view .iv-search-input { border-radius: 7px !important; background: #f7f8fa !important; color:#172033!important; }
+        #uie-app-social-view .iv-tab-bar { padding-bottom: env(safe-area-inset-bottom, 0px) !important; background: #fff !important; }
         #uie-app-social-view .iv-tab { min-height: 48px !important; }
         #uie-app-social-view .iv-tab.is-active i { transform: translateY(-1px) !important; }
-        #uie-app-social-view .iv-profile-banner { background: linear-gradient(115deg, #ff375f, #8b5cf6 58%, #27c4ef) !important; }
+        #uie-app-social-view .iv-profile-banner { background: #172033 !important; }
         @media not all {
             #uie-phone-window[data-device="scroll"] .uie-letter-doc, #uie-phone-window[data-device="scroll"] .uie-letter-compose,
             #uie-phone-window[data-codice="true"] .uie-letter-doc, #uie-phone-window[data-codice="true"] .uie-letter-compose { padding: 19px 20px !important; }
@@ -1489,9 +1601,24 @@
 
     <div class="uie-phone-drag-handle" title="Move"><i class="fa-solid fa-grip-lines"></i></div>
 
-    <div class="phone-status-bar" style="display:flex; justify-content:space-between; padding:5px 15px; font-size:12px; font-weight:bold;">
+    <div class="phone-status-bar" style="display:flex; justify-content:space-between; align-items:center; gap:8px; padding:5px 15px; font-size:12px; font-weight:bold;">
         <span class="uie-phone-clock">12:00</span>
-        <span><i class="fa-solid fa-wifi"></i> 5G</span>
+        <span id="uie-phone-network"><i class="fa-solid fa-signal"></i> 4/4</span>
+        <span id="uie-phone-battery"><i class="fa-solid fa-battery-full"></i> 100%</span>
+    </div>
+
+    <div id="uie-phone-power-screen" class="phone-screen" style="flex:1; display:none; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:24px; gap:14px; background:radial-gradient(circle at 50% 30%,#172033,#020409 72%); z-index:70;">
+        <i class="fa-solid fa-battery-empty" style="font-size:58px; color:#f87171;"></i>
+        <div style="font-size:28px; font-weight:900;">Phone powered off</div>
+        <div style="font-size:13px; opacity:.72;">Battery: <strong id="uie-phone-power-level">0%</strong>. Connect a charger to restore power.</div>
+        <select id="uie-phone-power-charger" style="width:100%; height:42px; border-radius:12px; border:1px solid rgba(255,255,255,.16); background:#111827; color:#fff; padding:0 12px;">
+            <option value="wall">Wall charger</option>
+            <option value="usb">USB cable</option>
+            <option value="wireless">Wireless pad / dock</option>
+            <option value="vehicle">Vehicle charger</option>
+            <option value="solar">Solar charger</option>
+        </select>
+        <button id="uie-phone-charge-toggle" style="width:100%; height:44px; border:0; border-radius:14px; background:#2dd4bf; color:#00110a; font-weight:900;"><i class="fa-solid fa-plug-circle-bolt"></i> Connect charger</button>
     </div>
 
     <div id="uie-phone-lockscreen" class="phone-screen" style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding: 20px; background-color: #000 !important; z-index: 50;">
@@ -1507,7 +1634,7 @@
     </div>
 
     <div id="uie-phone-homescreen" class="phone-screen" style="display:none;">
-        <i class="fa-solid fa-lock" id="uie-phone-lock-btn" style="position:absolute; top:10px; left:10px; opacity:0.5; cursor:pointer;"></i>
+        <button type="button" id="uie-phone-lock-btn" aria-label="Lock phone" title="Lock phone" style="position:absolute; top:10px; right:52px; z-index:320; width:34px; height:34px; display:grid; place-items:center; border:0; border-radius:50%; background:rgba(0,0,0,.32); color:#fff; opacity:.9; cursor:pointer;"><i class="fa-solid fa-lock" aria-hidden="true"></i></button>
         <div class="phone-grid-scroll">
             <div class="phone-grid" id="uie-phone-grid">
                 <div class="phone-app-icon" id="app-msg" style="background:#2ecc71;"><i class="fa-solid fa-comment"></i></div>
@@ -1520,6 +1647,8 @@
                 <div class="phone-app-icon" id="app-memories" style="background:#117a65;"><i class="fa-solid fa-database"></i></div>
                 <div class="phone-app-icon" id="app-travel" style="background:#16a085;"><i class="fa-solid fa-train-subway"></i></div>
                 <div class="phone-app-icon" id="app-bank" style="background:#0f766e;"><i class="fa-solid fa-building-columns"></i></div>
+                <div class="phone-app-icon" id="app-bills" style="background:#7c3aed;"><i class="fa-solid fa-file-invoice-dollar"></i></div>
+                <div class="phone-app-icon" id="app-homestead" style="background:#b45309;" title="Homestead"><i class="fa-solid fa-house-chimney"></i></div>
                 <div class="phone-app-icon" id="app-cardforge" style="background:#d35400;" title="Card Forge"><i class="fa-solid fa-id-card"></i></div>
                 <div class="phone-app-icon" id="app-social" style="background:#e91e63;" title="Instavibe"><i class="fa-solid fa-hashtag"></i></div>
             </div>
@@ -1542,7 +1671,8 @@
 
     <div id="uie-app-social-view" class="phone-app-window">
         <style>
-            #uie-app-social-view { --iv-bg: #0a0a0f; --iv-surface: #14141f; --iv-card: #1a1a28; --iv-border: #2a2a3d; --iv-text: #e8e8f0; --iv-muted: #8888a0; --iv-accent: #e21d5a; --iv-accent2: #a855f7; --iv-green: #22c55e; }
+            /* Instavibe is an original editorial social space: paper-white, ink, and a single coral signal. */
+            #uie-app-social-view { --iv-bg: #f7f8fa; --iv-surface: #ffffff; --iv-card: #ffffff; --iv-border: #e2e7ee; --iv-text: #172033; --iv-muted: #667085; --iv-accent: #e24d5e; --iv-accent2: #2d6cdf; --iv-green: #11855b; }
             #uie-app-social-view .iv-tab-bar { display:flex; background:var(--iv-surface); border-top:1px solid var(--iv-border); position:sticky; bottom:0; z-index:10; }
             #uie-app-social-view .iv-tab { flex:1; display:flex; flex-direction:column; align-items:center; gap:2px; padding:8px 4px; background:none; border:none; color:var(--iv-muted); font-size:10px; font-weight:600; cursor:pointer; position:relative; transition:color .15s; }
             #uie-app-social-view .iv-tab.is-active { color:var(--iv-accent); }
@@ -1550,7 +1680,7 @@
             #uie-app-social-view .iv-tab .iv-badge { position:absolute; top:4px; right:calc(50% - 16px); background:var(--iv-accent); color:#fff; font-size:9px; font-weight:800; min-width:16px; height:16px; border-radius:999px; display:flex; align-items:center; justify-content:center; padding:0 4px; }
             #uie-app-social-view .iv-sub-view { display:none; flex:1; flex-direction:column; overflow:hidden; }
             #uie-app-social-view .iv-sub-view.is-active { display:flex; }
-            #uie-app-social-view .iv-post-card { background:var(--iv-card); border-radius:14px; padding:12px; border:1px solid var(--iv-border); display:flex; flex-direction:column; gap:8px; margin-bottom:10px; }
+            #uie-app-social-view .iv-post-card { background:var(--iv-card); border-radius:8px; padding:12px; border:1px solid var(--iv-border); display:flex; flex-direction:column; gap:8px; margin-bottom:10px; }
             #uie-app-social-view .iv-post-header { display:flex; align-items:center; gap:10px; }
             #uie-app-social-view .iv-avatar { width:38px; height:38px; border-radius:50%; background:var(--iv-border); overflow:hidden; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:14px; color:var(--iv-muted); }
             #uie-app-social-view .iv-avatar img { width:100%; height:100%; object-fit:cover; }
@@ -1605,7 +1735,7 @@
             #uie-app-social-view .iv-notif-body { flex:1; }
             #uie-app-social-view .iv-notif-text { font-size:12px; color:var(--iv-text); line-height:1.4; }
             #uie-app-social-view .iv-notif-time { font-size:10px; color:var(--iv-muted); margin-top:2px; }
-            #uie-app-social-view .iv-profile-banner { height:80px; background:linear-gradient(135deg, var(--iv-accent), var(--iv-accent2)); position:relative; }
+            #uie-app-social-view .iv-profile-banner { height:64px; background:#172033; position:relative; }
             #uie-app-social-view .iv-profile-header { padding:0 12px; display:flex; align-items:flex-end; gap:12px; margin-top:-28px; position:relative; z-index:2; }
             #uie-app-social-view .iv-profile-avatar { width:56px; height:56px; border-radius:50%; border:3px solid var(--iv-bg); background:var(--iv-border); overflow:hidden; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:20px; color:var(--iv-muted); }
             #uie-app-social-view .iv-profile-avatar img { width:100%; height:100%; object-fit:cover; }
@@ -1623,6 +1753,12 @@
             #uie-app-social-view .iv-section-label { font-size:11px; font-weight:700; color:var(--iv-muted); text-transform:uppercase; letter-spacing:.05em; padding:10px 12px 6px; }
             #uie-app-social-view .iv-empty { text-align:center; padding:30px 20px; color:var(--iv-muted); font-size:13px; }
             #uie-app-social-view .iv-scroll-area { flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; touch-action:pan-y; }
+            #uie-app-social-view .iv-post-card { margin:10px 12px; }
+            #uie-app-social-view .iv-composer, #uie-app-social-view .iv-search-bar, #uie-app-social-view .iv-tab-bar { background:#fff; }
+            #uie-app-social-view .iv-composer textarea, #uie-app-social-view .iv-search-input, #uie-app-social-view .iv-comment-input { background:#f7f8fa; color:#172033; border-color:#dfe5ed; border-radius:7px; }
+            #uie-app-social-view .iv-post-image { border-radius:6px; background:#eef1f5; }
+            #uie-app-social-view .iv-tag-pill, #uie-app-social-view .iv-trend-pill { border-radius:5px; background:#f3f5f8; color:#465368; }
+            #uie-app-social-view .iv-action-btn:focus-visible, #uie-app-social-view button:focus-visible { outline:2px solid #2d6cdf; outline-offset:2px; }
         </style>
         <div class="phone-app-header">
             <i class="fa-solid fa-chevron-left phone-back-btn"></i>
@@ -1649,11 +1785,12 @@
             <div id="iv-tab-home" class="iv-sub-view is-active">
                 <div id="iv-home-composer" class="iv-composer">
                     <form id="social-post-form" style="display:flex; flex-direction:column; gap:6px;">
-                        <textarea id="social-post-input" placeholder="Share an in-world update..." maxlength="700"></textarea>
+                        <textarea id="social-post-input" placeholder="Share an in-world update... Use @name to tag someone." maxlength="700"></textarea>
                         <div class="iv-composer-row">
                             <div id="iv-tag-pills" style="display:flex; gap:4px; flex-wrap:wrap;"></div>
                             <div id="iv-tone-pills" style="display:flex; gap:4px; flex-wrap:wrap;"></div>
                             <button type="submit" class="iv-post-submit">Post</button>
+                            <button type="button" id="iv-post-image-help" class="iv-post-submit" title="A post image is automatically generated from your caption and current world context."><i class="fa-solid fa-wand-magic-sparkles"></i> Image</button>
                         </div>
                     </form>
                 </div>
@@ -1686,77 +1823,72 @@
     </div>
 
     <div id="uie-app-cardforge-view" class="phone-app-window">
-        <div class="phone-app-header"><i class="fa-solid fa-chevron-left phone-back-btn"></i><span>Card Forge</span></div>
-        <div class="phone-app-content" style="padding:14px; background:#12141c; color:#fff; display:flex; flex-direction:column; gap:12px; overflow-y:auto;">
-            
-            <div style="display:flex; gap:8px; background:rgba(0,0,0,0.25); padding:4px; border-radius:12px;">
-                <button id="forge-tab-create" class="reply-tool-btn" style="flex:1; background:#cba35c; color:#000; border:none; padding:8px; border-radius:8px; font-weight:700;">Forge New</button>
-                <button id="forge-tab-wallet" class="reply-tool-btn" style="flex:1; background:transparent; color:#fff; border:none; padding:8px; border-radius:8px; font-weight:700;">My Cards</button>
-            </div>
-
-            <div id="forge-create-panel" style="display:flex; flex-direction:column; gap:10px;">
-                <div style="display:flex; flex-direction:column; gap:4px;">
-                    <label style="font-size:11px; opacity:0.8;">Card Type</label>
-                    <select id="forge-card-type" style="height:38px; border-radius:10px; border:1px solid rgba(255,255,255,0.12); background:rgba(0,0,0,0.3); color:#fff; padding:0 8px;">
-                        <option value="id_license">Driver's License (ID)</option>
-                        <option value="id_work">Work ID / Security Badge (ID)</option>
-                        <option value="id_business">Business Card (ID)</option>
-                        <option value="bank_card">Universal Debit/Credit Card</option>
-                        <option value="transit_pass">Transit / Subway Pass</option>
-                        <option value="hotel_key">Hotel Room Keycard</option>
-                    </select>
-                </div>
-
-                <div style="display:flex; flex-direction:column; gap:4px;">
-                    <label style="font-size:11px; opacity:0.8;">Name on Card</label>
-                    <input type="text" id="forge-card-name" placeholder="John Doe" style="height:38px; border-radius:10px; border:1px solid rgba(255,255,255,0.12); background:rgba(0,0,0,0.3); color:#fff; padding:0 10px;">
-                </div>
-
-                <div style="display:flex; flex-direction:column; gap:4px;">
-                    <label style="font-size:11px; opacity:0.8;">ID Number / Card #</label>
-                    <input type="text" id="forge-card-number" placeholder="DL-89732-X" style="height:38px; border-radius:10px; border:1px solid rgba(255,255,255,0.12); background:rgba(0,0,0,0.3); color:#fff; padding:0 10px;">
-                </div>
-
-                <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
-                    <div style="display:flex; flex-direction:column; gap:4px;">
-                        <label style="font-size:11px; opacity:0.8;">Expiry Date</label>
-                        <input type="text" id="forge-card-expiry" placeholder="MM/YY or Never" style="height:38px; border-radius:10px; border:1px solid rgba(255,255,255,0.12); background:rgba(0,0,0,0.3); color:#fff; padding:0 10px;">
+        <div class="phone-app-header"><i class="fa-solid fa-chevron-left phone-back-btn"></i><span id="cf-view-title">Card Forge</span></div>
+        <div class="phone-app-content cf-shell">
+            <nav class="cf-tabs" role="tablist" aria-label="Credential Forge views">
+                <button type="button" class="cf-tab is-active" data-cf-tab="wallet" role="tab" aria-selected="true"><i class="fa-solid fa-wallet"></i>Wallet</button>
+                <button type="button" class="cf-tab" data-cf-tab="create" role="tab" aria-selected="false"><i class="fa-solid fa-hammer"></i>Create</button>
+                <button type="button" class="cf-tab" data-cf-tab="scanner" role="tab" aria-selected="false"><i class="fa-solid fa-barcode"></i>Scanner</button>
+            </nav>
+            <div class="cf-panels">
+                <section id="cf-wallet-panel" class="cf-panel is-active" role="tabpanel">
+                    <div class="cf-toolbar">
+                        <label class="cf-search" title="Search credentials"><i class="fa-solid fa-magnifying-glass"></i><input id="cf-wallet-search" type="search" placeholder="Search wallet" aria-label="Search wallet"></label>
+                        <select id="cf-wallet-category" class="cf-select" aria-label="Category"><option value="all">All types</option><option value="identity">Identity</option><option value="access">Access</option><option value="financial">Financial</option><option value="travel">Travel</option><option value="custom">Personal</option><option value="document">Documents</option></select>
+                        <div class="cf-filter-row"><select id="cf-wallet-status" class="cf-select" aria-label="Status"><option value="all">Any status</option><option value="active">Active</option><option value="expired">Expired</option><option value="frozen">Frozen</option><option value="revoked">Revoked</option><option value="confiscated">Confiscated</option></select><select id="cf-wallet-sort" class="cf-select" aria-label="Sort"><option value="relevance">Relevant here</option><option value="recent">Recent use</option><option value="issuer">Issuer</option><option value="type">Type</option></select></div>
                     </div>
-                    <div style="display:flex; flex-direction:column; gap:4px;">
-                        <label style="font-size:11px; opacity:0.8;">Title / Role / Room #</label>
-                        <input type="text" id="forge-card-title" placeholder="Special Agent" style="height:38px; border-radius:10px; border:1px solid rgba(255,255,255,0.12); background:rgba(0,0,0,0.3); color:#fff; padding:0 10px;">
-                    </div>
-                </div>
+                    <div id="cf-wallet-stage" class="cf-wallet-stage" aria-live="polite"></div>
+                    <div id="cf-wallet-list" class="cf-wallet-list" aria-label="Credential list"></div>
+                </section>
 
-                <div id="forge-photo-group" style="display:flex; flex-direction:column; gap:4px;">
-                    <label style="font-size:11px; opacity:0.8;">User Photo (ID cards only)</label>
-                    <input type="file" id="forge-card-photo" accept="image/*" style="display:none;">
-                    <button type="button" id="forge-photo-select-btn" class="reply-tool-btn" style="height:38px; border-radius:10px; border:1px solid rgba(255,255,255,0.12); background:rgba(255,255,255,0.06); color:#fff; font-weight:700;"><i class="fa-solid fa-camera"></i> Upload Photo</button>
-                    <div id="forge-photo-preview-name" style="font-size:11px; opacity:0.7; text-align:center;">No photo uploaded</div>
-                </div>
+                <section id="cf-create-panel" class="cf-panel" role="tabpanel">
+                    <div class="cf-create-head"><div><strong id="cf-create-heading">New credential</strong><span id="cf-create-world">Credential editor</span></div><div class="cf-paths" aria-label="Creation path"><button type="button" class="cf-path is-active" data-cf-path="custom">Custom</button><button type="button" class="cf-path" data-cf-path="forged">Forged</button></div></div>
+                    <div class="cf-create-preview"><div class="cf-preview-toolbar"><span>Live preview</span><button type="button" id="cf-create-flip" class="cf-icon" title="Flip front and back"><i class="fa-solid fa-rotate"></i></button></div><canvas id="cf-create-canvas" width="340" height="210"></canvas></div>
+                    <form id="cf-create-form" class="cf-create-form">
+                        <div class="cf-band">Credential data</div>
+                        <div id="cf-forgery-fields">
+                            <div class="cf-risk"><strong><i class="fa-solid fa-triangle-exclamation"></i> Variable inspection risk</strong>Quality, security and the inspecting system affect detection, confiscation and alarm outcomes.</div>
+                            <label class="cf-field"><span>Source credential</span><select id="cf-source"></select></label>
+                        </div>
+                        <div class="cf-form-grid">
+                            <label class="cf-field wide"><span>Credential type</span><select id="cf-type" required></select></label>
+                            <label class="cf-field"><span>Holder</span><input id="cf-holder" type="text" placeholder="Holder name" required></label>
+                            <label class="cf-field"><span>Issuer</span><input id="cf-issuer" type="text" placeholder="Issuer name"></label>
+                            <label class="cf-field"><span>Number</span><input id="cf-number" type="text" placeholder="Auto if blank"></label>
+                            <label class="cf-field"><span id="cf-title-label">Title / role</span><input id="cf-title" type="text" placeholder="Role, room or title"></label>
+                            <label class="cf-field"><span>Valid from</span><input id="cf-valid-from" type="date"></label>
+                            <label class="cf-field"><span>Expires</span><input id="cf-expires" type="date"></label>
+                            <label id="cf-permissions-field" class="cf-field wide"><span>Permissions</span><textarea id="cf-permissions" placeholder="location.permission, access.level"></textarea></label>
+                            <label id="cf-account-field" class="cf-field"><span>Linked account</span><input id="cf-linked-account" type="text" placeholder="Account ID"></label>
+                            <label class="cf-field"><span>Linked locations</span><input id="cf-linked-location" type="text" placeholder="Lobby, Room 214"></label>
+                        </div>
+                        <div id="cf-create-requirements" class="cf-requirements"></div>
+                        <div class="cf-band">Appearance</div>
+                        <div class="cf-form-grid">
+                            <label class="cf-field"><span>Theme</span><select id="cf-theme"><option value="charcoal_gold">Charcoal / brass</option><option value="ivory_black">Ivory / black</option><option value="security_red">Security red</option><option value="transit_cyan">Transit cyan</option></select></label>
+                            <label class="cf-field"><span>Accent</span><input id="cf-accent" type="color" value="#cba35c"></label>
+                            <label class="cf-field"><span>Material</span><select id="cf-material"></select></label>
+                            <label class="cf-field"><span>Font scale</span><input id="cf-font-scale" type="range" min="75" max="125" value="100"></label>
+                        </div>
+                        <div class="cf-upload-row"><input id="cf-portrait-upload" type="file" accept="image/*" hidden><button type="button" id="cf-portrait-button" class="cf-command"><i class="fa-solid fa-user"></i> Portrait</button><input id="cf-emblem-upload" type="file" accept="image/*" hidden><button type="button" id="cf-emblem-button" class="cf-command"><i class="fa-solid fa-shield-halved"></i> Emblem</button></div>
+                        <div id="cf-portrait-field" class="cf-form-grid" style="margin-top:8px;"><label class="cf-field"><span>Portrait horizontal</span><input id="cf-portrait-x" type="range" min="0" max="100" value="50"></label><label class="cf-field"><span>Portrait vertical</span><input id="cf-portrait-y" type="range" min="0" max="100" value="50"></label></div>
+                        <div id="cf-security-band" class="cf-band">Material and security</div>
+                        <div id="cf-security-controls"><div class="cf-switches"><label class="cf-check"><input id="cf-physical" type="checkbox" checked> Physical credential</label><label class="cf-check"><input id="cf-chip" type="checkbox"> Chip</label><label class="cf-check"><input id="cf-stripe" type="checkbox"> Magnetic stripe</label><label class="cf-check"><input id="cf-hologram" type="checkbox"> Hologram</label><label class="cf-check"><input id="cf-signature" type="checkbox"> Signature</label></div>
+                        <div class="cf-form-grid"><label class="cf-field"><span>Quality</span><input id="cf-quality" type="range" min="1" max="100" value="82"></label><label class="cf-field"><span>Condition</span><input id="cf-condition" type="range" min="1" max="100" value="100"></label><label class="cf-field wide"><span>Scan resistance</span><input id="cf-scan-difficulty" type="range" min="1" max="100" value="45"></label></div></div>
+                        <div class="cf-form-actions"><button type="button" id="cf-reset" class="cf-icon" title="Reset template"><i class="fa-solid fa-arrow-rotate-left"></i></button><button type="button" id="cf-duplicate-preset" class="cf-icon" title="Duplicate design"><i class="fa-solid fa-clone"></i></button><button type="button" id="cf-save-preset" class="cf-icon" title="Save design preset"><i class="fa-solid fa-bookmark"></i></button><button type="submit" class="cf-command brass"><i class="fa-solid fa-floppy-disk"></i> Save credential</button></div>
+                    </form>
+                </section>
 
-                <input type="hidden" id="forge-edit-id" value="">
+                <section id="cf-scanner-panel" class="cf-panel" role="tabpanel">
+                    <div class="cf-scanner-form"><div class="cf-scanner-head"><i class="fa-solid fa-wave-square"></i><div><strong>Test Scanner</strong><span>Offline verification bench</span></div></div><label class="cf-field"><span>Credential</span><select id="cf-scan-credential"></select></label><label class="cf-field"><span>Target / location</span><input id="cf-scan-target" type="text" placeholder="Current scene"></label><label class="cf-field"><span>Required permission</span><input id="cf-scan-permission" type="text" placeholder="Optional clearance"></label><label class="cf-field"><span>Scanner strength</span><input id="cf-scanner-strength" type="range" min="1" max="100" value="50"></label><button type="button" id="cf-run-scan" class="cf-command"><i class="fa-solid fa-barcode"></i> Run scan</button></div>
+                    <div id="cf-scan-results" class="cf-scan-results" aria-live="polite"></div>
+                </section>
 
-                <div style="display:flex; flex-direction:column; gap:4px; margin-top:8px;">
-                    <label style="font-size:11px; opacity:0.8; font-weight:bold;">Visual Canvas Preview</label>
-                    <div style="display:flex; justify-content:center; background:rgba(0,0,0,0.4); padding:10px; border-radius:14px; border:1px solid rgba(255,255,255,0.08);">
-                        <canvas id="forge-canvas" width="340" height="210" style="max-width:100%; border-radius:12px; box-shadow:0 6px 16px rgba(0,0,0,0.5); background:#1a1c23;"></canvas>
-                    </div>
-                </div>
-
-                <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:10px;">
-                    <button type="button" id="forge-render-btn" class="reply-tool-btn" style="background:rgba(255,255,255,0.06); color:#fff; font-weight:700; height:40px; border-radius:12px;">Render Card</button>
-                    <button type="button" id="forge-save-btn" class="reply-tool-btn" style="background:#2ecc71; color:#000; font-weight:900; height:40px; border-radius:12px; border:none;">Save Card</button>
+                <div id="cf-action-sheet" class="cf-action-sheet" aria-hidden="true">
+                    <button type="button" class="cf-sheet-scrim" aria-label="Close actions"></button>
+                    <div class="cf-sheet" role="dialog" aria-modal="true" aria-labelledby="cf-action-title"><div class="cf-sheet-head"><div><strong id="cf-action-title"></strong><span id="cf-action-subtitle"></span></div><button type="button" id="cf-sheet-close" class="cf-icon" title="Close"><i class="fa-solid fa-xmark"></i></button></div><div class="cf-action-grid"><button type="button" data-cf-action="show"><i class="fa-solid fa-eye"></i>Show</button><button type="button" data-cf-action="use"><i class="fa-solid fa-key"></i>Use</button><button type="button" data-cf-action="scan"><i class="fa-solid fa-barcode"></i>Scan</button><button type="button" data-cf-action="wallet"><i class="fa-solid fa-wallet"></i>Equip to wallet</button><button type="button" data-cf-action="payment"><i class="fa-solid fa-credit-card"></i>Set payment card</button><button type="button" data-cf-action="transit"><i class="fa-solid fa-train-subway"></i>Set transit pass</button><button type="button" data-cf-action="identity"><i class="fa-solid fa-address-card"></i>Set active identity</button><button type="button" data-cf-action="share"><i class="fa-solid fa-share-nodes"></i>Share</button><button type="button" data-cf-action="copy"><i class="fa-solid fa-copy"></i>Copy</button><button type="button" data-cf-action="edit"><i class="fa-solid fa-pen-to-square"></i>Edit appearance</button><button type="button" class="danger" data-cf-action="revoke"><i class="fa-solid fa-ban"></i>Revoke</button><button type="button" class="danger" data-cf-action="destroy"><i class="fa-solid fa-trash"></i>Destroy</button></div></div>
                 </div>
             </div>
-
-            <div id="forge-wallet-panel" style="display:none; flex-direction:column; gap:12px;">
-                <div style="font-size:12px; opacity:0.85; line-height:1.45; text-align:center; padding-bottom:6px; border-bottom:1px solid rgba(255,255,255,0.08);">
-                    Tap a card to produce/show it in chat, edit details, or delete.
-                </div>
-                <div id="forge-wallet-list" style="display:flex; flex-direction:column; gap:10px;"></div>
-            </div>
-
         </div>
     </div>
 
@@ -1793,6 +1925,29 @@
                 <input type="checkbox" id="p-allow-texts">
             </div>
             <div class="p-setting-row" style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+                <label class="p-setting-label" style="margin:0;">Battery Simulation</label>
+                <input type="checkbox" id="p-battery-sim">
+            </div>
+            <div class="p-setting-row" style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+                <label class="p-setting-label" style="margin:0;">Network Simulation</label>
+                <input type="checkbox" id="p-network-sim">
+            </div>
+            <div class="p-setting-row">
+                <label class="p-setting-label">Available Charger</label>
+                <select id="p-charger-type" class="p-setting-input" style="width:100%;">
+                    <option value="wall">Wall charger</option>
+                    <option value="usb">USB cable</option>
+                    <option value="wireless">Wireless pad / dock</option>
+                    <option value="vehicle">Vehicle charger</option>
+                    <option value="solar">Solar charger</option>
+                </select>
+                <button type="button" id="p-charge-now" class="p-setting-input" style="width:100%; margin-top:8px; cursor:pointer;">Connect / disconnect charger</button>
+            </div>
+            <div class="p-setting-row">
+                <label class="p-setting-label">Monthly Phone Plan Bill</label>
+                <input type="number" id="p-phone-plan-cost" min="0" step="1" class="p-setting-input" style="width:100%;" value="35">
+            </div>
+            <div class="p-setting-row" style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
                 <label class="p-setting-label" style="margin:0;">Bubble Color (You)</label>
                 <input type="color" id="p-bubble-sent" value="#cba35c">
             </div>
@@ -1804,29 +1959,90 @@
         </div>
     </div>
 
+    <div id="uie-app-bills-view" class="phone-app-window">
+        <div class="phone-app-header"><i class="fa-solid fa-chevron-left phone-back-btn"></i><span>Bills</span></div>
+        <div class="phone-app-content" style="padding:14px; background:#0b1020; color:#fff; display:flex; flex-direction:column; gap:12px;">
+            <div style="border-radius:18px; padding:14px; background:linear-gradient(135deg,#7c3aed,#312e81);">
+                <div style="font-size:12px; opacity:.78; text-transform:uppercase; letter-spacing:.12em;">Household &amp; Assets</div>
+                <div style="font-size:24px; font-weight:900;">Bill Manager</div>
+                <div id="phone-bills-summary" style="margin-top:6px; font-weight:800;">0 unpaid</div>
+            </div>
+            <div style="font-size:12px; opacity:.72;">Phone plans, rent or property tax, utilities, vehicle insurance, registrations, business licenses, and other owned-asset costs are managed here.</div>
+            <div id="phone-bills-list" style="display:flex; flex-direction:column; gap:10px;"></div>
+        </div>
+    </div>
+
+    <div id="uie-app-homestead-view" class="phone-app-window" style="display:none;">
+        <div class="phone-app-header"><i class="fa-solid fa-chevron-left phone-back-btn"></i><span>Homestead</span></div>
+        <div class="phone-app-content" style="padding:14px; background:#0b1020; color:#fff; display:flex; flex-direction:column; gap:12px; overflow-y:auto; height:calc(100% - 50px);">
+            <div id="homestead-info-card" style="border-radius:18px; padding:14px; background:linear-gradient(135deg,#cba35c,#312e81); border:1px solid rgba(255,255,255,0.15);">
+                <div style="font-size:12px; opacity:.78; text-transform:uppercase; letter-spacing:.12em;">Homestead Manager</div>
+                <h3 id="homestead-name" style="font-size:20px; font-weight:900; margin:4px 0 8px 0; font-family:'Cinzel', serif;">No Primary Home</h3>
+                <p id="homestead-desc" style="font-size:12px; opacity:0.85; margin:0 0 10px 0; line-height:1.5;">Register a primary home from the map location detail card to begin upgrading and managing your residence.</p>
+                <div id="homestead-stats" style="display:flex; flex-direction:column; gap:6px; font-size:12px; border-top:1px solid rgba(255,255,255,0.15); padding-top:8px;"></div>
+            </div>
+            <div id="homestead-upgrades-section" style="display:none;">
+                <div style="font-size:13px; font-weight:900; color:#cba35c; margin-bottom:8px; display:flex; align-items:center; gap:6px;">
+                    <i class="fa-solid fa-screwdriver-wrench"></i> Upgrades &amp; Enhancements
+                </div>
+                <div style="display:grid; gap:8px;" id="homestead-upgrades-list"></div>
+            </div>
+        </div>
+    </div>
+
     <div id="uie-app-travel-view" class="phone-app-window">
         <div class="phone-app-header"><i class="fa-solid fa-chevron-left phone-back-btn"></i><span>Transit</span></div>
         <div class="phone-app-content" style="padding:14px; background:#07111f; color:#fff; display:flex; flex-direction:column; gap:12px;">
             <div style="border-radius:18px; padding:14px; background:linear-gradient(135deg, rgba(22,160,133,0.95), rgba(14,116,144,0.82)); box-shadow:0 12px 30px rgba(0,0,0,0.28);">
-                <div style="font-size:12px; opacity:0.82; text-transform:uppercase; letter-spacing:0.12em;">Public Transportation</div>
-                <div style="font-size:24px; font-weight:900; margin-top:4px;">Travel Pass</div>
+                <div style="font-size:12px; opacity:0.82; text-transform:uppercase; letter-spacing:0.12em;">Connected Mobility</div>
+                <div style="font-size:24px; font-weight:900; margin-top:4px;">Journey Planner</div>
                 <div id="travel-wallet-line" style="margin-top:8px; font-weight:800;">Wallet: 0 G</div>
+                <div id="travel-current-dock" style="margin-top:5px; font-size:12px; opacity:.8;">Current departure: not set</div>
             </div>
             <div style="display:grid; gap:10px;">
-                <label style="font-size:12px; opacity:0.8;">Transit type</label>
+                <label style="font-size:12px; opacity:0.8;">Travel mode available here</label>
                 <select id="travel-mode" style="height:42px; border-radius:14px; border:1px solid rgba(255,255,255,0.12); background:rgba(0,0,0,0.25); color:#fff; padding:0 12px;">
-                    <option value="train">Train station</option>
-                    <option value="airport">Airport</option>
-                    <option value="bus">Bus stop</option>
-                    <option value="subway">Subway</option>
+                    <option value="walking">Walking</option>
+                    <option value="bicycle">Bicycle</option>
+                    <option value="motorcycle">Motorcycle</option>
+                    <option value="rideshare">Rideshare / taxi</option>
+                    <option value="taxi">Street taxi</option>
+                    <option value="bus">Bus / coach</option>
+                    <option value="train">Train / subway</option>
+                    <option value="subway">Subway / metro</option>
+                    <option value="car">Private road vehicle</option>
+                    <option value="horse">Horse / mount</option>
+                    <option value="carriage">Carriage / wagon</option>
                     <option value="ferry">Ferry</option>
+                    <option value="boat">Boat / ship</option>
+                    <option value="airship">Airship</option>
+                    <option value="plane">Aircraft</option>
+                    <option value="spaceship">Spacecraft / shuttle</option>
+                    <option value="portal">Portal / gate</option>
                 </select>
                 <label style="font-size:12px; opacity:0.8;">Destination</label>
-                <input id="travel-destination" placeholder="Where are you going?" style="height:42px; border-radius:14px; border:1px solid rgba(255,255,255,0.12); background:rgba(0,0,0,0.25); color:#fff; padding:0 12px;">
+                <select id="travel-destination" style="height:42px; border-radius:14px; border:1px solid rgba(255,255,255,0.12); background:rgba(0,0,0,0.25); color:#fff; padding:0 12px;"></select>
                 <label style="font-size:12px; opacity:0.8;">Fare</label>
-                <input id="travel-fare" type="number" min="0" step="1" value="5" style="height:42px; border-radius:14px; border:1px solid rgba(255,255,255,0.12); background:rgba(0,0,0,0.25); color:#fff; padding:0 12px;">
-                <button id="travel-pay-go" style="height:44px; border-radius:16px; border:none; background:#2ecc71; color:#00110a; font-weight:900; cursor:pointer;">Pay fare & travel</button>
+                <input id="travel-fare" type="text" value="Select a route" readonly style="height:42px; border-radius:14px; border:1px solid rgba(255,255,255,0.12); background:rgba(0,0,0,0.25); color:#fff; padding:0 12px;">
+                <div id="travel-route-summary" style="min-height:42px; padding:10px 12px; border-radius:12px; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.08); font-size:11px; line-height:1.45; opacity:.84;">Choose an available route.</div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+                    <button id="travel-pay-go" style="height:44px; border-radius:16px; border:none; background:#2ecc71; color:#00110a; font-weight:900; cursor:pointer;">Book &amp; board</button>
+                    <button id="travel-open-hub" style="height:44px; border-radius:16px; border:1px solid rgba(125,211,252,.35); background:rgba(125,211,252,.1); color:#bae6fd; font-weight:900; cursor:pointer;">Departure board</button>
+                </div>
             </div>
+            <section id="travel-rideshare-panel" style="display:none; padding:12px; border:1px solid rgba(96,165,250,.22); border-radius:16px; background:linear-gradient(145deg,rgba(30,64,175,.2),rgba(15,23,42,.75));">
+                <div style="font-weight:900; margin-bottom:8px;"><i class="fa-solid fa-taxi"></i> On-demand pickup</div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+                    <select id="travel-rideshare-class" style="height:38px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:#0b1527;color:#fff;padding:0 10px;">
+                        <option value="standard" data-multiplier="1">Standard</option>
+                        <option value="premium" data-multiplier="1.6">Premium</option>
+                        <option value="cargo" data-multiplier="1.35">Cargo / party van</option>
+                    </select>
+                    <button id="travel-rideshare-dispatch" style="height:38px;border:0;border-radius:12px;background:#60a5fa;color:#001329;font-weight:900;">Request pickup</button>
+                </div>
+                <div id="travel-rideshare-status" style="font-size:11px;opacity:.76;margin-top:8px;">Choose a destination to estimate pickup.</div>
+            </section>
+            <div style="font-size:12px; font-weight:900; opacity:.82;">Recent journeys</div>
             <div id="travel-recent" style="display:flex; flex-direction:column; gap:8px;"></div>
         </div>
     </div>
@@ -2202,7 +2418,7 @@
         </div>
     </div>
 
-    <i class="fa-solid fa-xmark uie-close-btn" id="uie-phone-close" style="position:absolute; top:9px; right:5px; z-index:300; color:white; padding:5px; text-shadow:0 0 3px #000; cursor: pointer;"></i>
+    <button type="button" class="uie-close-btn" id="uie-phone-close" aria-label="Close phone" title="Close phone" style="position:absolute; top:10px; right:10px; z-index:330; width:34px; height:34px; display:grid; place-items:center; border:0; border-radius:50%; background:rgba(0,0,0,.32); color:white; text-shadow:0 0 3px #000; cursor:pointer;"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
 
     <!-- Templates -->
     <template id="uie-template-dial-recent">

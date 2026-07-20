@@ -293,6 +293,13 @@
   #uie-party-body {
     min-width: 0;
     min-height: 100%;
+    height: 100%;
+  }
+  #uie-party-body > section,
+  #uie-party-body > .sheet-grid,
+  #uie-party-body > .formation-lanes {
+    width: 100%;
+    min-height: 100%;
   }
 
   .party-nav-rail {
@@ -392,8 +399,10 @@
   /* MMORPG Skill Tree Board & Branches */
   #uie-party-skilltree-view .uie-skilltree-board {
     position: relative;
-    min-height: 520px;
-    overflow: auto;
+    flex: 1 1 auto;
+    height:auto;
+    min-height:0;
+    overflow:visible;
     border: 1px solid rgba(0, 229, 255, 0.2);
     border-radius: 8px;
     background: 
@@ -401,7 +410,14 @@
       url('assets/ui/generated/party_bg.png') center/cover no-repeat;
     background-blend-mode: multiply;
     padding: 20px;
-    -webkit-overflow-scrolling: touch;
+  }
+  #uie-party-skilltree-view {
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
   }
   #uie-party-skilltree-view .uie-skilltree-branches {
     display: grid;
@@ -528,10 +544,13 @@
     opacity: 1;
   }
   @media not all {
-    #uie-party-skilltree-view { padding: 10px; }
+    #uie-party-skilltree-view { padding:8px; min-height:0; height:100%; display:flex; flex-direction:column; }
     #uie-party-skilltree-view .uie-skilltree-head { align-items: flex-start !important; }
-    #uie-party-skilltree-view .uie-skilltree-board { max-height: 58vh; }
-    #uie-party-skilltree-view .uie-skill-node { width: 150px; min-height: 82px; }
+    #uie-party-skilltree-view .uie-skilltree-board { flex:1; min-height:260px; padding:8px; }
+    #uie-party-skilltree-view .uie-skill-node { width:72px; min-height:70px; transform-origin:center; }
+    #uie-party-skilltree-view .node-medallion { width:46px; height:46px; font-size:18px; }
+    #uie-party-skilltree-view .node-label { width:78px; }
+    #uie-party-skilltree-view .node-name-lbl { font-size:9px; white-space:normal; }
   }
 
   .sheet-grid,
@@ -669,7 +688,7 @@
   }
 
   .sheet-vitals-compact {
-    display: flex;
+    display: none;
     gap: 10px;
     flex-wrap: wrap;
     flex: 1;
@@ -712,7 +731,7 @@
 
   .sheet-stats-card,
   .sheet-trackers-card,
-  .sheet-bio-card {
+  .sheet-effects-card {
     padding: 16px;
     background: linear-gradient(135deg, rgba(12, 15, 26, 0.9) 0%, rgba(6, 8, 12, 0.95) 100%);
     border: 1px solid rgba(255, 255, 255, 0.08);
@@ -1421,6 +1440,347 @@
     width: calc(33.333% - 7px);
     min-width: 220px;
   }
+
+  .party-outfit-toolbar { display:flex; gap:8px; margin-bottom:4px; width:100%; }
+  .party-outfit-save { width:auto!important; min-height:42px; padding:8px 14px!important; }
+  .party-outfit-card {
+    display:grid; grid-template-columns:72px minmax(0,1fr) auto; align-items:center; gap:12px;
+    padding:10px; border:1px solid rgba(104,63,31,.28); border-radius:10px;
+    background:linear-gradient(145deg,#fffdf6,#f4e7cf); color:#3d2617;
+  }
+  .party-outfit-thumb {
+    width:72px; height:88px; border-radius:8px; overflow:hidden; display:grid; place-items:center;
+    background:linear-gradient(145deg,#fffdf6,#f4e7cf); border:1px solid rgba(104,63,31,.24); color:#8a684d;
+  }
+  .party-outfit-thumb img { width:100%; height:100%; object-fit:contain; object-position:center bottom; }
+  .party-outfit-copy { min-width:0; }
+  .party-outfit-copy strong { display:block; color:#3d2617; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .party-outfit-copy span { display:block; margin-top:3px; color:#806044; font-size:11px; }
+  .party-outfit-actions { display:flex; gap:8px; align-items:center; }
+  .party-outfit-actions .reply-tool-btn { width:auto!important; min-width:72px; min-height:38px; padding:0 12px!important; }
+
+  .party-cropper-overlay {
+    position:fixed; inset:0; z-index:2147483500; display:grid; place-items:center; padding:16px;
+    background:rgba(31,19,11,.78); backdrop-filter:blur(8px);
+  }
+  .party-cropper {
+    width:min(520px,96vw); max-height:94dvh; overflow:auto; padding:16px; border-radius:14px;
+    background:linear-gradient(145deg,#fffdf6,#f2dfbf); color:#3d2617;
+    border:1px solid #c99b65; box-shadow:0 24px 70px rgba(31,19,11,.48);
+    scrollbar-width:thin; scrollbar-color:rgba(119,73,36,.42) transparent;
+  }
+  .party-cropper header,.party-cropper footer { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+  .party-cropper h3 { margin:0; font-family:var(--party-font-display); }
+  .party-cropper p { margin:3px 0 0; color:#806044; font-size:12px; }
+  .party-cropper button { min-height:40px; padding:0 14px; border:1px solid #a77945; border-radius:8px; background:#fffaf0; color:#3d2617; font-weight:850; cursor:pointer; }
+  .party-cropper [data-crop-save] { background:#5c7b59; border-color:#456343; color:#fff; }
+  .party-crop-stage { margin:14px auto; max-height:62dvh; overflow:hidden; border:2px solid #a77945; background:#2b2018; box-shadow:inset 0 0 0 1px rgba(255,255,255,.18); touch-action:none; }
+  .party-crop-stage.is-square { width:min(420px,82vw); aspect-ratio:1; }
+  .party-crop-stage.is-paperdoll { width:min(340px,70vw); aspect-ratio:3/4; }
+  .party-crop-stage canvas { display:block; width:100%; height:100%; cursor:grab; touch-action:none; }
+  .party-crop-stage canvas:active { cursor:grabbing; }
+  .party-crop-zoom { display:grid; grid-template-columns:auto 1fr; gap:12px; align-items:center; margin-bottom:14px; font-size:12px; font-weight:850; }
+  .party-crop-zoom input { width:100%; accent-color:#5c7b59; }
+
+  @media not all {
+    .party-outfit-card { grid-template-columns:62px minmax(0,1fr); }
+    .party-outfit-thumb { width:62px; height:78px; grid-row:1 / span 2; }
+    .party-outfit-actions { grid-column:2; display:grid; grid-template-columns:1fr 1fr; }
+    .party-outfit-actions .reply-tool-btn { min-width:0; width:100%!important; }
+    .party-outfit-save { width:100%!important; }
+  }
+  .stats-grid,
+  .party-member-trackers,
+  .party-sheet-effects {
+    max-height: min(34vh, 360px);
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0, 229, 255, 0.35) rgba(0, 0, 0, 0.18);
+    padding-right: 5px;
+  }
+  .stats-grid::-webkit-scrollbar,
+  .party-member-trackers::-webkit-scrollbar,
+  .party-sheet-effects::-webkit-scrollbar { width: 7px; }
+  .stats-grid::-webkit-scrollbar-thumb,
+  .party-member-trackers::-webkit-scrollbar-thumb,
+  .party-sheet-effects::-webkit-scrollbar-thumb {
+    background: rgba(0, 229, 255, 0.35);
+    border-radius: 999px;
+  }
+  .stat-card { display:flex; align-items:center; gap:7px; padding:10px; }
+  .stat-val { margin-left:auto; }
+  .party-sheet-stat-actions { display:flex; gap:4px; }
+  .party-sheet-stat-actions .party-mini { width:28px; min-height:28px; padding:0; }
+  .party-sheet-effect-row {
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:10px;
+    margin-bottom:7px;
+  }
+  .party-sheet-effect-row > span { flex:1; min-width:0; overflow-wrap:anywhere; }
+  .party-status-summary {
+    flex:1; min-width:0; min-height:38px; display:grid; grid-template-columns:24px minmax(0,1fr) auto;
+    align-items:center; gap:8px; border:0; background:transparent; color:inherit; text-align:left; cursor:pointer;
+  }
+  .party-status-summary i { width:24px; height:24px; display:grid; place-items:center; border-radius:7px; background:rgba(201,133,61,.16); color:#9a5724; }
+  .party-status-summary span { min-width:0; font-weight:850; overflow-wrap:anywhere; }
+  .party-status-summary small { color:#80512d; font-weight:800; }
+
+  /* Bright adventure-RPG palette. Layout intentionally remains unchanged. */
+  #uie-party-window {
+    --party-bg:#fff8ed;
+    --party-panel:rgba(255,253,247,.94);
+    --party-panel-2:rgba(247,235,217,.9);
+    --party-border:rgba(151,91,39,.28);
+    --party-border-glow:rgba(201,133,61,.12);
+    --party-text:#392214;
+    --party-muted:#80512d;
+    --party-gold:#b76d2f;
+    --party-gold-bright:#c9853d;
+    --party-cyan:#3f7892;
+    --party-magenta:#b45f73;
+    --party-green:#3c8b68;
+    --party-red:#b84c55;
+    --party-accent-glow:rgba(63,120,146,.1);
+    background:
+      radial-gradient(ellipse 70% 55% at 28% 18%,rgba(243,215,181,.9),transparent 64%),
+      radial-gradient(ellipse 60% 50% at 82% 80%,rgba(213,234,239,.72),transparent 58%),
+      linear-gradient(155deg,#fffaf2,#f5ead9 54%,#edf5f6);
+    color:var(--party-text);
+  }
+  #uie-party-window::before {
+    background:
+      repeating-linear-gradient(90deg,transparent,transparent 79px,rgba(151,91,39,.025) 79px,rgba(151,91,39,.025) 80px),
+      repeating-linear-gradient(0deg,transparent,transparent 79px,rgba(63,120,146,.02) 79px,rgba(63,120,146,.02) 80px);
+  }
+  #uie-party-window .party-roster-rail,
+  #uie-party-window .party-nav-rail {
+    background:rgba(255,248,237,.92);
+    border-color:rgba(151,91,39,.22);
+    box-shadow:none;
+  }
+  #uie-party-window .party-workspace {
+    background:linear-gradient(135deg,rgba(255,253,247,.94),rgba(238,246,247,.88));
+  }
+  #uie-party-window .party-roster-head {
+    border-color:rgba(151,91,39,.2);
+    background:linear-gradient(180deg,rgba(243,215,181,.72),rgba(255,248,237,.7));
+  }
+  #uie-party-window .party-title { color:#6a3b1d; text-shadow:none; }
+  #uie-party-window .party-icon-btn,
+  #uie-party-window .party-action-btn,
+  #uie-party-window .uie-party-tab,
+  #uie-party-window .party-mini,
+  #uie-party-window .reply-tool-btn {
+    border-color:rgba(151,91,39,.28)!important;
+    background:linear-gradient(180deg,#fffaf0,#f1ddc3)!important;
+    color:#5c3a21!important;
+    box-shadow:0 3px 9px rgba(92,58,33,.08);
+  }
+  #uie-party-window .party-icon-btn:hover,
+  #uie-party-window .party-action-btn:hover,
+  #uie-party-window .party-mini:hover,
+  #uie-party-window .reply-tool-btn:hover {
+    border-color:#3f7892!important;
+    background:linear-gradient(180deg,#f5fbfc,#dbecef)!important;
+    color:#244f63!important;
+    box-shadow:0 5px 14px rgba(63,120,146,.14);
+  }
+  #uie-party-window select,
+  #uie-party-window input,
+  #uie-party-window textarea {
+    border-color:rgba(151,91,39,.3)!important;
+    background:#fffdf7!important;
+    color:#4a2810!important;
+    color-scheme:light;
+  }
+  #uie-party-window .party-row {
+    border-color:rgba(151,91,39,.18);
+    background:linear-gradient(135deg,rgba(255,253,247,.96),rgba(247,235,217,.86));
+  }
+  #uie-party-window .party-row:hover,
+  #uie-party-window .party-row.active {
+    border-color:#3f7892;
+    background:linear-gradient(135deg,#f9fdfe,#dfedf0);
+    box-shadow:0 7px 18px rgba(63,120,146,.12);
+  }
+  #uie-party-window .party-row-img-container { background:#f5e6d1; border-color:rgba(151,91,39,.22); }
+  #uie-party-window .party-row-name,
+  #uie-party-window .sheet-name,
+  #uie-party-window .lane-title,
+  #uie-party-window .tac-name { color:#392214; }
+  #uie-party-window .uie-party-tab.active {
+    color:#fff!important;
+    background:linear-gradient(135deg,#c9853d,#3f7892)!important;
+    border-color:#3f7892!important;
+    box-shadow:0 8px 18px rgba(63,120,146,.2);
+  }
+  #uie-party-window .party-panel,
+  #uie-party-window .party-inv-row,
+  #uie-party-window .party-tracker-card,
+  #uie-party-window .party-form-member,
+  #uie-party-window .tactics-row,
+  #uie-party-window .lane-card,
+  #uie-party-window .stat-card,
+  #uie-party-window .slot-card {
+    border-color:rgba(151,91,39,.2);
+    background:rgba(255,253,247,.92);
+    box-shadow:0 8px 20px rgba(92,58,33,.06);
+  }
+  #uie-party-window .party-status-strip {
+    border-color:rgba(151,91,39,.22);
+    background:linear-gradient(90deg,#f3d7b5,#e5f0f2);
+    box-shadow:0 -4px 14px rgba(92,58,33,.08);
+  }
+  #uie-party-window .party-add-equipment-slot {
+    border-style:dashed;
+    border-color:#3f7892;
+    background:linear-gradient(135deg,#f8fdfe,#e3f0f2);
+    color:#244f63;
+  }
+
+  /* Sunlit guild ledger: final cascade winners for legacy dark declarations. */
+  #uie-party-window .party-workspace {
+    padding:clamp(12px,2vw,24px);
+    background:linear-gradient(145deg,rgba(255,249,231,.92),rgba(237,225,202,.86))!important;
+  }
+  #uie-party-window .party-panel,
+  #uie-party-window .sheet-header-card,
+  #uie-party-window .sheet-stats-card,
+  #uie-party-window .sheet-trackers-card,
+  #uie-party-window .sheet-effects-card,
+  #uie-party-window .party-inv-row,
+  #uie-party-window .slot-card,
+  #uie-party-window .lane-card,
+  #uie-party-window .formation-lane-column,
+  #uie-party-window .lane-reserve,
+  #uie-party-window .formation-member-card,
+  #uie-party-window .stat-card,
+  #uie-party-window .party-tracker-card {
+    background:linear-gradient(145deg,#fffdf6,#f4e7cf)!important;
+    border-color:rgba(119,73,36,.3)!important;
+    color:#3d2617!important;
+    box-shadow:0 8px 22px rgba(92,58,33,.09)!important;
+    backdrop-filter:none!important;
+  }
+  #uie-party-window .sheet-portrait-frame,
+  #uie-party-window .sheet-portrait,
+  #uie-party-window .party-row-img-container,
+  #uie-party-window .slot-icon-container,
+  #uie-party-window .formation-member-card .card-avatar {
+    background:linear-gradient(145deg,#8b5a34,#5c3924)!important;
+    border-color:#c99b65!important;
+  }
+  #uie-party-window .sheet-portrait-frame {
+    border:2px solid rgba(104,63,31,.42)!important;
+    border-radius:14px;
+    overflow:hidden;
+    box-shadow:inset 0 0 0 5px rgba(255,236,195,.2),0 12px 28px rgba(92,58,33,.16)!important;
+  }
+  #uie-party-window .party-row-img-container img,
+  #uie-party-window .formation-member-card .card-avatar img {
+    width:100%!important;
+    height:100%!important;
+    object-fit:cover!important;
+    object-position:center!important;
+  }
+  #uie-party-window .sheet-portrait img,
+  #uie-party-window .party-paperdoll-img {
+    object-fit:contain!important;
+    object-position:center bottom!important;
+  }
+  #uie-party-window .slot-card:hover,
+  #uie-party-window .formation-member-card:hover {
+    background:linear-gradient(145deg,#fffef9,#e6f1e8)!important;
+    border-color:#4b7f61!important;
+    box-shadow:0 10px 24px rgba(60,96,70,.14)!important;
+  }
+  #uie-party-window .sheet-name,
+  #uie-party-window .slot-card:hover .slot-label,
+  #uie-party-window .lane-header-title,
+  #uie-party-window .formation-member-card .card-name,
+  #uie-party-window .inv-name { color:#3d2617!important; text-shadow:none!important; }
+  #uie-party-window .bar-track,
+  #uie-party-window .party-tracker-track,
+  #uie-party-window .party-row-vitals .mini-bar {
+    background:#dec9a8!important;
+    border-color:rgba(104,63,31,.2)!important;
+  }
+  #uie-party-window .gear-grid {
+    grid-template-columns:repeat(auto-fit,minmax(155px,1fr));
+    align-items:stretch;
+  }
+  #uie-party-window .slot-card { min-width:0; min-height:128px; }
+  #uie-party-window .slot-label,
+  #uie-party-window .inv-name,
+  #uie-party-window .inv-type { overflow-wrap:anywhere; }
+  #uie-party-window .party-inv-heading {
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:12px;
+    margin-bottom:14px;
+  }
+  #uie-party-window .party-inv-title {
+    display:block;
+    color:#5f371d;
+    font:900 18px/1.2 Georgia,serif;
+  }
+  #uie-party-window .party-inv-description { color:#80512d; font-size:12px; margin-top:4px; }
+  #uie-party-window .party-inv-tabs { display:flex; gap:8px; margin-bottom:16px; border-bottom:1px solid rgba(119,73,36,.22); }
+  #uie-party-window .party-inv-tab {
+    min-height:42px;
+    padding:0 18px;
+    border:1px solid rgba(119,73,36,.28);
+    border-bottom:0;
+    border-radius:8px 8px 0 0;
+    background:#ead7b7;
+    color:#60401f;
+    font-weight:900;
+    cursor:pointer;
+  }
+  #uie-party-window .party-inv-tab.active {
+    background:#fffdf6;
+    color:#2f684a;
+    box-shadow:inset 0 3px #4b7f61;
+  }
+  #uie-party-window .party-inv-empty {
+    min-height:190px;
+    place-items:center;
+    align-content:center;
+    gap:8px;
+    text-align:center;
+    border:1px dashed rgba(119,73,36,.4);
+    background:rgba(255,253,246,.7);
+    color:#80512d;
+  }
+  #uie-party-window .party-inv-empty i { font-size:28px; color:#4b7f61; }
+  #uie-party-window .party-inv-empty strong { color:#51321f; font-size:15px; }
+  #uie-party-window .party-attributes-heading { display:inline-flex; align-items:center; gap:7px; }
+  #uie-party-window .party-sheet-stat-mode { width:32px; min-height:32px; padding:0; }
+  #uie-party-window .party-sheet-stat-mode.active { background:#d9eadc!important; color:#2f684a!important; border-color:#4b7f61!important; }
+  #uie-party-window .party-sheet-stat-actions .danger { color:#8f2f3a!important; border-color:rgba(143,47,58,.38)!important; }
+  #uie-party-window .sr-only { position:absolute!important; width:1px!important; height:1px!important; padding:0!important; margin:-1px!important; overflow:hidden!important; clip:rect(0,0,0,0)!important; white-space:nowrap!important; border:0!important; }
+  #uie-party-window .formation-board-grid { grid-template-columns:repeat(3,minmax(230px,1fr)); overflow-x:auto; padding-bottom:6px; }
+  #uie-party-window .formation-lane-column { min-height:360px; }
+  #uie-party-window .lane-buff-tag { background:#f0dfc4; color:#644323!important; }
+  #uie-party-window .formation-member-card .card-role { color:#315f4a; background:#dceadf; }
+  #uie-party-window button:focus-visible,
+  #uie-party-window select:focus-visible,
+  #uie-party-window input:focus-visible,
+  #uie-party-window textarea:focus-visible { outline:3px solid rgba(63,120,146,.42)!important; outline-offset:2px; }
+  @media not all {
+    #uie-party-window .gear-grid { grid-template-columns:repeat(2,minmax(120px,1fr)); }
+    #uie-party-window .formation-board-grid { grid-template-columns:1fr; overflow:visible; }
+    #uie-party-window .formation-lane-column { min-height:220px; }
+    #uie-party-window .party-inv-list { grid-template-columns:1fr; }
+    #uie-party-window .party-inv-heading { align-items:center; }
+  }
+  @media (prefers-reduced-motion:reduce) {
+    #uie-party-window *,#uie-party-window *::before,#uie-party-window *::after { animation-duration:.01ms!important; transition-duration:.01ms!important; }
+  }
+
 </style>
 
 
@@ -1626,10 +1986,12 @@
           <div class="sheet-name"></div>
           <div class="sheet-details"></div>
         </div>
-        <div class="sheet-vitals-compact"></div>
       </div>
       <div class="sheet-stats-card party-panel">
-        <div class="panel-header"><i class="fa-solid fa-chart-line"></i> Attributes</div>
+        <div class="panel-header">
+          <span class="party-attributes-heading"><i class="fa-solid fa-chart-line"></i> Attributes <button type="button" class="party-sheet-stat-mode party-mini" aria-label="Edit attributes" aria-pressed="false" title="Edit attributes"><i class="fa-solid fa-pen"></i></button></span>
+          <button type="button" class="party-sheet-stat-add party-action-btn"><i class="fa-solid fa-plus"></i> Attribute</button>
+        </div>
         <div class="stats-grid"></div>
       </div>
       <div class="sheet-trackers-card party-panel">
@@ -1639,9 +2001,12 @@
         </div>
         <div class="party-member-trackers"></div>
       </div>
-      <div class="sheet-bio-card party-panel">
-        <div class="panel-header"><i class="fa-solid fa-book-open"></i> Biography</div>
-        <div class="bio-text" style="white-space:pre-wrap; margin-top:6px; font-size:12px;"></div>
+      <div class="sheet-effects-card party-panel">
+        <div class="panel-header">
+          <span><i class="fa-solid fa-burst"></i> Status Effects</span>
+          <button type="button" class="party-sheet-effect-add party-action-btn"><i class="fa-solid fa-plus"></i> Effect</button>
+        </div>
+        <div class="party-sheet-effects"></div>
       </div>
     </div>
   </div>
@@ -1694,10 +2059,17 @@
 </template>
 
 <template id="uie-party-inventory-view">
-  <section class="party-panel">
-    <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:12px;">
-      <strong class="party-inv-title">Personal Bag</strong>
+  <section class="party-panel party-inventory-panel">
+    <div class="party-inv-heading">
+      <div>
+        <strong class="party-inv-title">Shared Party Bag</strong>
+        <div class="party-inv-description">Supplies available to the whole party.</div>
+      </div>
       <button type="button" class="party-inv-add party-action-btn"><i class="fa-solid fa-plus"></i> Item</button>
+    </div>
+    <div class="party-inv-tabs" role="tablist" aria-label="Party inventory scope">
+      <button type="button" class="party-inv-tab" data-inventory-scope="personal" role="tab" aria-selected="false"><i class="fa-solid fa-user"></i> Personal</button>
+      <button type="button" class="party-inv-tab active" data-inventory-scope="shared" role="tab" aria-selected="true"><i class="fa-solid fa-people-group"></i> Shared</button>
     </div>
     <select id="party-inv-target" style="display:none;"></select>
     <div class="party-inv-list"></div>
@@ -1816,21 +2188,25 @@
       </div>
     </div>
     <div class="uie-skilltree-board">
-      <svg id="uie-party-skilltree-connections" width="700" height="420" style="position:absolute; inset:0; pointer-events:none;"></svg>
-      <div id="uie-skilltree-nodes-container" style="position:relative; width:700px; height:420px;"></div>
+      <svg id="uie-party-skilltree-connections" width="100%" height="100%" style="position:absolute; inset:0; pointer-events:none;"></svg>
+      <div id="uie-skilltree-nodes-container" style="position:relative; width:100%; height:100%; min-height:320px;"></div>
     </div>
   </section>
 </template>
 
 <template id="uie-party-modal-layout">
-  <div class="party-mm-layout" style="display:flex; flex-direction:column; height:100%;">
-    <div class="party-mm-tabs" style="display:flex; gap:8px; padding:12px; border-bottom:1px solid rgba(255,255,255,0.08);">
-      <button type="button" class="party-mm-tab" data-tab="sheet" style="flex:1; padding:8px 12px; border:1px solid rgba(255,255,255,0.1); border-radius:4px; background:rgba(0,0,0,0.2); color:var(--party-text); cursor:pointer;">Sheet</button>
-      <button type="button" class="party-mm-tab" data-tab="equip" style="flex:1; padding:8px 12px; border:1px solid rgba(255,255,255,0.1); border-radius:4px; background:rgba(0,0,0,0.2); color:var(--party-text); cursor:pointer;">Equip</button>
+  <div class="party-mm-layout" style="display:flex; flex-direction:column; height:100%; min-height:0;">
+    <div class="party-mm-tabs" style="display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:6px; padding:10px; border-bottom:1px solid rgba(255,255,255,0.08); flex:0 0 auto;">
+      <button type="button" class="party-mm-tab" data-tab="sheet" style="min-width:0; padding:8px 6px; border:1px solid rgba(255,255,255,0.1); border-radius:4px; background:rgba(0,0,0,0.2); color:var(--party-text); cursor:pointer;">Sheet</button>
+      <button type="button" class="party-mm-tab" data-tab="equip" style="min-width:0; padding:8px 6px; border:1px solid rgba(255,255,255,0.1); border-radius:4px; background:rgba(0,0,0,0.2); color:var(--party-text); cursor:pointer;">Equip</button>
+      <button type="button" class="party-mm-tab" data-tab="skills" style="min-width:0; padding:8px 6px; border:1px solid rgba(255,255,255,0.1); border-radius:4px; background:rgba(0,0,0,0.2); color:var(--party-text); cursor:pointer;">Skills</button>
+      <button type="button" class="party-mm-tab" data-tab="skilltree" style="min-width:0; padding:8px 6px; border:1px solid rgba(255,255,255,0.1); border-radius:4px; background:rgba(0,0,0,0.2); color:var(--party-text); cursor:pointer;">Skill Tree</button>
     </div>
-    <div class="party-mm-content" style="flex:1; overflow-y:auto; padding:12px;">
+    <div class="party-mm-content" style="flex:1; min-height:0; overflow:auto; padding:12px;">
       <div id="party-mm-pane-sheet" style="display:none;"></div>
       <div id="party-mm-pane-equip" style="display:none;"></div>
+      <div id="party-mm-pane-skills" style="display:none;"></div>
+      <div id="party-mm-pane-skilltree" style="display:none; height:100%; min-height:0;"></div>
     </div>
   </div>
 </template>

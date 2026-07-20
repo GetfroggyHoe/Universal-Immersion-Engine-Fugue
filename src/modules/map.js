@@ -2,6 +2,7 @@ import { getSettings, saveSettings } from "./core.js";
 import { notify } from "./notifications.js";
 import { getRealityEngineV3, initForgeV3 } from "./reality.js";
 import { customConfirm } from "./popups.js";
+import { ensureCredentialState, useCredential, validateCredential } from "./credentialSystem.js";
 import { getGlobalDOM } from "./domHierarchy.js";
 import {
     ensureTravelAssetFields,
@@ -34,6 +35,13 @@ import {
     validateMapPackage,
     vicinityPresetNames,
 } from "./mapTemplate.js";
+import {
+    advanceTransitTime,
+    closeTransitHub,
+    initTravelBridge,
+    openTransitHub,
+    resumeTransit,
+} from "./travelBridge.js";
 
 const VIEW_ORDER = ["world", "region", "area", "vicinity", "blueprint"];
 const VIEW_LABELS = {
@@ -71,49 +79,82 @@ const TRANSIT_TYPES = {
     spaceport: { type: "spaceport", kind: "spacecraft", label: "Spaceport Dock" },
     hangar: { type: "hangar", kind: "aircraft", label: "Hangar / Landing Pad" },
 };
-const FOCUSED_DOM_JOB_PRESETS = {
+export const FOCUSED_DOM_JOB_PRESETS = {
     school: {
-        label: "Student / School",
-        kind: "school",
+        label: "Academy / School",
+        kind: "school", icon: "fa-graduation-cap", accent: "#818cf8", noun: "Academic dossier",
         windows: ["08:00-15:30"],
-        tasks: ["Attend class", "Submit assignment", "Study with classmate", "Visit faculty office"],
+        tasks: ["Attend scheduled class", "Submit current assignment", "Study with a classmate", "Visit faculty office hours"],
+        touchpoints: ["Course timetable", "Faculty office hours", "Student study group"],
+        notes: [{ title: "Study Notes", content: "Capture lecture highlights, questions, and revision priorities here." }],
+        documents: [
+            { title: "Course Syllabus", kind: "syllabus", content: "Course goals, required reading, assessment dates, and faculty expectations." },
+            { title: "Current Assignment", kind: "assignment", content: "Complete the assigned work, verify the rubric, and submit it before the deadline." },
+            { title: "Progress Report", kind: "report", content: "Current standing, instructor feedback, attendance, and recommended next steps." },
+        ],
     },
     service: {
         label: "Service / Cafe",
-        kind: "job",
+        kind: "service", icon: "fa-mug-hot", accent: "#f59e0b", noun: "Shift dossier",
         windows: ["06:00-14:00", "14:00-22:00"],
         tasks: ["Clock in", "Serve rush", "Clean station", "Handle customer issue"],
+        touchpoints: ["Rush forecast", "Station assignment", "Shift handoff"],
+        notes: [{ title: "Shift Notes", content: "Record station status, handoff details, and recurring customer needs." }],
+        documents: [{ title: "Current Menu", kind: "menu", content: "Featured items, preparation notes, prices, and availability." }, { title: "Open Orders", kind: "receipt", content: "Active orders and payment status for this shift." }, { title: "Incident Log", kind: "file", content: "Service incidents, resolutions, and manager follow-up." }],
     },
     retail: {
         label: "Retail / Shop",
-        kind: "job",
+        kind: "retail", icon: "fa-store", accent: "#34d399", noun: "Floor dossier",
         windows: ["09:00-17:00", "12:00-20:00"],
         tasks: ["Open register", "Stock shelves", "Help customer", "Close till"],
+        touchpoints: ["Register status", "Stock alert", "Customer queue"],
+        notes: [{ title: "Floor Notes", content: "Track displays, stock gaps, customer requests, and handoff details." }],
+        documents: [{ title: "Inventory Ledger", kind: "ledger", content: "Stock counts, reserved items, and replenishment priorities." }, { title: "Register Receipt", kind: "receipt", content: "Current till summary and transaction record." }, { title: "Daily Floor Report", kind: "report", content: "Sales activity, customer issues, and closing observations." }],
     },
     office: {
         label: "Office / Agency",
-        kind: "job",
+        kind: "office", icon: "fa-briefcase", accent: "#22d3ee", noun: "Case dossier",
         windows: ["09:00-17:00"],
         tasks: ["Review brief", "Meet supervisor", "File report", "Follow up with client"],
+        touchpoints: ["Priority brief", "Meeting queue", "Client follow-up"],
+        notes: [{ title: "Case Notes", content: "Record decisions, dependencies, risks, and follow-up owners." }],
+        documents: [{ title: "Active Brief", kind: "document", content: "Objective, stakeholders, constraints, deliverables, and due dates." }, { title: "Internal Memo", kind: "note", content: "Decisions and internal guidance for the active case." }, { title: "Status Report", kind: "report", content: "Progress, risks, next actions, and ownership." }],
     },
     clinic: {
         label: "Clinic / Care",
-        kind: "job",
+        kind: "clinic", icon: "fa-notes-medical", accent: "#fb7185", noun: "Care dossier",
         windows: ["07:00-15:00", "15:00-23:00"],
         tasks: ["Triage arrival", "Prepare room", "Update chart", "Check supplies"],
+        touchpoints: ["Triage queue", "Room readiness", "Care handoff"],
+        notes: [{ title: "Care Notes", content: "Record observations, non-sensitive care reminders, and shift handoff details." }],
+        documents: [{ title: "Patient Chart", kind: "chart", content: "Encounter summary, observations, care plan, and follow-up." }, { title: "Referral", kind: "letter", content: "Reason for referral, relevant history, and requested consultation." }, { title: "Discharge Instructions", kind: "manual", content: "Aftercare steps, warning signs, medication reminders, and follow-up date." }],
     },
     craft: {
         label: "Guild / Craft",
-        kind: "job",
+        kind: "craft", icon: "fa-hammer", accent: "#c87941", noun: "Workshop dossier",
         windows: ["08:00-16:00"],
         tasks: ["Accept commission", "Prepare materials", "Craft order", "Deliver work"],
+        touchpoints: ["Commission board", "Material supply", "Delivery queue"],
+        notes: [{ title: "Workshop Notes", content: "Track measurements, material substitutions, and finishing details." }],
+        documents: [{ title: "Commission Order", kind: "file", content: "Client request, specifications, materials, price, and delivery date." }, { title: "Workshop Recipe", kind: "manual", content: "Materials, tools, sequence, quality checks, and finishing instructions." }, { title: "Guild Invoice", kind: "invoice", content: "Labor, materials, adjustments, payment status, and delivery acknowledgement." }],
     },
     performance: {
         label: "Performance / Studio",
-        kind: "job",
+        kind: "performance", icon: "fa-masks-theater", accent: "#e879f9", noun: "Production dossier",
         windows: ["10:00-14:00", "18:00-23:00"],
         tasks: ["Warm up", "Rehearse set", "Perform scene", "Review feedback"],
+        touchpoints: ["Call sheet", "Rehearsal block", "Performance notes"],
+        notes: [{ title: "Rehearsal Notes", content: "Record blocking, cues, changes, feedback, and personal practice targets." }],
+        documents: [{ title: "Working Script", kind: "script", content: "Current scenes, dialogue, blocking, and production cues." }, { title: "Set List", kind: "set-list", content: "Performance order, transitions, timing, and technical cues." }, { title: "Director Review", kind: "report", content: "Performance notes, strengths, corrections, and next rehearsal goals." }],
     },
+};
+const FOCUSED_DOM_SECTIONS = ["overview", "tasks", "schedule", "notes", "documents"];
+const CUSTOM_FOCUS_PRESET = {
+    label: "Focused Workspace", kind: "custom", icon: "fa-crosshairs", accent: "#94a3b8", noun: "Operational dossier",
+    windows: ["09:00-17:00"], tasks: ["Review current priorities", "Complete the next objective", "Record progress"],
+    touchpoints: ["Current objective", "Upcoming window", "Reference materials"],
+    notes: [{ title: "Workspace Notes", content: "Capture context, decisions, and next steps here." }],
+    documents: [{ title: "Workspace Overview", kind: "document", content: "Purpose, current context, priorities, and important references." }],
 };
 
 let initialized = false;
@@ -331,7 +372,12 @@ function currentGameHour(s = getSettings()) {
 function focusKindFor(label = "") {
     const text = String(label || "").toLowerCase();
     if (/\b(school|academy|campus|class|student|teacher)\b/.test(text)) return "school";
-    if (/\b(job|work|shift|office|clinic|shop|cafe|studio|guild)\b/.test(text)) return "job";
+    if (/\b(cafe|coffee|restaurant|service)\b/.test(text)) return "service";
+    if (/\b(retail|shop|store)\b/.test(text)) return "retail";
+    if (/\b(office|agency|casework)\b/.test(text)) return "office";
+    if (/\b(clinic|care|hospital|medical)\b/.test(text)) return "clinic";
+    if (/\b(guild|craft|workshop|forge)\b/.test(text)) return "craft";
+    if (/\b(performance|studio|stage|theater|theatre|rehearsal)\b/.test(text)) return "performance";
     if (/\b(family|household|lineage)\b/.test(text)) return "lineage";
     if (/\b(org|organization|faction|guild|company|agency)\b/.test(text)) return "organization";
     return "custom";
@@ -355,66 +401,166 @@ function buildFocusedDomTasks(label, preset, enabled = true, s = getSettings()) 
         id: `${slug(label, "focus")}_task_${index + 1}`,
         label: task,
         status: activeWindow ? "available" : "scheduled",
+        completed: false,
         window: activeWindow?.label || windows[0]?.label || "contextual",
         generatedAt: Date.now(),
     }));
 }
 
+function normalizeFocusedTask(raw, label, index = 0) {
+    const task = typeof raw === "string" ? { label: raw } : (raw && typeof raw === "object" ? raw : {});
+    const taskLabel = String(task.label || task.title || `Task ${index + 1}`).trim();
+    return {
+        ...task,
+        id: String(task.id || `${slug(label, "focus")}_task_${index + 1}`).trim(),
+        label: taskLabel,
+        status: String(task.status || "scheduled"),
+        completed: task.completed === true || String(task.status || "").toLowerCase() === "completed",
+        window: String(task.window || "contextual"),
+    };
+}
+
+function normalizeFocusedNote(raw, label, index = 0) {
+    const note = typeof raw === "string" ? { content: raw } : (raw && typeof raw === "object" ? raw : {});
+    const title = String(note.title || `Note ${index + 1}`).trim();
+    return { ...note, id: String(note.id || `${slug(label, "focus")}_note_${slug(title, String(index + 1))}`), title, content: String(note.content || note.text || ""), updatedAt: Number(note.updatedAt || Date.now()) };
+}
+
+function normalizeFocusedDocument(raw, label, index = 0) {
+    const doc = typeof raw === "string" ? { title: raw } : (raw && typeof raw === "object" ? raw : {});
+    const title = String(doc.title || `Document ${index + 1}`).trim();
+    return {
+        ...doc,
+        id: String(doc.id || `${slug(label, "focus")}_doc_${slug(title, String(index + 1))}`),
+        title,
+        kind: String(doc.kind || doc.type || "document"),
+        content: String(doc.content || doc.text || ""),
+        userCreated: doc.userCreated === true,
+        createdAt: Number(doc.createdAt || Date.now()),
+        updatedAt: Number(doc.updatedAt || doc.createdAt || Date.now()),
+    };
+}
+
+function mergeStableRecords(seeded = [], prior = [], normalizer, label) {
+    const priorById = new Map((Array.isArray(prior) ? prior : []).map((item, index) => {
+        const normalized = normalizer(item, label, index);
+        return [normalized.id, normalized];
+    }));
+    const merged = (Array.isArray(seeded) ? seeded : []).map((item, index) => {
+        const normalized = normalizer(item, label, index);
+        return { ...normalized, ...(priorById.get(normalized.id) || {}) };
+    });
+    const seededIds = new Set(merged.map((item) => item.id));
+    for (const item of priorById.values()) if (!seededIds.has(item.id)) merged.push(item);
+    return merged;
+}
+
+export function normalizeFocusedDomState(raw = {}, fallbackScope = "") {
+    const source = raw && typeof raw === "object" ? raw : {};
+    const inputRegistry = source.registry && typeof source.registry === "object" ? source.registry : {};
+    const registry = {};
+    for (const [key, value] of Object.entries(inputRegistry)) {
+        const entry = value && typeof value === "object" ? value : {};
+        const id = String(entry.id || key || "").trim();
+        if (!id) continue;
+        const label = String(entry.label || entry.name || titleCase(id)).trim();
+        const inferredPresetKey = String(entry.preset || (entry.kind !== "job" ? entry.kind : "") || focusKindFor(label) || "custom");
+        const preset = jobPresetFor(inferredPresetKey) || (inferredPresetKey === "school" ? FOCUSED_DOM_JOB_PRESETS.school : CUSTOM_FOCUS_PRESET);
+        const rawNotes = Array.isArray(entry.notes) && entry.notes.length ? entry.notes : (preset.notes || []);
+        const rawDocuments = Array.isArray(entry.documents) && entry.documents.length ? entry.documents : (preset.documents || []);
+        registry[id] = {
+            ...entry,
+            id, label,
+            preset: String(entry.preset || (preset === CUSTOM_FOCUS_PRESET ? "custom" : inferredPresetKey)),
+            kind: String(entry.kind || preset.kind || "custom"),
+            scope: String(entry.scope || fallbackScope || currentLocationName()),
+            status: "suspended",
+            lastSection: FOCUSED_DOM_SECTIONS.includes(String(entry.lastSection || "").toLowerCase()) ? String(entry.lastSection).toLowerCase() : "overview",
+            accent: String(entry.accent || preset.accent || CUSTOM_FOCUS_PRESET.accent),
+            icon: String(entry.icon || preset.icon || CUSTOM_FOCUS_PRESET.icon),
+            noun: String(entry.noun || preset.noun || CUSTOM_FOCUS_PRESET.noun),
+            taskWindow: normalizeList(entry.taskWindow || entry.windows || preset.windows),
+            schedule: Array.isArray(entry.schedule) && entry.schedule.length ? entry.schedule.map((row, index) => typeof row === "string" ? { id: `${id}_schedule_${index + 1}`, label: row, window: row } : { id: String(row?.id || `${id}_schedule_${index + 1}`), label: String(row?.label || row?.title || `Window ${index + 1}`), window: String(row?.window || row?.time || "Contextual"), ...row }) : (preset.windows || []).map((window, index) => ({ id: `${id}_schedule_${index + 1}`, label: index ? "Secondary window" : "Primary window", window })),
+            touchpoints: normalizeList(entry.touchpoints || preset.touchpoints),
+            tasks: (Array.isArray(entry.tasks) ? entry.tasks : []).map((task, index) => normalizeFocusedTask(task, label, index)),
+            notes: rawNotes.map((note, index) => normalizeFocusedNote(note, label, index)),
+            documents: rawDocuments.map((doc, index) => normalizeFocusedDocument(doc, label, index)),
+        };
+    }
+    const ids = Object.keys(registry);
+    const activeId = registry[String(source.activeId || "")] ? String(source.activeId) : (ids[0] || "");
+    for (const entry of Object.values(registry)) entry.status = entry.id === activeId ? "active" : "suspended";
+    const activeTasks = (registry[activeId]?.tasks || []).filter((task) => !task.completed && task.status === "available");
+    return { ...source, enabled: source.enabled === true || ids.length > 0, activeId, registry, activeTasks, generatedAt: Number(source.generatedAt || Date.now()) };
+}
+
 function buildFocusedDomState(config = {}, mapState = state, context = {}) {
     const focus = normalizeFocusedDomConfig(config);
-    if (!focus.enabled) return { enabled: false, registry: {}, activeTasks: [], generatedAt: Date.now() };
+    const previous = normalizeFocusedDomState(mapState?.focusedDoms || {}, context.label || currentLocationName());
+    if (!focus.enabled) return { ...previous, enabled: previous.enabled && Object.keys(previous.registry).length > 0 };
     const s = getSettings();
-    const registry = {};
-    const addFocus = (label, kind, preset = null) => {
+    const registry = { ...previous.registry };
+    const addFocus = (label, presetKey, preset = null) => {
         const name = String(label || "").trim();
         if (!name) return;
-        const id = slug(`${kind}_${name}`, "focused_dom");
+        const kind = String(preset?.kind || presetKey || "custom");
+        const id = slug(`${presetKey}_${name}`, "focused_dom");
         const local = (mapState?.area || []).find((node) => new RegExp(`\\b${escapeRegExp(name)}\\b`, "i").test(`${node.name || ""} ${node.type || ""}`))
             || (mapState?.area || [])[0]
             || {};
-        const tasks = buildFocusedDomTasks(name, preset, focus.tasks, s);
+        const base = preset || CUSTOM_FOCUS_PRESET;
+        const prior = previous.registry[id] || {};
+        const tasks = mergeStableRecords(buildFocusedDomTasks(name, base, focus.tasks, s), prior.tasks, normalizeFocusedTask, name);
+        const notes = mergeStableRecords(base.notes || [], prior.notes, normalizeFocusedNote, name);
+        const documents = mergeStableRecords(base.documents || [], prior.documents, normalizeFocusedDocument, name);
         registry[id] = {
+            ...prior,
             id,
             label: name,
+            preset: presetKey || "custom",
             kind,
             scope: local?.name || context.label || currentLocationName(),
-            taskWindow: preset?.windows || (tasks[0]?.window ? [tasks[0].window] : []),
-            systems: ["modal", "tasks", "schedule", "roster"],
+            status: "suspended",
+            lastSection: FOCUSED_DOM_SECTIONS.includes(prior.lastSection) ? prior.lastSection : "overview",
+            accent: base.accent,
+            icon: base.icon,
+            noun: base.noun,
+            taskWindow: base.windows || (tasks[0]?.window ? [tasks[0].window] : []),
+            schedule: Array.isArray(prior.schedule) && prior.schedule.length ? prior.schedule : (base.windows || []).map((window, index) => ({ id: `${id}_schedule_${index + 1}`, label: index ? "Secondary window" : "Primary window", window })),
+            touchpoints: base.touchpoints || [],
+            systems: ["overview", "tasks", "schedule", "notes", "documents"],
             tasks,
+            notes,
+            documents,
             builder: "fastapi-turboapi-ready",
-            generatedAt: Date.now(),
+            generatedAt: Number(prior.generatedAt || Date.now()),
+            updatedAt: Date.now(),
         };
     };
 
     for (const job of focus.jobs) {
         const preset = jobPresetFor(job);
-        addFocus(preset?.label || titleCase(job), preset?.kind || "job", preset);
+        addFocus(preset?.label || titleCase(job), job, preset);
     }
     for (const subject of focus.subjects) {
         const kind = focusKindFor(subject);
-        const preset = jobPresetFor(kind === "school" ? "school" : "");
-        addFocus(subject, kind, preset);
+        const preset = jobPresetFor(kind);
+        addFocus(subject, preset ? kind : "custom", preset);
     }
-    if (!Object.keys(registry).length) addFocus(context.label || currentLocationName(), "custom", null);
-
-    return {
+    if (!Object.keys(registry).length) addFocus(context.label || currentLocationName(), "custom", CUSTOM_FOCUS_PRESET);
+    return normalizeFocusedDomState({
         enabled: true,
+        activeId: previous.activeId,
         registry,
-        activeTasks: Object.values(registry).flatMap((entry) => entry.tasks || []).filter((task) => task.status === "available"),
         generatedAt: Date.now(),
-    };
+    }, context.label || currentLocationName());
 }
 
 function syncFocusedDomsToHierarchy(focusedDoms) {
     try {
         const dom = getGlobalDOM();
         if (!dom) return;
-        dom.focusedDoms = focusedDoms?.registry || {};
-        dom.focusedDomTasks = focusedDoms?.activeTasks || [];
-        if (dom.activeDOM) {
-            dom.activeDOM.focusedDoms = dom.focusedDoms;
-            dom.activeDOM.focusedDomTasks = dom.focusedDomTasks;
-        }
+        dom.syncFocusedDOMs?.(normalizeFocusedDomState(focusedDoms || {}));
     } catch (error) {
         console.warn("[map] Focused DOM sync failed", error);
     }
@@ -547,6 +693,7 @@ function migrateState(existing) {
         for (const nodes of [existing.world, existing.region, existing.area, existing.vicinity, ...Object.values(existing.vicinityByArea || {})]) {
             for (const node of Array.isArray(nodes) ? nodes : []) ensureGovernanceFields(node);
         }
+        existing.focusedDoms = normalizeFocusedDomState(existing.focusedDoms || existing.worldState?.focusedDoms || {}, existing.activeLocalName);
         return existing;
     }
     const migrated = { ...fallback, ...existing, version: 2 };
@@ -568,6 +715,7 @@ function migrateState(existing) {
     for (const nodes of [migrated.world, migrated.region, migrated.area, migrated.vicinity, ...Object.values(migrated.vicinityByArea || {})]) {
         for (const node of Array.isArray(nodes) ? nodes : []) ensureGovernanceFields(node);
     }
+    migrated.focusedDoms = normalizeFocusedDomState(existing.focusedDoms || {}, migrated.activeLocalName);
     return migrated;
 }
 
@@ -575,15 +723,47 @@ function loadState() {
     const s = getSettings();
     const existing = s.simpleMap && typeof s.simpleMap === "object" ? s.simpleMap : null;
     state = migrateState(existing);
+    if (!Object.keys(state.focusedDoms?.registry || {}).length && s.worldState?.focusedDoms) {
+        state.focusedDoms = normalizeFocusedDomState(s.worldState.focusedDoms, state.activeLocalName);
+    }
     if (!VIEW_ORDER.includes(state.view)) state.view = "world";
     selected = null;
     state.selectedId = "";
+    syncFocusedDomsToHierarchy(state.focusedDoms);
 }
 
 function persist() {
     const s = getSettings();
+    state.focusedDoms = normalizeFocusedDomState(state.focusedDoms || {}, state.activeLocalName);
     s.simpleMap = state;
+    if (!s.worldState || typeof s.worldState !== "object") s.worldState = {};
+    s.worldState.focusedDoms = state.focusedDoms;
+    syncFocusedDomsToHierarchy(state.focusedDoms);
     saveSettings();
+}
+
+export function getFocusedDomRegistry() {
+    if (!state) loadState();
+    return normalizeFocusedDomState(state.focusedDoms || {}, state.activeLocalName);
+}
+
+export function getActiveFocusedDom() {
+    const focused = getFocusedDomRegistry();
+    return focused.registry[focused.activeId] || null;
+}
+
+export function switchFocusedDom(id) {
+    if (!state) loadState();
+    const focused = normalizeFocusedDomState(state.focusedDoms || {}, state.activeLocalName);
+    const nextId = String(id || "").trim();
+    if (!focused.registry[nextId]) return null;
+    focused.activeId = nextId;
+    for (const entry of Object.values(focused.registry)) entry.status = entry.id === nextId ? "active" : "suspended";
+    focused.activeTasks = (focused.registry[nextId].tasks || []).filter((task) => !task.completed && task.status === "available");
+    state.focusedDoms = focused;
+    persist();
+    getGlobalDOM()?.switchFocusedDOM?.(nextId);
+    return focused.registry[nextId];
 }
 
 export function resetMapState({ save = false } = {}) {
@@ -622,6 +802,7 @@ function mapTemplate() {
           ${VIEW_ORDER.map((view) => `<button type="button" class="uie-simple-map__tab" data-map-view="${view}">${VIEW_LABELS[view] || view}</button>`).join("")}
         </nav>
         <label class="uie-simple-map__theme-picker" title="Map visual theme"><span>Style</span><select id="uie-map-style"><option value="high-fantasy">Fantasy Realm</option><option value="modern">Modern City</option><option value="futuristic">Futuristic Holo</option></select></label>
+        <button type="button" id="uie-map-focus-open" class="uie-simple-map__tool uie-focus-entry" aria-haspopup="dialog" aria-controls="uie-focused-doms-modal"><i class="fa-solid fa-crosshairs" aria-hidden="true"></i><span>Focus</span><b id="uie-map-focus-count">0</b><small id="uie-map-focus-status">No dossiers</small></button>
         <button type="button" class="uie-simple-map__tool" data-map-action="generate">Expand</button>
         <button type="button" class="uie-simple-map__tool" data-map-action="add">Add Place</button>
         <button type="button" class="uie-simple-map__tool" data-map-action="freeplace" style="background:linear-gradient(135deg,#a855f7,#7e22ce); color:#fff; border:none;">Free Place</button>
@@ -706,6 +887,12 @@ function mapTemplate() {
         </div>
       </aside>
     </main>
+  </div>
+</div>
+<div id="uie-focused-doms-modal" class="uie-map-modal uie-focus-modal" hidden aria-hidden="true">
+  <div class="uie-focus-workspace" role="dialog" aria-modal="true" aria-labelledby="uie-focus-workspace-title">
+    <header class="uie-focus-workspace__top"><div><div class="uie-simple-map__eyebrow">Operational Dossiers</div><h2 id="uie-focus-workspace-title">Focused DOMs</h2></div><button type="button" data-map-modal-close class="uie-simple-map__close" aria-label="Close Focused DOM workspace">x</button></header>
+    <div id="uie-focus-workspace-body" class="uie-focus-workspace__body" aria-live="polite"></div>
   </div>
 </div>
 <div id="uie-map-scan-modal" class="uie-map-modal" hidden aria-hidden="true">
@@ -871,6 +1058,14 @@ function mapTemplate() {
 export async function initMap() {
     loadState();
     await ensureMounted();
+    initTravelBridge({
+        getMapState: () => state,
+        getNodeByName,
+        travelToLocationName,
+        boardTravelAsset,
+        placeTravelAssetHere,
+        parkTravelAssetHere,
+    });
     connectBackendMapStream();
     if (!initialized) {
         initialized = true;
@@ -916,6 +1111,87 @@ function bindEvents() {
         .on("click.uieSimpleMap", "#uie-map-close", (event) => {
             event.preventDefault();
             closeMap();
+        })
+        .on("click.uieSimpleMap", "#uie-map-focus-open", (event) => {
+            event.preventDefault();
+            openFocusedDomWorkspace();
+        })
+        .on("click.uieSimpleMap", "[data-focus-open-generator]", (event) => {
+            event.preventDefault();
+            openMapModal("worldgen-modal");
+            $("[data-wg-pane-target='focused']").trigger("click");
+        })
+        .on("click.uieSimpleMap", "[data-focus-switch]", function (event) {
+            event.preventDefault();
+            if (switchFocusedDom(String($(this).data("focus-switch") || ""))) renderFocusedDomWorkspace();
+        })
+        .on("click.uieSimpleMap", "[data-focus-section]", function (event) {
+            event.preventDefault();
+            const active = getActiveFocusedDom();
+            const section = String($(this).data("focus-section") || "overview").toLowerCase();
+            if (!active || !FOCUSED_DOM_SECTIONS.includes(section)) return;
+            active.lastSection = section;
+            persist();
+            renderFocusedDomWorkspace();
+        })
+        .on("change.uieSimpleMap", "[data-focus-task]", function () {
+            const active = getActiveFocusedDom();
+            const task = active?.tasks?.find((item) => String(item.id) === String($(this).data("focus-task")));
+            if (!task) return;
+            task.completed = this.checked === true;
+            task.status = task.completed ? "completed" : (focusedDomScheduleStatus(active).startsWith("Open") ? "available" : "scheduled");
+            task.completedAt = task.completed ? Date.now() : null;
+            persist();
+            renderFocusedDomWorkspace();
+            renderFocusedDomEntry();
+        })
+        .on("click.uieSimpleMap", "[data-focus-save-note]", function (event) {
+            event.preventDefault();
+            const active = getActiveFocusedDom();
+            const id = String($(this).data("focus-save-note") || "");
+            const note = active?.notes?.find((item) => String(item.id) === id);
+            if (!note) return;
+            note.title = String($(`[data-focus-note-title='${id}']`).val() || note.title || "Note").trim() || "Note";
+            note.content = String($(`[data-focus-note-content='${id}']`).val() || "");
+            note.updatedAt = Date.now();
+            persist();
+            $(this).text("Saved");
+            window.setTimeout(() => $(this).text("Save note"), 1200);
+        })
+        .on("click.uieSimpleMap", "[data-focus-add-note]", (event) => {
+            event.preventDefault();
+            const active = getActiveFocusedDom();
+            if (!active) return;
+            const next = normalizeFocusedNote({ id: `${active.id}_note_${Date.now()}`, title: "New note", content: "" }, active.label, active.notes?.length || 0);
+            active.notes = [...(active.notes || []), next];
+            persist();
+            renderFocusedDomWorkspace();
+            document.querySelector(`[data-focus-note-title='${next.id}']`)?.select?.();
+        })
+        .on("click.uieSimpleMap", "[data-focus-open-doc]", function (event) {
+            event.preventDefault();
+            const active = getActiveFocusedDom();
+            const doc = active?.documents?.find((item) => String(item.id) === String($(this).data("focus-open-doc")));
+            if (!doc) return;
+            window.UIE_readableHtml?.openReadableHtmlPopup?.({ title: doc.title, kind: doc.kind, pages: [{ title: doc.title, text: doc.content }], source: { focusedDomId: active.id, documentId: doc.id } });
+        })
+        .on("submit.uieSimpleMap", "#uie-focus-new-document", function (event) {
+            event.preventDefault();
+            const active = getActiveFocusedDom();
+            if (!active) return;
+            const data = new FormData(this);
+            const doc = normalizeFocusedDocument({ id: `${active.id}_doc_${Date.now()}`, title: String(data.get("title") || "New Document"), kind: String(data.get("kind") || "document"), content: String(data.get("content") || ""), userCreated: true }, active.label, active.documents?.length || 0);
+            active.documents = [...(active.documents || []), doc];
+            persist();
+            renderFocusedDomWorkspace();
+            window.UIE_readableHtml?.openReadableHtmlPopup?.({ title: doc.title, kind: doc.kind, pages: [{ title: doc.title, text: doc.content }], source: { focusedDomId: active.id, documentId: doc.id } });
+        })
+        .on("keydown.uieSimpleMap", (event) => {
+            if (event.key === "Escape" && !document.getElementById("uie-focused-doms-modal")?.hidden) {
+                event.preventDefault();
+                closeMapModals();
+                document.getElementById("uie-map-focus-open")?.focus?.();
+            }
         })
         .on("click.uieSimpleMap", "[data-map-view]", function (event) {
             event.preventDefault();
@@ -1086,12 +1362,99 @@ function bindEvents() {
         })
         .on("click.uieSimpleMap", "#uie-map-set-home", async (event) => {
             event.preventDefault();
-            if (selected) {
-                const { setPrimaryHome } = await import("./taxJailManager.js");
-                setPrimaryHome(selected.id, selected.name, homeDetailsForNode(selected));
+            if (!selected) return;
+            const homeMod = await import("./playerHome.js");
+            const existing = homeMod.getHomeForMapNode?.(selected) || null;
+            if (existing) {
+                homeMod.setPrimaryHome?.(existing.id);
+            } else {
+                const settings = getSettings();
+                const hasPrimary = Boolean(settings?.playerHome?.primaryHomeId || settings?.primaryHome?.name);
+                homeMod.claimMapLocationAsHome?.(selected, {
+                    makePrimary: !hasPrimary,
+                    source: "map_location_card"
+                });
+            }
+            renderDetails();
+            renderMap();
+        })
+        .on("click.uieSimpleMap", "#uie-map-fast-travel-home", async (event) => {
+            event.preventDefault();
+            const s = getSettings();
+            if (!s.primaryHome || !s.primaryHome.name) {
+                notify?.("warning", "No primary home registered.", "Travel");
+                return;
+            }
+            const upgrades = s.primaryHome.upgrades || {};
+            const teleportActive = upgrades.teleportAnchor === true;
+            if (!teleportActive) {
+                const { spendCurrency } = await import("./economy.js");
+                if (!spendCurrency(s, 20)) {
+                    notify?.("warning", "Insufficient gold. Fast travel costs 20G without a Teleport Anchor.", "Travel");
+                    return;
+                }
+                notify?.("info", "Paid 20G for fast travel.", "Travel");
+            }
+            const ok = await travelToLocationName(s.primaryHome.name, { skipTravelEffects: true });
+            if (ok) {
+                notify?.("success", `Fast traveled home to ${s.primaryHome.name}.`, "Travel");
+                selected = getNodeByName(s.primaryHome.name);
+                state.selectedId = selected?.id || "";
                 renderDetails();
                 renderMap();
             }
+        })
+        .on("click.uieSimpleMap", ".uie-map-home-upgrade-btn", async function (event) {
+            event.preventDefault();
+            const upgradeId = $(this).data("upgrade");
+            const cost = Number($(this).data("cost") || 0);
+            const s = getSettings();
+            if (!s.primaryHome) return;
+            s.primaryHome.upgrades = s.primaryHome.upgrades || {};
+            if (s.primaryHome.upgrades[upgradeId]) {
+                notify?.("info", "Upgrade already active.", "Home Upgrades");
+                return;
+            }
+            const { spendCurrency } = await import("./economy.js");
+            if (!spendCurrency(s, cost)) {
+                notify?.("warning", `Insufficient gold. Upgrading costs ${cost}G.`, "Home Upgrades");
+                return;
+            }
+            s.primaryHome.upgrades[upgradeId] = true;
+            saveSettings();
+            notify?.("success", "Purchased home upgrade!", "Home Upgrades");
+            renderDetails();
+            renderMap();
+        })
+        .on("click.uieSimpleMap", "#uie-map-rest-hearth", async (event) => {
+            event.preventDefault();
+            const s = getSettings();
+            if (!s.primaryHome || !s.primaryHome.name) return;
+            const upgrades = s.primaryHome.upgrades || {};
+            if (!upgrades.cozyHearth) return;
+            
+            const maxHp = Number(s.maxHp || s.character?.maxHp || 100);
+            const maxAp = Number(s.maxAp || s.character?.maxAp || 10);
+            const maxMp = Number(s.maxMp || s.character?.maxMp || 50);
+
+            s.hp = maxHp;
+            s.ap = maxAp;
+            s.mp = maxMp;
+            if (s.character) {
+                s.character.hp = maxHp;
+                s.character.ap = maxAp;
+                s.character.mp = maxMp;
+                s.character.statusEffects = [];
+            }
+            saveSettings();
+            
+            const { advanceWorldTimeMinutes } = await import("./timeProgress.js");
+            advanceWorldTimeMinutes(s, 480, { reason: "Rest in Cozy Hearth" });
+            
+            notify?.("success", "Rested in Hearth. Vitals restored, negative effects removed, and advanced time by 8 hours.", "Hearth Rest");
+            
+            renderDetails();
+            renderMap();
         })
         .on("click.uieSimpleMap", "#uie-map-import-apply", (event) => {
             event.preventDefault();
@@ -1575,6 +1938,63 @@ function hideNavigationPopup() {
     $("#uie-map-navigation-popup").prop("hidden", true).empty();
 }
 
+function readableOptionsForWorkspace() {
+    const catalog = window.UIE_readableHtml?.READABLE_OPTIONS || window.UIE_readableHtml?.readableOptions || [];
+    if (Array.isArray(catalog) && catalog.length) return catalog.map((item) => ({ value: String(item.value || item.kind || item.id || "document"), label: String(item.label || item.name || item.value || "Document") }));
+    return ["auto", "book", "letter", "scroll", "note", "document", "journal", "ledger", "manual", "board", "sign", "tablet", "file", "menu", "receipt", "assignment", "syllabus", "script", "set-list"].map((value) => ({ value, label: titleCase(value) }));
+}
+
+function focusedDomScheduleStatus(entry) {
+    const hour = currentGameHour();
+    const active = (entry.taskWindow || []).map(parseTimeWindow).filter(Boolean).find((win) => win.start <= win.end ? hour >= win.start && hour <= win.end : hour >= win.start || hour <= win.end);
+    return active ? `Open now · ${active.label}` : `Next window · ${entry.taskWindow?.[0] || "Contextual"}`;
+}
+
+function renderFocusedDomEntry() {
+    const focused = normalizeFocusedDomState(state?.focusedDoms || {}, state?.activeLocalName);
+    const count = Object.keys(focused.registry).length;
+    const active = focused.registry[focused.activeId];
+    $("#uie-map-focus-count").text(String(count));
+    $("#uie-map-focus-status").text(active ? active.label : "No dossiers");
+    $("#uie-map-focus-open").toggleClass("has-focus", count > 0).attr("aria-label", count ? `Open Focused DOMs. ${count} dossiers; ${active?.label || "none"} active.` : "Open Focused DOMs. No dossiers yet.");
+}
+
+function focusedEmptyMarkup() {
+    return `<section class="uie-focus-empty"><i class="fa-solid fa-folder-open" aria-hidden="true"></i><h3>No focused dossiers yet</h3><p>Use <strong>Expand → Focused DOMs</strong> to add an Academy, Cafe, Shop, Office, Clinic, Guild, Studio, or custom workspace. Existing map data will stay intact.</p><button type="button" class="uie-simple-map__primary" data-focus-open-generator>Create Focused DOMs</button></section>`;
+}
+
+function focusedSectionMarkup(entry, section) {
+    const pending = (entry.tasks || []).filter((task) => !task.completed);
+    if (section === "tasks") return `<section class="uie-focus-section"><div class="uie-focus-section__heading"><div><span>Action queue</span><h3>Tasks</h3></div><b>${pending.length} active</b></div><div class="uie-focus-task-list">${(entry.tasks || []).map((task) => `<label class="uie-focus-task ${task.completed ? "is-complete" : ""}"><input type="checkbox" data-focus-task="${esc(task.id)}" ${task.completed ? "checked" : ""}><span><strong>${esc(task.label)}</strong><small>${esc(task.window)} · ${esc(task.completed ? "Completed" : task.status)}</small></span></label>`).join("") || `<div class="uie-focus-inline-empty">No tasks are assigned to this dossier.</div>`}</div></section>`;
+    if (section === "schedule") return `<section class="uie-focus-section"><div class="uie-focus-section__heading"><div><span>Time windows</span><h3>Schedule</h3></div><b>${esc(focusedDomScheduleStatus(entry))}</b></div><div class="uie-focus-schedule">${(entry.schedule || []).map((row) => `<article><time>${esc(row.window)}</time><div><strong>${esc(row.label)}</strong><small>${esc(entry.scope)}</small></div></article>`).join("") || `<div class="uie-focus-inline-empty">This workspace uses contextual scheduling.</div>`}</div></section>`;
+    if (section === "notes") return `<section class="uie-focus-section"><div class="uie-focus-section__heading"><div><span>Persistent workspace</span><h3>Notes</h3></div><button type="button" class="uie-focus-quiet" data-focus-add-note><i class="fa-solid fa-plus" aria-hidden="true"></i> New note</button></div><div class="uie-focus-note-list">${(entry.notes || []).map((note) => `<article class="uie-focus-note"><label>Title<input type="text" data-focus-note-title="${esc(note.id)}" value="${esc(note.title)}"></label><label>Note<textarea data-focus-note-content="${esc(note.id)}" rows="7">${esc(note.content)}</textarea></label><footer><span>Saved in this dossier</span><button type="button" data-focus-save-note="${esc(note.id)}">Save note</button></footer></article>`).join("") || `<div class="uie-focus-inline-empty">No notes yet. Create one to start this dossier.</div>`}</div></section>`;
+    if (section === "documents") {
+        const options = readableOptionsForWorkspace();
+        return `<section class="uie-focus-section"><div class="uie-focus-section__heading"><div><span>Shared reader</span><h3>Documents</h3></div><b>${entry.documents?.length || 0} files</b></div><div class="uie-focus-doc-list">${(entry.documents || []).map((doc) => `<article class="uie-focus-doc"><i class="fa-solid fa-file-lines" aria-hidden="true"></i><div><small>${esc(titleCase(doc.kind))}</small><strong>${esc(doc.title)}</strong><span>${esc(String(doc.content || "").slice(0, 120) || "Blank readable")}</span></div><button type="button" data-focus-open-doc="${esc(doc.id)}">Open</button></article>`).join("") || `<div class="uie-focus-inline-empty">No documents are filed here yet.</div>`}</div><form id="uie-focus-new-document" class="uie-focus-new-doc"><div class="uie-focus-new-doc__title"><span>New readable</span><strong>Create document</strong></div><label>Title<input name="title" required maxlength="100" placeholder="Document title"></label><label>Template<select name="kind">${options.map((option) => `<option value="${esc(option.value)}">${esc(option.label)}</option>`).join("")}</select></label><label class="is-wide">Content<textarea name="content" required rows="4" placeholder="Write the document content. It opens immediately in the shared reader."></textarea></label><button type="submit">Create & open</button></form></section>`;
+    }
+    const complete = (entry.tasks || []).filter((task) => task.completed).length;
+    return `<section class="uie-focus-section"><div class="uie-focus-overview"><article class="uie-focus-lead"><span>${esc(entry.noun)}</span><h3>${esc(entry.scope)}</h3><p>${esc(entry.touchpoints?.join(" · ") || "A persistent operational workspace for this focus.")}</p></article><dl><div><dt>Tasks</dt><dd>${pending.length}</dd><small>${complete} complete</small></div><div><dt>Schedule</dt><dd>${entry.taskWindow?.length || 0}</dd><small>${esc(focusedDomScheduleStatus(entry))}</small></div><div><dt>Notes</dt><dd>${entry.notes?.length || 0}</dd><small>Persistent</small></div><div><dt>Documents</dt><dd>${entry.documents?.length || 0}</dd><small>Shared reader</small></div></dl></div><div class="uie-focus-touchpoints"><h3>Current touchpoints</h3>${(entry.touchpoints || []).map((item, index) => `<button type="button" data-focus-section="${index === 0 ? "tasks" : index === 1 ? "schedule" : "documents"}"><span>0${index + 1}</span>${esc(item)}<i class="fa-solid fa-arrow-right" aria-hidden="true"></i></button>`).join("")}</div></section>`;
+}
+
+function renderFocusedDomWorkspace() {
+    const host = document.getElementById("uie-focus-workspace-body");
+    if (!host) return;
+    const focused = normalizeFocusedDomState(state?.focusedDoms || {}, state?.activeLocalName);
+    state.focusedDoms = focused;
+    const entries = Object.values(focused.registry);
+    if (!entries.length) { host.innerHTML = focusedEmptyMarkup(); return; }
+    const active = focused.registry[focused.activeId] || entries[0];
+    const section = FOCUSED_DOM_SECTIONS.includes(active.lastSection) ? active.lastSection : "overview";
+    host.style.setProperty("--focus-accent", active.accent || "#94a3b8");
+    host.innerHTML = `<aside class="uie-focus-switcher" aria-label="Focused DOM switcher">${entries.map((entry) => { const pending = (entry.tasks || []).filter((task) => !task.completed).length; return `<button type="button" data-focus-switch="${esc(entry.id)}" class="${entry.id === active.id ? "is-active" : ""}" aria-pressed="${entry.id === active.id}"><i class="fa-solid ${esc(entry.icon)}" aria-hidden="true" style="--entry-accent:${esc(entry.accent)}"></i><span><strong>${esc(entry.label)}</strong><small>${esc(titleCase(entry.preset || entry.kind))} · ${entry.id === active.id ? "Active" : "Suspended"}</small></span><b>${pending}</b></button>`; }).join("")}</aside><main class="uie-focus-dossier"><header class="uie-focus-dossier__head"><div class="uie-focus-identity"><i class="fa-solid ${esc(active.icon)}" aria-hidden="true"></i><div><span>${esc(titleCase(active.preset || active.kind))} · ${esc(active.status)}</span><h2>${esc(active.label)}</h2><p>${esc(focusedDomScheduleStatus(active))}</p></div></div><div class="uie-focus-metrics"><span><b>${(active.tasks || []).filter((task) => !task.completed).length}</b> tasks</span><span><b>${active.documents?.length || 0}</b> docs</span></div></header><nav class="uie-focus-tabs" aria-label="Dossier sections">${FOCUSED_DOM_SECTIONS.map((name) => `<button type="button" data-focus-section="${name}" class="${name === section ? "is-active" : ""}" aria-pressed="${name === section}">${titleCase(name)}</button>`).join("")}</nav><div class="uie-focus-content">${focusedSectionMarkup(active, section)}</div></main>`;
+}
+
+function openFocusedDomWorkspace() {
+    openMapModal("uie-focused-doms-modal");
+    renderFocusedDomWorkspace();
+    window.setTimeout(() => document.querySelector("#uie-focused-doms-modal [data-focus-switch], #uie-focused-doms-modal [data-focus-open-generator]")?.focus?.(), 0);
+}
+
 function closeMapModals() {
     $(".uie-map-modal").each(function() {
         blurFocusInside(this);
@@ -1737,17 +2157,7 @@ function addScannedLocation() {
 
 async function handleMapAction(action) {
     if (action === "generate") return openMapModal("worldgen-modal");
-    if (action === "add") {
-        state.manualPlacing = true;
-        state.freePlacing = false;
-        manualLandmarkPoint = null;
-        persist();
-        const canvas = document.querySelector(".uie-simple-map__canvas");
-        if (canvas) canvas.setAttribute("data-tip-text", "Click the map to place the landmark");
-        $("#uie-map-window").addClass("is-placing-landmark");
-        notify?.("info", "Click a free spot on the map to place the landmark.", "Map");
-        return;
-    }
+    if (action === "add") { return openAddLocationModal(); }
     if (action === "freeplace") {
         state.manualPlacing = true;
         state.freePlacing = true;
@@ -2090,6 +2500,7 @@ function renderMap() {
     else renderNodes();
     applyViewport();
     renderDetails();
+    renderFocusedDomEntry();
     setTimeout(adjustOverlappingPlacards, 50);
 }
 
@@ -2451,20 +2862,43 @@ function renderDetails() {
 
     // Primary Home Check
     const s = getSettings();
-    const showHomeCard = selected && (selected.view === "area" || selected.view === "vicinity");
+    const selectedHomeView = String(selected?.view || state.view || "").toLowerCase();
+    const showHomeCard = selected && !["world", "province", "region"].includes(selectedHomeView);
     if (showHomeCard) {
-        const isHome = s.primaryHome && String(s.primaryHome.id) === String(selected.id);
-        const home = s.primaryHome || {};
+        $("#uie-map-home-upgrades-section").remove();
+        $("#uie-map-fast-travel-section").remove();
+        $("#uie-map-hearth-rest-section").remove();
+        
+        const residenceHomes = Object.values(s.playerHome?.homes || {});
+        const selectedResidence = residenceHomes.find((candidate) => {
+            const ref = candidate?.locationRef || {};
+            return String(ref.nodeId || "") === String(selected.id || "") ||
+                String(ref.name || candidate?.name || "").trim().toLowerCase() === String(selected.name || "").trim().toLowerCase();
+        }) || null;
+        const primaryResidenceId = String(s.playerHome?.primaryHomeId || s.primaryHome?.homeId || "");
+        const isHome = Boolean(selectedResidence && String(selectedResidence.id) === primaryResidenceId) ||
+            Boolean(s.primaryHome && String(s.primaryHome.id) === String(selected.id));
+        const primaryMirror = s.primaryHome || {};
+        const home = selectedResidence || primaryMirror;
         const currency = s.currencySymbol || "G";
         const unpaidBills = Array.isArray(home.bills) ? home.bills.filter((bill) => bill?.status === "unpaid") : [];
         const currentDay = Math.max(1, Number(s.playerRoom?.day || 1));
         const establishedDay = Math.max(1, Number(home.establishedDay || home.lastBilledDay || currentDay));
         const billingText = isHome
             ? `Established day ${establishedDay}. Next billing cycle starts from day ${Math.max(establishedDay, Number(home.lastBilledDay || establishedDay)) + 30}.`
-            : home?.name
-                ? `Current home is ${home.name}. Moving here will transfer your return anchor and clear old open home bills.`
-                : "No primary home registered yet. Pick a grounded place to create a return anchor.";
+            : selectedResidence
+                ? `${selectedResidence.name} is already one of your homes. Set it as primary without removing the others.`
+                : primaryMirror?.name
+                    ? `Primary home: ${primaryMirror.name}. Adding this location will keep every existing residence.`
+                    : "No player home registered yet. Add this location as your first home and return anchor.";
         const locationTone = mapNodeKindLabel(selected);
+        
+        const upgrades = home.upgrades || {};
+        const securityActive = upgrades.securityBoundary === true;
+        const hearthActive = upgrades.cozyHearth === true;
+        const teleportActive = upgrades.teleportAnchor === true;
+        const isCurrent = isCurrentMapNode(selected);
+
         $("#uie-map-home-card")
             .toggleClass("is-home", isHome)
             .show();
@@ -2475,24 +2909,68 @@ function renderDetails() {
                 <span><i class="fa-solid fa-receipt" aria-hidden="true"></i>${unpaidBills.length ? `${unpaidBills.length} bill${unpaidBills.length === 1 ? "" : "s"} due` : `No bills due (${esc(currency)})`}</span>
             `);
             $("#uie-map-home-perks").html(`
-                <span>Return anchor</span>
-                <span>Rest scene</span>
-                <span>Bank billing</span>
+                <span><i class="fa-solid fa-anchor"></i> Return anchor</span>
+                <span><i class="fa-solid fa-bed"></i> Rest scene</span>
+                <span><i class="fa-solid fa-receipt"></i> Bank billing</span>
+                ${securityActive ? '<span><i class="fa-solid fa-shield"></i> Security Boundary</span>' : ''}
+                ${hearthActive ? '<span><i class="fa-solid fa-fire"></i> Cozy Hearth</span>' : ''}
+                ${teleportActive ? '<span><i class="fa-solid fa-circle-nodes"></i> Teleport Anchor</span>' : ''}
             `);
+            
+            let upgradesHtml = `
+                <div id="uie-map-home-upgrades-section" style="margin-top:12px; border-top:1px solid rgba(255,255,255,0.08); padding-top:10px;">
+                    <div class="uie-simple-map__eyebrow" style="margin-bottom:8px; color:#cba35c;"><i class="fa-solid fa-screwdriver-wrench"></i> Upgrades &amp; Borders</div>
+                    <div style="display:grid; gap:8px;">
+                        <button type="button" class="uie-map-home-upgrade-btn ${securityActive ? 'is-active' : ''}" data-upgrade="securityBoundary" data-cost="120" style="display:flex; justify-content:space-between; align-items:center; width:100%; padding:6px 10px; border-radius:6px; border:1px solid ${securityActive ? '#cba35c' : 'rgba(255,255,255,0.15)'}; background:${securityActive ? 'rgba(203,163,92,0.15)' : 'rgba(0,0,0,0.2)'}; color:${securityActive ? '#cba35c' : '#ddd'}; font-size:11px; cursor:pointer;">
+                            <span><i class="fa-solid fa-shield"></i> Security Boundary</span>
+                            <strong>${securityActive ? 'Active' : '120G'}</strong>
+                        </button>
+                        <button type="button" class="uie-map-home-upgrade-btn ${hearthActive ? 'is-active' : ''}" data-upgrade="cozyHearth" data-cost="80" style="display:flex; justify-content:space-between; align-items:center; width:100%; padding:6px 10px; border-radius:6px; border:1px solid ${hearthActive ? '#cba35c' : 'rgba(255,255,255,0.15)'}; background:${hearthActive ? 'rgba(203,163,92,0.15)' : 'rgba(0,0,0,0.2)'}; color:${hearthActive ? '#cba35c' : '#ddd'}; font-size:11px; cursor:pointer;">
+                            <span><i class="fa-solid fa-fire"></i> Cozy Rest Hearth</span>
+                            <strong>${hearthActive ? 'Active' : '80G'}</strong>
+                        </button>
+                        <button type="button" class="uie-map-home-upgrade-btn ${teleportActive ? 'is-active' : ''}" data-upgrade="teleportAnchor" data-cost="150" style="display:flex; justify-content:space-between; align-items:center; width:100%; padding:6px 10px; border-radius:6px; border:1px solid ${teleportActive ? '#cba35c' : 'rgba(255,255,255,0.15)'}; background:${teleportActive ? 'rgba(203,163,92,0.15)' : 'rgba(0,0,0,0.2)'}; color:${teleportActive ? '#cba35c' : '#ddd'}; font-size:11px; cursor:pointer;">
+                            <span><i class="fa-solid fa-circle-nodes"></i> Teleport Anchor</span>
+                            <strong>${teleportActive ? 'Active' : '150G'}</strong>
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            if (!isCurrent) {
+                const ftCostText = teleportActive ? "FREE" : "20G";
+                upgradesHtml += `
+                    <div id="uie-map-fast-travel-section">
+                        <button type="button" id="uie-map-fast-travel-home" class="uie-simple-map__primary" style="margin-top:12px; width:100%; height:32px; border-radius:6px; background:linear-gradient(135deg, #cba35c, #b58d43); border:none; color:#000; font-weight:800; font-family:'Cinzel', serif; font-size:11px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px;">
+                            <i class="fa-solid fa-plane-departure"></i> Fast Travel Home (${ftCostText})
+                        </button>
+                    </div>
+                `;
+            } else if (hearthActive) {
+                upgradesHtml += `
+                    <div id="uie-map-hearth-rest-section">
+                        <button type="button" id="uie-map-rest-hearth" class="uie-simple-map__primary" style="margin-top:12px; width:100%; height:32px; border-radius:6px; background:linear-gradient(135deg, #ef4444, #b91c1c); border:none; color:#fff; font-weight:800; font-family:'Cinzel', serif; font-size:11px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px;">
+                            <i class="fa-solid fa-fire"></i> Rest in Cozy Hearth (8h)
+                        </button>
+                    </div>
+                `;
+            }
+
+            $("#uie-map-home-perks").after(upgradesHtml);
             $("#uie-map-set-home").hide();
         } else {
-            $("#uie-map-home-status").text("Eligible Residence");
+            $("#uie-map-home-status").text(selectedResidence ? "Claimed Player Home" : "Claimable Location");
             $("#uie-map-home-details").html(`
                 <span><i class="fa-solid fa-map-pin" aria-hidden="true"></i>${esc(locationTone)}</span>
                 <span><i class="fa-solid fa-calendar-days" aria-hidden="true"></i>${esc(billingText)}</span>
             `);
             $("#uie-map-home-perks").html(`
-                <span>Set spawn context</span>
-                <span>Track bills</span>
-                <span>Ground roleplay</span>
+                <span>${selectedResidence ? "Existing residence" : "Add without replacing other homes"}</span>
+                <span>Household & family</span>
+                <span>Travel and arrival history</span>
             `);
             $("#uie-map-set-home")
-                .text(home?.name ? "Move Home Here" : "Make This Home")
+                .text(selectedResidence ? "Set as Primary Home" : "Add to Player Homes")
                 .show();
         }
     } else {
@@ -2511,7 +2989,11 @@ function homeDetailsForNode(node) {
 function renderTransportAccess(node) {
     const location = classifyTravelLocation(node || {}, node?.name || "");
     const modes = location.accessModes || [];
-    $("#uie-map-transport").html(modes.map((mode) => `<span>${esc(titleCase(mode))}</span>`).join("") || "<span>On foot inside this space</span>");
+    const access = modes.map((mode) => `<span>${esc(titleCase(mode))}</span>`).join("") || "<span>On foot inside this space</span>";
+    const current = String(getSettings()?.worldState?.currentLocation || getSettings()?.worldState?.location || "");
+    const isHere = current.toLowerCase() === String(node?.name || "").toLowerCase();
+    const buttonLabel = isHere ? "Open Departures" : "Preview Departures";
+    $("#uie-map-transport").html(`${access}<button type="button" class="uie-open-hub" data-node-id="${esc(node?.id || node?.name || "")}" title="${isHere ? "Set this stop, inspect schedules, and board a route" : "Preview routes from this location"}"><i class="fa-solid fa-route"></i> ${buttonLabel}</button>`);
 }
 
 function renderLaws(node) {
@@ -2969,13 +3451,15 @@ function buildBspRooms(count, base, parentName, presets, kind, currentRoomName =
 
 function decorateBlueprintBarriers(rooms, parentName, kind) {
     const text = `${parentName} ${kind}`.toLowerCase();
+    const usesScanner = text.includes("ship") || text.includes("station") || text.includes("lab") || text.includes("office");
     if (rooms[3]) rooms[3].barrier = {
-        id: `${rooms[3].id}_item_lock`,
+        id: `${rooms[3].id}_${usesScanner ? "credential" : "item"}_lock`,
         state: "locked",
-        requirementType: "item",
-        requirementId: text.includes("ship") || text.includes("station") ? "blue_keycard" : "brass_key",
-        lockName: text.includes("ship") || text.includes("station") ? "Biometric Scanner" : "Sealed Door",
-        denial: text.includes("ship") || text.includes("station") ? "The biometric scanner flashes red. Access denied." : "The lock refuses to turn.",
+        requirementType: usesScanner ? "credential" : "item",
+        requirementId: usesScanner ? `${String(parentName || "location").trim().toLowerCase().replace(/[^a-z0-9]+/g, "_")}.staff_entry` : "brass_key",
+        lockName: usesScanner ? "Credential Scanner" : "Sealed Door",
+        denial: usesScanner ? "The credential scanner flashes red. Access denied." : "The lock refuses to turn.",
+        dc: usesScanner ? 65 : 0,
     };
     if (rooms[5]) rooms[5].barrier = {
         id: `${rooms[5].id}_skill_lock`,
@@ -4327,6 +4811,10 @@ export async function applyMoveToLocation(location = {}, meta = {}) {
 export async function processOrganicLocationResponse(reply, meta = {}) {
     const parsed = parseOrganicLocationResponse(reply);
     if (!parsed.ping) return { ...parsed, handled: false };
+    if (!String(parsed.text || "").trim()) {
+        notify?.("warning", "Ignored a location-change ping without readable arrival narration.", "Map Ping");
+        return { ...parsed, handled: false, ignored: "missing_narration" };
+    }
     if (!state) loadState();
     const sourceLocation = String(meta.sourceLocation || currentLocationName()).trim();
     let node = getNodeByName(parsed.ping.newLocation);
@@ -4597,7 +5085,7 @@ async function requestBackgroundForLocation(locationName) {
             setStageBackground(existing);
             return existing;
         }
-        eng.ensureBackgroundOrRequest();
+        if (s.image?.enabled !== true) eng.ensureBackgroundOrRequest();
         return "";
     } catch (error) {
         console.warn("[map] Movement background generation failed", error);
@@ -4691,6 +5179,57 @@ export async function travelToLocationName(name, meta = {}) {
     }
     s.map = s.map || {};
     s.map.location = name;
+
+    // Arrival should prepare location-specific room objects for the editor. Keep
+    // this lazy to avoid adding a map/object-renderer import cycle at startup.
+    if (!prev || prev !== name) {
+        try {
+            const { queueContextualObjectsForLocation } = await import("./objectAutoRenderer.js");
+            queueContextualObjectsForLocation?.(name, {
+                ...node,
+                source: meta.source || "map_travel",
+                previousLocation: prev,
+            });
+        } catch (error) {
+            console.warn("[map] Contextual arrival objects unavailable", error);
+        }
+    }
+    
+    // Helper Pet Sniffing Loot
+    try {
+        const activePet = s.helperPet;
+        if (activePet && activePet.enabled !== false && prev && prev !== name) {
+            const petLevel = Number(activePet.level || 1);
+            // Sniffing chance: base 5% + 1% per pet level (max 25%)
+            const sniffChance = Math.min(0.25, 0.05 + petLevel * 0.01);
+            if (Math.random() < sniffChance) {
+                const isLifeSim = s.rpg?.mode === "life_sim";
+                const foragingItems = isLifeSim
+                    ? ["Wild Flower", "Shiny Marble", "Cool Rock", "Lost Coin", "Medicinal Herb"]
+                    : ["Medicinal Herb", "Strange Pebble", "Scrap Metal", "Iron Ore", "Copper Ore", "Gemstone"];
+                const foundItemName = foragingItems[Math.floor(Math.random() * foragingItems.length)];
+                
+                const { addInventoryItemWithStack } = await import("./inventoryItems.js");
+                s.inventory = s.inventory || {};
+                s.inventory.items = s.inventory.items || [];
+                
+                addInventoryItemWithStack(s.inventory.items, {
+                    kind: "item",
+                    name: foundItemName,
+                    qty: 1,
+                    type: "Material",
+                    description: `A useful material found by your helper pet ${activePet.name} during travel.`,
+                    rarity: "common",
+                    statusEffects: []
+                });
+                
+                notify?.("success", `🐾 ${activePet.name} sniffed out a [${foundItemName}] along the way!`, "Pet Forage");
+            }
+        }
+    } catch (e) {
+        console.warn("[Pet Sniff] Loot foraging failed:", e);
+    }
+    
     saveSettings();
     void syncBackendLayoutForLocation(name, node, travelEffects);
     await requestBackgroundForLocation(name);
@@ -4777,6 +5316,24 @@ function hasSkill(requirementId) {
     const key = normalizeKey(requirementId);
     const skills = getSettings()?.inventory?.skills || [];
     return skills.some((skill) => normalizeKey(skill?.id || skill?.key || skill?.name || skill?.title) === key);
+}
+
+function credentialTarget(entity, barrier) {
+    const locationId = String(entity?.id || entity?.name || "").trim();
+    return {
+        id: locationId,
+        locationId,
+        action: "access",
+        requiredPermission: String(barrier?.requirementId || "").trim(),
+        currentHolderId: "player",
+        scannerStrength: Math.max(0, Math.min(100, Number(barrier?.dc || 50)))
+    };
+}
+
+function findCredentialForBarrier(entity, barrier) {
+    const settings = getSettings();
+    const target = credentialTarget(entity, barrier);
+    return ensureCredentialState(settings).find((credential) => validateCredential(credential, target).accepted) || null;
 }
 
 function statValue(requirementId) {
@@ -4893,6 +5450,7 @@ function barrierExitState(entity) {
     }
     if (barrier.requirementType === "item") return { state: hasItem(barrier.requirementId) ? "override" : "locked", barrier };
     if (barrier.requirementType === "skill") return { state: hasSkill(barrier.requirementId) && canPayCost(barrier.cost || {}) ? "override" : "locked", barrier };
+    if (barrier.requirementType === "credential") return { state: findCredentialForBarrier(entity, barrier) ? "override" : "locked", barrier };
     if (barrier.requirementType === "rune") return { state: "override", barrier };
     return { state: "locked", barrier };
 }
@@ -4904,6 +5462,7 @@ function labelForExit(dir, targetName, entity) {
     if (exitState === "override") {
         if (barrier?.state === "hidden") return barrier.revealName || `Pry Open: ${barrier?.lockName || targetName}`;
         if (barrier?.requirementType === "item") return `Unlock: ${barrier?.lockName || targetName}`;
+        if (barrier?.requirementType === "credential") return `Present credential: ${barrier?.lockName || targetName}`;
         if (barrier?.requirementType === "rune") return `Trace: ${barrier?.lockName || targetName}`;
         return `Override: ${barrier?.lockName || targetName}`;
     }
@@ -5042,6 +5601,35 @@ async function resolveBarrierForTravel(targetName) {
     if (barrier.requirementType === "rune") {
         openRuneLock(entity, barrier);
         return false;
+    }
+    if (barrier.requirementType === "credential") {
+        const settings = getSettings();
+        const credential = findCredentialForBarrier(entity, barrier);
+        if (!credential) {
+            notify?.("warning", barrier.denial || "No valid credential is available.", "Access");
+            return false;
+        }
+        const verification = useCredential(settings, credential.id, credentialTarget(entity, barrier));
+        if (Number(verification.suspicionDelta || 0) > 0) {
+            if (!settings.worldState || typeof settings.worldState !== "object") settings.worldState = {};
+            settings.worldState.suspicion = Math.max(0, Number(settings.worldState.suspicion || 0) + Number(verification.suspicionDelta));
+            if (verification.triggeredAlarm) {
+                settings.worldState.wantedLevel = Math.max(1, Number(settings.worldState.wantedLevel || 0) + 1);
+            }
+        }
+        saveSettings();
+        try { window.dispatchEvent(new CustomEvent("uie:credential-result", { detail: { ...verification, targetId: entity?.id || entity?.name || "" } })); } catch (_) {}
+        if (!verification.accepted) {
+            const message = verification.triggeredAlarm
+                ? "Credential rejected. The scanner triggered an alarm."
+                : verification.outcome === "confiscated" ? "Credential rejected and confiscated."
+                    : verification.reason === "manual_inspection" ? "The scanner requests a manual inspection."
+                        : barrier.denial || "Credential rejected.";
+            notify?.("warning", message, "Access");
+            return false;
+        }
+        notify?.("success", verification.outcome === "accepted_logged" ? "Credential accepted. Entry was logged." : "Credential accepted.", "Access");
+        return true;
     }
     spendCost(barrier.cost || {});
     persistBarrier(entity, { unlocked: true, state: "unlocked" });
@@ -5252,8 +5840,16 @@ try {
         parkTravelAssetHere,
         getContextualExits,
         unlockExit,
+        openTransitHub,
+        closeTransitHub,
+        advanceTransitTime,
+        resumeTransit,
         getLocationContext,
         getLocationContextPrompt,
+        getFocusedDomRegistry,
+        getActiveFocusedDom,
+        switchFocusedDom,
+        openFocusedDomWorkspace,
         validateMapPackage: getMapPackageValidation,
         renderCurrentTier: renderMap,
     };

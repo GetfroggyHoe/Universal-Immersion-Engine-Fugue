@@ -1,18 +1,23 @@
 <style>
   #uie-chatbox-window{
     position: fixed;
-    right: 20px;
-    bottom: 20px;
+    right: max(16px, env(safe-area-inset-right, 0px));
+    bottom: max(16px, env(safe-area-inset-bottom, 0px));
     left: auto;
     top: auto;
     transform: none;
-    width: min(731px, 96vw);
-    height: min(900px, 90vh);
+    width: min(731px, calc(100vw - 32px));
+    height: min(600px, calc(100dvh - 32px));
+    max-width: calc(100vw - 32px);
+    max-height: calc(100dvh - 32px);
+    min-width: min(420px, calc(100vw - 32px));
+    min-height: min(360px, calc(100dvh - 32px));
     border-radius: 20px;
     box-shadow: 0 10px 30px rgba(0,0,0,0.5);
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    resize: both;
     z-index: 9999;
     font-family: sans-serif;
   }
@@ -31,7 +36,7 @@
 <div id="uie-chatbox-window" class="uie-window" style="display:none; background:rgba(16, 20, 26, 0.95); backdrop-filter: blur(4px); border:1px solid rgba(255,255,255,0.1);">
   
   <!-- Header -->
-  <div class="uie-header" style="padding: 12px 16px; border-bottom:1px solid rgba(255,255,255,0.05); display:flex; align-items:center; justify-content:space-between; background:rgba(255,255,255,0.02);">
+  <div class="uie-header" style="padding: 12px 16px; border-bottom:1px solid rgba(255,255,255,0.05); display:flex; align-items:center; justify-content:space-between; background:rgba(255,255,255,0.02); cursor:move; touch-action:none; user-select:none; -webkit-user-select:none;">
     <div class="uie-info">
       <h2 style="margin:0; font-size:16px; font-weight:800; color:#eee; letter-spacing:0.5px;">CHATBOX</h2>
     </div>

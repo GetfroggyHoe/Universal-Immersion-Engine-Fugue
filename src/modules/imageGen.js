@@ -604,24 +604,6 @@ function buildDefaultComfyWorkflowJson() {
     });
 }
 
-function makeSvgFallbackDataUrl(promptText, reason) {
-    void promptText;
-    void reason;
-    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
-<defs>
-  <linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#1d2233"/><stop offset="100%" stop-color="#111827"/></linearGradient>
-  <radialGradient id="r" cx="50%" cy="42%" r="58%"><stop offset="0%" stop-color="#7dd3fc" stop-opacity="0.22"/><stop offset="100%" stop-color="#7dd3fc" stop-opacity="0"/></radialGradient>
-</defs>
-<rect width="1024" height="1024" fill="url(#g)"/>
-<rect width="1024" height="1024" fill="url(#r)"/>
-<rect x="64" y="64" width="896" height="896" rx="24" fill="none" stroke="#7dd3fc" stroke-opacity="0.32" stroke-width="3"/>
-<path d="M148 738 C286 604 391 654 501 538 C620 412 733 428 876 286 L876 876 L148 876 Z" fill="#0f766e" fill-opacity="0.42"/>
-<path d="M148 808 C294 698 432 744 547 625 C674 493 757 532 876 421 L876 876 L148 876 Z" fill="#38bdf8" fill-opacity="0.22"/>
-<circle cx="748" cy="244" r="82" fill="#f8fafc" fill-opacity="0.22"/>
-</svg>`;
-    return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
-}
-
 function applyComfySettings(graph, { checkpoint, sampler, scheduler, steps, cfg, denoise, seed, width, height }) {
     const g = graph && typeof graph === "object" ? graph : graph;
     try {
@@ -654,12 +636,7 @@ async function getCsrfToken() {
     const now = Date.now();
     if (uieImgCsrfCache.token && now - uieImgCsrfCache.t < 5 * 60 * 1000) return uieImgCsrfCache.token;
     try {
-        let r = await fetch("/csrf-token", { method: "GET" }).catch(() => null);
-        if (!r || !r.ok) {
-            if (window.location.port !== "8091") {
-                r = await fetch("http://127.0.0.1:8091/csrf-token", { method: "GET" }).catch(() => null);
-            }
-        }
+        const r = await fetch("./csrf-token", { method: "GET" }).catch(() => null);
         if (!r || !r.ok) return "";
         const j = await r.json().catch(() => null);
         const tok = String(j?.csrfToken || j?.token || "").trim();
@@ -677,24 +654,12 @@ function buildCorsProxyCandidates(targetUrl) {
     const out = [];
     const add = (x) => { if (x && !out.includes(x)) out.push(x); };
     
-    // Add port 8091 absolute versions if we are not running on port 8091
-    const prefix = (window.location.port !== "8091") ? "http://127.0.0.1:8091" : "";
-    
-    add(`${prefix}/api/proxy?url=${enc}`);
-    add(`${prefix}/proxy?url=${enc}`);
-    add(`${prefix}/api/cors-proxy?url=${enc}`);
-    add(`${prefix}/cors-proxy?url=${enc}`);
-    add(`${prefix}/api/extra/proxy?url=${enc}`);
-    add(`${prefix}/api/proxy/${enc}`);
-
-    if (prefix) {
-        add(`/api/proxy?url=${enc}`);
-        add(`/proxy?url=${enc}`);
-        add(`/api/cors-proxy?url=${enc}`);
-        add(`/cors-proxy?url=${enc}`);
-        add(`/api/extra/proxy?url=${enc}`);
-        add(`/api/proxy/${enc}`);
-    }
+    add(`./api/proxy?url=${enc}`);
+    add(`./proxy?url=${enc}`);
+    add(`./api/cors-proxy?url=${enc}`);
+    add(`./cors-proxy?url=${enc}`);
+    add(`./api/extra/proxy?url=${enc}`);
+    add(`./api/proxy/${enc}`);
 
     return out;
 }
@@ -739,17 +704,6 @@ async function fetchWithCorsProxyFallback(targetUrl, options, opts = {}) {
                 if (!opts.quiet) console.log(`[UIE-Comfy] tryServerForward relative ${endpoint} -> status ${r.status}`);
             } catch (e) {
                 console.warn(`[UIE-Comfy] tryServerForward relative ${endpoint} threw`, e);
-            }
-
-            // 2. Try port 8091 absolute endpoint if relative failed or returned !ok or 404/502, and port is not 8091
-            if ((!r || r.status === 404 || r.status === 502) && window.location.port !== "8091") {
-                console.warn(`[UIE-Comfy] relative ${endpoint} failed/404/502 (page is on port ${window.location.port}), trying hardcoded http://127.0.0.1:8091${endpoint} -- this is WRONG if your dev-server is not on port 8091`);
-                try {
-                    r = await fetch(`http://127.0.0.1:8091${endpoint}`, { method: "POST", headers: hdr, body: JSON.stringify(payload) });
-                    console.log(`[UIE-Comfy] tryServerForward :8091 fallback ${endpoint} -> status ${r.status}`);
-                } catch (e) {
-                    console.warn(`[UIE-Comfy] tryServerForward :8091 fallback ${endpoint} threw`, e);
-                }
             }
 
             if (!r) return null;
@@ -813,7 +767,7 @@ async function fetchWithCorsProxyFallback(targetUrl, options, opts = {}) {
             }
         }
         if (hasLocalProxy404 && lastErr) {
-            lastErr.message = (lastErr.message || "") + " (Local proxy returned 404. Make sure dev-server.mjs is running on port 8091)";
+            lastErr.message = (lastErr.message || "") + " (Same-origin API proxy returned 404. Check the reverse-proxy route or local dev server.)";
         }
         throw lastErr;
     };
@@ -1272,8 +1226,9 @@ async function generateImageAPIOnce(prompt, options = {}) {
 
     const pollinationsFallback = async (reason) => {
         const fallbackReason = String(reason || "Primary provider unavailable");
-        if (options.allowFallback === false) return null;
-        if (img.fallbackEnabled === false) return null;
+        // A fallback is an explicit user choice. Never replace a failed generation
+        // with a decorative placeholder and report it as a successful model result.
+        if (options.allowFallback === false || img.fallbackEnabled !== true || isPollinations) return null;
         try {
             const pollUrl = pollinationsUrlFor(finalPrompt || "fantasy concept art");
             const hdr = {};
@@ -1296,22 +1251,21 @@ async function generateImageAPIOnce(prompt, options = {}) {
                     reason: fallbackReason.slice(0, 120)
                 };
             } catch (_) {}
-            try { window.toastr?.warning?.("Primary image API failed, used fallback renderer."); } catch (_) {}
+            try { window.toastr?.warning?.("Primary image API failed; Pollinations created this fallback image."); } catch (_) {}
             return dataUrl;
         } catch (e) {
-            const svgOut = makeSvgFallbackDataUrl(finalPrompt, fallbackReason);
             try {
                 window.UIE_lastImage = {
-                    ok: true,
+                    ok: false,
                     ms: Date.now() - startedAt,
-                    endpoint: "uie:svg-fallback",
-                    mode: "fallback-svg",
+                    endpoint: "pollinations",
+                    mode: "fallback-failed",
                     error: String(e?.message || e || "Fallback failed").slice(0, 160),
                     reason: fallbackReason.slice(0, 120)
                 };
             } catch (_) {}
-            try { window.toastr?.warning?.("All image APIs failed, used local fallback image."); } catch (_) {}
-            return svgOut;
+            try { window.toastr?.error?.("Image generation failed. Check the provider settings and try again."); } catch (_) {}
+            return null;
         }
     };
 

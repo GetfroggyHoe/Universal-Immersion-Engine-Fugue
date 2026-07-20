@@ -15,6 +15,7 @@ export class DOMHierarchy {
     this.activeDOM = null;
     this.focusedDoms = {};
     this.focusedDomTasks = [];
+    this.activeFocusedDomId = "";
   }
 
   /**
@@ -90,6 +91,42 @@ export class DOMHierarchy {
       this.activeDOM.focusedDomTasks = this.focusedDomTasks;
     }
     return this.focusedDoms[id];
+  }
+
+  syncFocusedDOMs(state = {}) {
+    const registry = state.registry && typeof state.registry === "object" ? state.registry : {};
+    this.focusedDoms = registry;
+    this.activeFocusedDomId = registry[String(state.activeId || "")] ? String(state.activeId) : (Object.keys(registry)[0] || "");
+    for (const focus of Object.values(registry)) focus.status = focus.id === this.activeFocusedDomId ? "active" : "suspended";
+    this.focusedDomTasks = Array.isArray(state.activeTasks) ? state.activeTasks : Object.values(registry).flatMap((focus) => focus.tasks || []).filter((task) => !task.completed && task.status === "available");
+    if (this.activeDOM) {
+      this.activeDOM.focusedDoms = this.focusedDoms;
+      this.activeDOM.focusedDomTasks = this.focusedDomTasks;
+      this.activeDOM.activeFocusedDomId = this.activeFocusedDomId;
+    }
+    return this.getActiveFocusedDOM();
+  }
+
+  switchFocusedDOM(id) {
+    const nextId = String(id || "").trim();
+    if (!this.focusedDoms[nextId]) return null;
+    this.activeFocusedDomId = nextId;
+    for (const focus of Object.values(this.focusedDoms)) focus.status = focus.id === nextId ? "active" : "suspended";
+    this.focusedDomTasks = (this.focusedDoms[nextId].tasks || []).filter((task) => !task.completed && task.status === "available");
+    if (this.activeDOM) {
+      this.activeDOM.activeFocusedDomId = nextId;
+      this.activeDOM.focusedDoms = this.focusedDoms;
+      this.activeDOM.focusedDomTasks = this.focusedDomTasks;
+    }
+    return this.focusedDoms[nextId];
+  }
+
+  getFocusedDOM(id) {
+    return this.focusedDoms[String(id || "")] || null;
+  }
+
+  getActiveFocusedDOM() {
+    return this.getFocusedDOM(this.activeFocusedDomId);
   }
 
   /**
@@ -237,6 +274,8 @@ export class DOMHierarchy {
       })),
       focusedDoms: this.focusedDoms,
       focusedDomTasks: this.focusedDomTasks,
+      activeFocusedDomId: this.activeFocusedDomId,
+      activeFocusedDom: this.getActiveFocusedDOM(),
       ssg: this.activeDOM.ssg // Semantic Scene Graph JSON
     };
   }
@@ -299,7 +338,10 @@ export function initDOMHierarchy() {
     globalDOMHierarchy: () => globalDOMHierarchy,
     DOMHierarchy,
     initDOMHierarchy,
-    getGlobalDOM: () => globalDOMHierarchy || (globalDOMHierarchy = new DOMHierarchy(), globalDOMHierarchy)
+    getGlobalDOM: () => globalDOMHierarchy || (globalDOMHierarchy = new DOMHierarchy(), globalDOMHierarchy),
+    switchFocusedDOM: (id) => (globalDOMHierarchy || (globalDOMHierarchy = new DOMHierarchy())).switchFocusedDOM(id),
+    getActiveFocusedDOM: () => (globalDOMHierarchy || (globalDOMHierarchy = new DOMHierarchy())).getActiveFocusedDOM(),
+    getFocusedDOM: (id) => (globalDOMHierarchy || (globalDOMHierarchy = new DOMHierarchy())).getFocusedDOM(id)
   };
 
   console.log("[DOMHierarchy] Initialized - 3-tier world structure ready (lazy-loaded)");

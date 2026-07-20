@@ -48,6 +48,10 @@ export async function fetchTemplateHtml(url) {
     fetchErr = err;
   }
 
+  // The full timeout budget was already consumed. jQuery uses the same browser
+  // transport here, so retrying only doubles template and startup latency.
+  if (fetchErr?.name === "UIETemplateTimeout") throw fetchErr;
+
   try {
     return await ajaxWithTimeout(url, timeoutMs);
   } catch (jqErr) {

@@ -281,11 +281,9 @@
 
 #hud-custom-trackers {
     max-width: min(350px, calc(100vw - 32px)) !important;
-    max-height: min(54dvh, calc(100dvh - 220px)) !important;
-    overflow-y: auto !important;
-    overflow-x: visible !important;
+    max-height: none !important;
+    overflow: visible !important;
     padding-right: 4px !important;
-    scrollbar-width: none !important;
 }
 
 #hud-custom-trackers::-webkit-scrollbar {
@@ -348,10 +346,10 @@
         font-size: 14px !important;
     }
 
-    .modal-card button,
-    .uie-window button {
-        min-height: 44px;
-    }
+.modal-card button,
+.uie-window button {
+    min-height: 48px;
+}
 }
 
 @media not all {
@@ -1014,14 +1012,14 @@
       overflow: visible !important;
   }
 
-  #nav-row .nav-btn,
-  .bottom-left-buttons button,
-  .bottom-ui-row button {
-      width: auto !important;
-      height: auto !important;
-      min-width: 72px !important;
-      min-height: 40px !important;
-      flex: 0 0 auto !important;
+#nav-row .nav-btn,
+.bottom-left-buttons button,
+.bottom-ui-row button {
+    width: auto !important;
+    height: auto !important;
+    min-width: 79px !important;
+    min-height: 44px !important;
+    flex: 0 0 auto !important;
       flex-shrink: 0 !important;
       border-radius: 12px !important;
       padding: 8px 16px !important;
@@ -1080,9 +1078,9 @@
       left: 0 !important;
       top: auto !important;
       right: auto !important;
-      width: 260px !important;
-      max-width: 320px !important;
-      max-height: 360px !important;
+      width: 312px !important;
+      max-width: 384px !important;
+      max-height: 432px !important;
       z-index: 2147483645 !important;
   }
 

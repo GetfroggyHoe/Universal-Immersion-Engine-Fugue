@@ -4,7 +4,7 @@ import { getGlobalGovernor } from "./governor.js";
 import { getContext } from "./gameContext.js";
 import { generateContent } from "./apiClient.js";
 import { notify } from "./notifications.js";
-import { normalizeStatusList, normalizeStatusEffect, statusKey } from "./statusFx.js";
+import { normalizeStatusList, normalizeStatusEffect, statusKey, mutateStatusEffects } from "./statusFx.js";
 import { injectRpEvent } from "./features/rp_log.js";
 import { getChatTranscriptText, getRecentChatSnippet } from "./chatLog.js";
 import { safeJsonParseObject } from "./jsonUtil.js";
@@ -749,7 +749,7 @@ function createMember(name) {
         statusEffects: [],
         active: true,
         temporary: false,
-        followsUser: true,
+        followsUser: false,
         personalItems: [],
         tactics: { preset: "Balanced", focus: "auto" }
     };
@@ -799,7 +799,7 @@ function ensurePartyMemberState(m) {
     if (!m.partyRole) m.partyRole = "DPS";
     if (typeof m.active !== "boolean") m.active = true;
     if (typeof m.temporary !== "boolean") m.temporary = false;
-    if (typeof m.followsUser !== "boolean") m.followsUser = true;
+    if (typeof m.followsUser !== "boolean") m.followsUser = false;
 
     const vitalsDefaults = { hp: 100, maxHp: 100, mp: 50, maxMp: 50, ap: 10, maxAp: 10 };
     for (const [k, v] of Object.entries(vitalsDefaults)) {
@@ -1475,7 +1475,7 @@ Task: Return a SINGLE JSON object with these keys:
   "rewards": {"xp":null,"gold":null,"skillXp":null,"loot":[""],"note":""}
 } when combat happens.
 14. "party": (optional) {
-  "joined": [{"name":"","class":"","role":"","lane":"front|mid|back|reserve|auto","temporary":false,"followsUser":true}],
+  "joined": [{"name":"","class":"","role":"","lane":"front|mid|back|reserve|auto","temporary":false,"followsUser":false}],
   "left": ["Name"],
   "returned": ["Name of anyone who was away but has now returned to the party"],
   "updates": [{
@@ -1484,7 +1484,7 @@ Task: Return a SINGLE JSON object with these keys:
     "role":"",
     "active": true,
     "temporary": false,
-    "followsUser": true,
+    "followsUser": false,
     "lane":"front|mid|back|reserve|auto",
     "hp": {"delta":0,"set":null,"max":null},
     "mp": {"delta":0,"set":null,"max":null},
@@ -1508,6 +1508,7 @@ Rules:
 - "assets.add": Only owned assets the user/party explicitly has. Categories must be one of: property, vehicle, ship, business, other.
 - "social": Prefer people the user/party has actually met, seen, spoken to, traveled with, fought, or texted. If someone is only referenced, skip them unless the transcript clearly establishes a meaningful prior relationship; then use presence "known_past".
 - "social.add": [{ "name": "Name", "role": "friend|associate|rival|romance|family", "affinity": 50, "presence":"present|mentioned|known_past", "met_physically": true, "known_from_past": false, "relationship":"", "familyRole":"" }]
+- Party membership does not automatically mean a character follows the user. Set "followsUser": true only when the story explicitly establishes that they accompany, travel with, or choose to follow the user; otherwise leave it false.
 - For actively present or directly interacting characters, use presence "present" and set met_physically to true.
 - Do NOT add one-off mentions, rumors, crowd extras, role-only labels, or names seen only in metadata/tool cards.
 - Relationship/thoughts fields must stay in-world and character-specific, not meta commentary.
@@ -1856,29 +1857,10 @@ ${chatSnippet}
         if (data.statusEffects && typeof data.statusEffects === "object") {
             const add = Array.isArray(data.statusEffects.add) ? data.statusEffects.add : [];
             const rem = Array.isArray(data.statusEffects.remove) ? data.statusEffects.remove : [];
-            const now = Date.now();
-            const cur = normalizeStatusList(s.character.statusEffects, now);
-            const map = new Map(cur.map(x => [statusKey(x), x]).filter(([k, v]) => k && v));
-            let changed = false;
-            for (const r of rem) {
-                const k = statusKey(r);
-                if (k && map.has(k)) { 
-                    map.delete(k); 
-                    changed = true; 
-                    try { injectRpEvent(`[System: Removed status effect: ${k}.]`); } catch (_) {}
-                }
-            }
-            for (const a of add) {
-                const fx = normalizeStatusEffect(a, now);
-                if (!fx) continue;
-                const k = statusKey(fx);
-                if (!k || map.has(k)) continue;
-                map.set(k, fx);
-                changed = true;
-                try { injectRpEvent(`[System: Gained status effect: ${fx.name || k}.]`); } catch (_) {}
-            }
-            if (changed) {
-                s.character.statusEffects = Array.from(map.values()).slice(0, 40);
+            const result = mutateStatusEffects(s.character, { add, remove: rem });
+            result.removed.forEach((effect) => { try { injectRpEvent(`[System: Removed status effect: ${effect.name}.]`); } catch (_) {} });
+            result.added.forEach((effect) => { try { injectRpEvent(`[System: Gained status effect: ${effect.name}.]`); } catch (_) {} });
+            if (result.changed) {
                 needsSave = true;
                 try { if (typeof $ !== "undefined") $(document).trigger("uie:updateVitals"); } catch (_) {}
                 try { window.dispatchEvent(new CustomEvent("uie:updateVitals")); } catch (_) {}

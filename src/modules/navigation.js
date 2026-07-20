@@ -20,6 +20,14 @@ let lastNarrativeScanFingerprint = "";
 const CARDINAL_DIRECTIONS = ["north", "east", "south", "west"];
 const NAV_HELP_KEY = "uie_directional_navigation_help_seen_v2";
 
+function mountGameplayLayer(node) {
+    if (!node) return null;
+    if (window.UIE_mountGameplayOverlay?.(node) === true) return node;
+    const root = document.getElementById("game-overlay-root");
+    (root || document.body).appendChild(node);
+    return node;
+}
+
 function recentNarrativeText() {
     try {
         return Array.from(document.querySelectorAll("#chat-log .mes_text, #chat .mes_text"))
@@ -160,7 +168,7 @@ function showNarrativeLocationPrompt(data) {
         dismissNarrativeLocationPrompt();
     };
     prompt.querySelector("[data-location-discovery-dismiss]").onclick = dismissNarrativeLocationPrompt;
-    document.body.appendChild(prompt);
+    mountGameplayLayer(prompt);
 }
 
 function scheduleNarrativeLocationScan(event) {
@@ -435,7 +443,7 @@ function injectNavHudStyles() {
         .immersive-nav-popup::before{content:"Destination";display:block;margin-bottom:6px;color:#9ae8ff;font:900 11px/1 Inter,system-ui,sans-serif;letter-spacing:.12em;text-transform:uppercase;text-shadow:0 2px 5px rgba(0,0,0,0.95)}
         .immersive-nav-popup::after{content:"Press again to move";display:block;margin-top:7px;color:#cfefff;font:800 12px/1.2 Inter,system-ui,sans-serif;text-shadow:0 2px 5px rgba(0,0,0,0.95);opacity:.9}
         .immersive-nav-popup.is-visible{opacity:1;visibility:visible;transform:translate(-50%,-50%) scale(1);transition-delay:0s}
-        @media(max-width:760px){#re-nav-arrows.re-nav-overlay{display:none}.uie-nav-first-run{top:10px;font-size:11px;max-width:min(280px,calc(100vw - 24px))}.immersive-nav-popup{font-size:clamp(16px,5vw,26px)}}
+        @media not all{#re-nav-arrows.re-nav-overlay{display:none}.uie-nav-first-run{top:10px;font-size:11px;max-width:min(280px,calc(100vw - 24px))}.immersive-nav-popup{font-size:clamp(16px,5vw,26px)}}
     `;
     document.head.appendChild(style);
 }
@@ -454,8 +462,14 @@ function isBlockingOverlayOpen() {
     return Array.from(document.querySelectorAll(".modal-overlay, .uie-overlay, .uie-window, [role='dialog']"))
         .some(function(el) {
             if (el.id === "uie-barrier-inspection") return false;
-            const style = window.getComputedStyle?.(el);
-            return !el.hidden && style?.display !== "none" && style?.visibility !== "hidden";
+            let current = el;
+            while (current && current !== document.documentElement) {
+                if (current.hidden || current.getAttribute?.("aria-hidden") === "true") return false;
+                const style = window.getComputedStyle?.(current);
+                if (style?.display === "none" || style?.visibility === "hidden") return false;
+                current = current.parentElement;
+            }
+            return true;
         });
 }
 
@@ -469,9 +483,9 @@ function createImmersivePopupElement() {
         popup.id = "immersive-nav-popup";
         popup.className = "immersive-nav-popup";
     }
-    // Keep the confirmation above the VN stage's stacking contexts, including
-    // when an older in-stage popup already exists after a hot reload.
-    if (popup.parentElement !== document.body) document.body.appendChild(popup);
+    // The destination confirmation is gameplay chrome and shares the game's
+    // one mobile-landscape transform.
+    mountGameplayLayer(popup);
     return popup;
 }
 
@@ -646,35 +660,79 @@ function bindImmersiveInputController() {
         }
     }, true);
 
-    let swipeStart = null;
+    let pointerSwipe = null;
+    let touchSwipe = null;
+    let lastSwipeAt = 0;
+    let swipeSequence = Promise.resolve();
 
-    document.addEventListener("pointerdown", function(event) {
-        if (event.pointerType !== "touch" && event.pointerType !== "pen") return;
-        if (isTextEntryTarget(event.target) || isBlockingOverlayOpen()) return;
-        swipeStart = { x: event.clientX, y: event.clientY, at: Date.now(), pointerId: event.pointerId };
-    }, { passive: true });
+    const swipeTargetBlocked = (target) => isTextEntryTarget(target) || Boolean(target?.closest?.(
+        "button, a, input, textarea, select, [contenteditable='true'], #vn-ui, #hud, #nav-row, #game-overlay-root"
+    ));
 
-    document.addEventListener("pointerup", function(event) {
-        if (!swipeStart) return;
-        const start = swipeStart;
-        swipeStart = null;
-        if (isBlockingOverlayOpen() || event.pointerId !== start.pointerId) return;
-        const dx = event.clientX - start.x;
-        const dy = event.clientY - start.y;
-
+    const finishSwipe = (start, x, y) => {
+        if (!start || isBlockingOverlayOpen() || Date.now() - start.at > 1600) return false;
+        const dx = x - start.x;
+        const dy = y - start.y;
         const distance = Math.max(Math.abs(dx), Math.abs(dy));
-        if (distance < 45) return;
-
-        // First swipe previews the destination; repeating the same swipe moves.
+        if (distance < 36 || distance < Math.min(window.innerWidth, window.innerHeight) * 0.07) return false;
+        if (Date.now() - lastSwipeAt < 180) return false;
+        lastSwipeAt = Date.now();
         const direction = Math.abs(dx) > Math.abs(dy)
             ? (dx < 0 ? "west" : "east")
             : (dy < 0 ? "north" : "south");
-        void activateDirection(direction);
-    }, { passive: true });
+        // Serialize async previews so a quick second swipe cannot overtake the
+        // first one before it has installed pendingDestination. First swipe
+        // shows path info; the next matching swipe performs movement.
+        swipeSequence = swipeSequence
+            .catch(() => false)
+            .then(() => activateDirection(direction));
+        return true;
+    };
+
+    document.addEventListener("pointerdown", function(event) {
+        if (event.pointerType !== "touch" && event.pointerType !== "pen") return;
+        if (swipeTargetBlocked(event.target) || isBlockingOverlayOpen()) return;
+        pointerSwipe = { x: event.clientX, y: event.clientY, at: Date.now(), pointerId: event.pointerId };
+    }, { capture: true, passive: true });
+
+    document.addEventListener("pointerup", function(event) {
+        if (!pointerSwipe || event.pointerId !== pointerSwipe.pointerId) return;
+        const start = pointerSwipe;
+        pointerSwipe = null;
+        finishSwipe(start, event.clientX, event.clientY);
+    }, { capture: true, passive: true });
 
     document.addEventListener("pointercancel", function() {
-        swipeStart = null;
-    }, { passive: true });
+        pointerSwipe = null;
+    }, { capture: true, passive: true });
+
+    // Touch fallback covers WebViews that advertise PointerEvent but fail to
+    // deliver pointerup after a gesture crosses a transformed child.
+    document.addEventListener("touchstart", function(event) {
+        if (event.touches?.length !== 1 || swipeTargetBlocked(event.target) || isBlockingOverlayOpen()) return;
+        const touch = event.touches[0];
+        touchSwipe = { x: touch.clientX, y: touch.clientY, at: Date.now() };
+    }, { capture: true, passive: true });
+
+    document.addEventListener("touchmove", function(event) {
+        if (!touchSwipe || event.touches?.length !== 1) return;
+        const touch = event.touches[0];
+        if (Math.max(Math.abs(touch.clientX - touchSwipe.x), Math.abs(touch.clientY - touchSwipe.y)) >= 18) {
+            event.preventDefault();
+        }
+    }, { capture: true, passive: false });
+
+    document.addEventListener("touchend", function(event) {
+        if (!touchSwipe || event.changedTouches?.length !== 1) return;
+        const start = touchSwipe;
+        touchSwipe = null;
+        const touch = event.changedTouches[0];
+        if (finishSwipe(start, touch.clientX, touch.clientY)) event.preventDefault();
+    }, { capture: true, passive: false });
+
+    document.addEventListener("touchcancel", function() {
+        touchSwipe = null;
+    }, { capture: true, passive: true });
 }
 
 function setDiegeticFeedback(text) {
@@ -699,7 +757,7 @@ function playStageTransition(kind, operation) {
     const stage = document.getElementById("re-bg") || document.getElementById("game-root");
     const overlay = document.createElement("div");
     overlay.className = "re-movement-fade";
-    document.body.appendChild(overlay);
+    mountGameplayLayer(overlay);
     stage?.classList?.add(kind === "backward" ? "re-moving-backward" : "re-moving-forward");
     return new Promise(function(resolve) { return setTimeout(resolve, 110); })
         .then(operation)
@@ -757,7 +815,7 @@ function openBarrierInspection(exit) {
             console.warn("[Navigation] Barrier inspection failed:", error);
         }
     };
-    document.body.appendChild(overlay);
+    mountGameplayLayer(overlay);
 }
 
 export async function attemptMove(relative = "forward") {
@@ -1145,7 +1203,7 @@ export function showNavigationTutorialPopup(force = false) {
     }
 
     modal.appendChild(card);
-    document.body.appendChild(modal);
+    mountGameplayLayer(modal);
 
     card.querySelector("#uie-nav-tutorial-close-btn").onclick = function() {
         modal.style.animation = "uieFadeIn 0.2s ease reverse forwards";

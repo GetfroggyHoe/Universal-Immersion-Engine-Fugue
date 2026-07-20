@@ -22,7 +22,11 @@ let snapshotCanvas = null;
 let battleLog = [];
 let selectedTarget = null;
 let pendingAction = null;
-let activeSubTab = "skills";
+let activeSubTab = "main";
+
+function permadeathEnabled(settings = getSettings()) {
+    return settings?.rpgSettings?.permadeath === true || settings?.world?.permadeath === true || settings?.permadeath === true;
+}
 
 function currentLocationBackgroundCss() {
     const candidates = [
@@ -559,7 +563,7 @@ function ensureBattleCss() {
     display: block;
 }
 
-@media (max-width: 1180px) {
+@media not all {
     .battle-stage {
         bottom: 190px!important;
     }
@@ -586,7 +590,7 @@ function ensureBattleCss() {
 }
 
 /* Landscape vs Portrait stacking rules */
-@media (max-width: 860px) {
+@media not all {
     .battle-stage {
         grid-template-columns: 1fr!important;
         top: 58px!important;
@@ -624,7 +628,7 @@ function ensureBattleCss() {
         margin-left: 10px!important;
     }
 }
-@media (max-width: 760px), ((pointer: coarse) and (hover: none)) {
+@media not all {
     #battle-screen.uie-battle-tactical {
         display:grid!important;
         grid-template-rows:auto minmax(120px, 1fr) minmax(360px, 58dvh)!important;
@@ -852,7 +856,7 @@ function ensureBattleCss() {
         height:5px!important;
     }
 }
-@media (max-width: 420px), ((pointer: coarse) and (hover: none) and (max-width: 420px)) {
+@media not all {
     #battle-screen.uie-battle-tactical {
         grid-template-rows:auto minmax(96px, 1fr) minmax(390px, 64dvh)!important;
         padding-left:6px!important;
@@ -985,7 +989,7 @@ function ensureBattleCss() {
     --gold-trim: #c99c4e;
     display:block!important;
     width:100vw!important;
-    height:100vh!important;
+    height:100dvh!important;
     aspect-ratio:auto!important;
     background-color:#000!important;
     background-image:var(--uie-battle-bg, var(--user-current-bg))!important;
@@ -1369,7 +1373,7 @@ function ensureBattleCss() {
     backdrop-filter:blur(12px)!important;
     -webkit-backdrop-filter:blur(12px)!important;
 }
-@media (max-width: 860px), (max-width: 760px), ((pointer: coarse) and (hover: none)) {
+@media not all {
     #battle-screen.uie-battle-tactical.landscape-gameplay {
         display:block!important;
         padding:0!important;
@@ -1410,6 +1414,1422 @@ function ensureBattleCss() {
         min-height:0!important;
     }
 }
+
+/* Compact command deck with a separate square battle log beside it. */
+#battle-screen.uie-battle-tactical .battle-stage {
+    bottom:300px!important;
+}
+#battle-screen.uie-battle-tactical #battle-bottom-dock {
+    left:20px!important;
+    right:250px!important;
+    width:auto!important;
+    transform:none!important;
+    max-height:250px!important;
+}
+#battle-screen.uie-battle-tactical .dock-main-row {
+    display:grid!important;
+    grid-template-columns:220px minmax(0,1fr)!important;
+    align-items:stretch!important;
+    min-height:220px!important;
+    max-height:220px!important;
+}
+#battle-screen.uie-battle-tactical .dock-left-profile {
+    flex:0 0 220px!important;
+    justify-content:center!important;
+    padding:10px 12px!important;
+}
+#battle-screen.uie-battle-tactical .dock-center-actions {
+    padding:9px 12px!important;
+}
+#battle-screen.uie-battle-tactical #battle-log-panel {
+    position:absolute!important;
+    right:20px!important;
+    bottom:12px!important;
+    width:220px!important;
+    height:220px!important;
+    box-sizing:border-box!important;
+    z-index:51!important;
+    padding:10px!important;
+    border:1px solid var(--color-gold-dim)!important;
+    border-radius:10px!important;
+    background:rgba(4,8,14,.66)!important;
+    display:flex!important;
+    flex-direction:column!important;
+    overflow:hidden!important;
+    box-shadow:0 8px 32px rgba(0,0,0,.6), inset 0 1px rgba(255,255,255,.04)!important;
+}
+#battle-screen.uie-battle-tactical .dock-battle-log-title {
+    flex:0 0 auto!important;
+    margin-bottom:8px!important;
+    color:var(--color-text-gold)!important;
+    font:700 11px/1 Inter,system-ui,sans-serif!important;
+    letter-spacing:.08em!important;
+    text-transform:uppercase!important;
+}
+#battle-screen.uie-battle-tactical .primary-command-row {
+    min-height:44px!important;
+}
+#battle-screen.uie-battle-tactical .sub-action-pane {
+    min-height:64px!important;
+}
+#battle-screen.uie-battle-tactical .battle-player-statuses {
+    display:flex;
+    flex-wrap:wrap;
+    gap:4px;
+    margin-top:7px;
+}
+#battle-screen.uie-battle-tactical .battle-player-statuses span {
+    padding:3px 7px;
+    border:1px solid rgba(125,211,252,.24);
+    border-radius:999px;
+    background:rgba(125,211,252,.08);
+    color:#dff6ff;
+    font-size:9px;
+    font-weight:800;
+}
+#battle-screen.uie-battle-tactical .battle-player-statuses .is-clear {
+    border-color:rgba(255,255,255,.1);
+    background:rgba(255,255,255,.04);
+    color:#94a3b8;
+}
+#battle-screen.uie-battle-tactical #battle-log {
+    position:relative!important;
+    inset:auto!important;
+    transform:none!important;
+    flex:1 1 auto!important;
+    width:100%!important;
+    min-width:0!important;
+    height:auto!important;
+    min-height:0!important;
+    padding:10px!important;
+    overflow-y:auto!important;
+    border-radius:6px!important;
+    background:rgba(8,14,22,.92)!important;
+    box-shadow:inset 0 0 0 1px rgba(125,211,252,.08)!important;
+    font-size:11px!important;
+}
+#battle-screen.uie-battle-tactical #battle-log .battle-log-entry {
+    display:block!important;
+    margin:0 0 6px!important;
+    line-height:1.35!important;
+}
+@media not all {
+    #battle-screen.uie-battle-tactical .battle-stage { bottom:250px!important; }
+    #battle-screen.uie-battle-tactical #battle-bottom-dock {
+        right:200px!important;
+        max-height:205px!important;
+    }
+    #battle-screen.uie-battle-tactical .dock-main-row {
+        grid-template-columns:170px minmax(0,1fr)!important;
+        min-height:170px!important;
+        max-height:170px!important;
+    }
+    #battle-screen.uie-battle-tactical .dock-left-profile { flex-basis:auto!important; }
+    #battle-screen.uie-battle-tactical #battle-log-panel {
+        right:20px!important;
+        width:170px!important;
+        height:170px!important;
+    }
+}
+
+/* Viewport contract: this final block is the single authority for the outer
+   battle geometry. Component rules above may style their contents, but cannot
+   shrink or offset the tactical surface. */
+#battle-screen.uie-battle-tactical {
+    inset:0!important;
+    width:100dvw!important;
+    height:100dvh!important;
+    min-width:0!important;
+    min-height:0!important;
+    max-width:none!important;
+    max-height:none!important;
+    padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)!important;
+    contain:layout paint!important;
+}
+#battle-screen.uie-battle-tactical .battle-stage {
+    top:max(64px,calc(env(safe-area-inset-top) + 54px))!important;
+    right:max(12px,env(safe-area-inset-right))!important;
+    bottom:max(196px,calc(env(safe-area-inset-bottom) + 184px))!important;
+    left:max(12px,env(safe-area-inset-left))!important;
+    width:auto!important;
+    height:auto!important;
+    min-height:0!important;
+    padding:clamp(8px,2vw,28px)!important;
+    overflow:hidden!important;
+}
+#battle-screen.uie-battle-tactical #battle-bottom-dock {
+    position:absolute!important;
+    left:max(12px,env(safe-area-inset-left))!important;
+    right:max(250px,calc(env(safe-area-inset-right) + 238px))!important;
+    bottom:max(12px,env(safe-area-inset-bottom))!important;
+    width:auto!important;
+    height:clamp(160px,24dvh,230px)!important;
+    min-height:0!important;
+    max-height:none!important;
+    overflow:hidden!important;
+}
+#battle-screen.uie-battle-tactical #battle-log-panel {
+    position:absolute!important;
+    right:max(12px,env(safe-area-inset-right))!important;
+    bottom:max(12px,env(safe-area-inset-bottom))!important;
+    width:220px!important;
+    height:clamp(160px,24dvh,230px)!important;
+    min-width:0!important;
+    min-height:0!important;
+    max-height:none!important;
+    overflow:hidden!important;
+}
+#battle-screen.uie-battle-tactical .dock-main-row {
+    min-height:0!important;
+    max-height:none!important;
+    height:100%!important;
+}
+@media not all {
+    #battle-screen.uie-battle-tactical .battle-stage {
+        top:max(56px,calc(env(safe-area-inset-top) + 48px))!important;
+        bottom:max(248px,calc(env(safe-area-inset-bottom) + 240px))!important;
+        grid-template-columns:1fr 1fr!important;
+        gap:6px!important;
+    }
+    #battle-screen.uie-battle-tactical #battle-bottom-dock {
+        left:max(8px,env(safe-area-inset-left))!important;
+        right:max(8px,env(safe-area-inset-right))!important;
+        bottom:max(8px,env(safe-area-inset-bottom))!important;
+        height:228px!important;
+    }
+    #battle-screen.uie-battle-tactical #battle-log-panel {
+        top:max(58px,calc(env(safe-area-inset-top) + 50px))!important;
+        right:max(8px,env(safe-area-inset-right))!important;
+        bottom:auto!important;
+        width:min(42vw,190px)!important;
+        height:min(25dvh,180px)!important;
+    }
+    #battle-screen.uie-battle-tactical .dock-main-row {
+        grid-template-columns:minmax(116px,34%) minmax(0,1fr)!important;
+        height:100%!important;
+    }
+}
+
+/* UIE_BATTLE_SOURCE_MOBILE
+ * One source-owned mobile landscape layout. No runtime observer scripts.
+ *
+ * The sprite stage is the primary battle visual. Commands and history use a
+ * compact bottom strip. Desktop rules above remain unchanged.
+ */
+
+/* Keep only one visible Battle Log surface on every viewport. */
+#battle-screen.uie-battle-tactical #battle-log-panel {
+    background:transparent!important;
+    border:0!important;
+    box-shadow:none!important;
+    backdrop-filter:none!important;
+    -webkit-backdrop-filter:none!important;
+    padding:0!important;
+}
+#battle-screen.uie-battle-tactical .dock-battle-log-title {
+    display:none!important;
+}
+#battle-screen.uie-battle-tactical #battle-log {
+    background:rgba(7,12,19,.97)!important;
+    border:1px solid rgba(203,163,92,.48)!important;
+    box-shadow:0 8px 24px rgba(0,0,0,.42)!important;
+    backdrop-filter:none!important;
+    -webkit-backdrop-filter:none!important;
+}
+
+/* Player and enemy cards share the same footer treatment. */
+#battle-screen.uie-battle-tactical .sprite-hp-text {
+    position:absolute;
+    inset:0;
+    display:grid;
+    place-items:center;
+    color:#fff;
+    font-size:7px;
+    font-weight:900;
+    line-height:8px;
+    text-shadow:0 1px 2px #000;
+    pointer-events:none;
+}
+#battle-screen.uie-battle-tactical .battle-sprite-placeholder {
+    display:grid!important;
+    place-items:center!important;
+    background:linear-gradient(135deg,rgba(14,165,233,.22),rgba(139,92,246,.26))!important;
+    color:rgba(255,255,255,.56)!important;
+    font-size:42px!important;
+}
+
+@media (pointer:coarse) and (orientation:landscape) {
+    #battle-screen.uie-battle-tactical {
+        --uie-battle-dock-left:11vw;
+        --uie-battle-dock-width:56vw;
+        --uie-battle-log-right:11vw;
+        --uie-battle-log-width:20vw;
+        --uie-battle-bottom-height:80px;
+        display:block!important;
+        width:100vw!important;
+        height:100dvh!important;
+        padding:0!important;
+        overflow:hidden!important;
+    }
+
+    #battle-screen.uie-battle-tactical #battle-turn-timeline {
+        position:absolute!important;
+        top:5px!important;
+        left:6px!important;
+        right:auto!important;
+        width:min(58vw,540px)!important;
+        max-width:58vw!important;
+        height:38px!important;
+        min-height:38px!important;
+        padding:0 8px!important;
+        gap:5px!important;
+        transform:none!important;
+        overflow-x:auto!important;
+        overflow-y:hidden!important;
+        backdrop-filter:none!important;
+        -webkit-backdrop-filter:none!important;
+    }
+    #battle-screen.uie-battle-tactical #battle-turn-queue {
+        min-width:max-content!important;
+        gap:4px!important;
+    }
+    #battle-screen.uie-battle-tactical .turn-token {
+        height:25px!important;
+        padding:2px 6px!important;
+        gap:4px!important;
+        font-size:9px!important;
+        transform:none!important;
+    }
+    #battle-screen.uie-battle-tactical .turn-token-avatar {
+        width:16px!important;
+        height:16px!important;
+    }
+
+    #battle-screen.uie-battle-tactical .battle-header-actions {
+        top:5px!important;
+        right:6px!important;
+        gap:5px!important;
+    }
+    #battle-screen.uie-battle-tactical :is(#battle-auto-btn,#battle-close-btn) {
+        height:32px!important;
+        min-width:78px!important;
+        padding:0 9px!important;
+        font-size:9px!important;
+        border-width:1px!important;
+        backdrop-filter:none!important;
+        -webkit-backdrop-filter:none!important;
+    }
+
+    #battle-screen.uie-battle-tactical .battle-stage {
+        position:absolute!important;
+        top:47px!important;
+        right:0!important;
+        bottom:92px!important;
+        left:0!important;
+        width:auto!important;
+        height:auto!important;
+        min-height:0!important;
+        grid-template-columns:1fr 1fr!important;
+        align-items:end!important;
+        gap:12px!important;
+        padding:0 clamp(10px,2vw,24px) 4px!important;
+        overflow:hidden!important;
+    }
+    #battle-screen.uie-battle-tactical .sprite-stage-col {
+        width:100%!important;
+        height:100%!important;
+        min-width:0!important;
+        display:flex!important;
+        align-items:flex-end!important;
+        justify-content:center!important;
+        gap:clamp(10px,1.6vw,22px)!important;
+        padding:0 0 7px!important;
+        overflow:visible!important;
+    }
+    #battle-screen.uie-battle-tactical .battle-sprite-container {
+        position:relative!important;
+        width:clamp(104px,10.5vw,142px)!important;
+        min-width:clamp(104px,10.5vw,142px)!important;
+        max-width:clamp(104px,10.5vw,142px)!important;
+        height:clamp(178px,46dvh,230px)!important;
+        min-height:clamp(178px,46dvh,230px)!important;
+        max-height:calc(100% - 4px)!important;
+        margin:0!important;
+        padding:0 0 25px!important;
+        overflow:visible!important;
+        box-sizing:border-box!important;
+    }
+    #battle-screen.uie-battle-tactical .sprite-base {
+        position:absolute!important;
+        top:0!important;
+        right:0!important;
+        bottom:25px!important;
+        left:0!important;
+        width:100%!important;
+        height:auto!important;
+        max-width:100%!important;
+        max-height:none!important;
+        object-fit:contain!important;
+        object-position:center bottom!important;
+    }
+    #battle-screen.uie-battle-tactical .sprite-name-lbl {
+        position:absolute!important;
+        right:3px!important;
+        bottom:10px!important;
+        left:3px!important;
+        width:auto!important;
+        max-width:none!important;
+        margin:0!important;
+        padding:2px 4px!important;
+        overflow:hidden!important;
+        white-space:nowrap!important;
+        text-overflow:ellipsis!important;
+        text-align:center!important;
+        font-size:7.5px!important;
+        line-height:1.05!important;
+        text-transform:none!important;
+        border-radius:4px!important;
+        background:rgba(5,9,15,.92)!important;
+        backdrop-filter:none!important;
+        -webkit-backdrop-filter:none!important;
+    }
+    #battle-screen.uie-battle-tactical .sprite-hp-bar {
+        position:absolute!important;
+        right:8px!important;
+        bottom:2px!important;
+        left:8px!important;
+        width:auto!important;
+        height:7px!important;
+        margin:0!important;
+        border-radius:4px!important;
+        overflow:hidden!important;
+    }
+
+    #battle-screen.uie-battle-tactical #battle-bottom-dock {
+        position:fixed!important;
+        top:auto!important;
+        right:auto!important;
+        bottom:5px!important;
+        left:var(--uie-battle-dock-left)!important;
+        width:var(--uie-battle-dock-width)!important;
+        max-width:var(--uie-battle-dock-width)!important;
+        height:var(--uie-battle-bottom-height)!important;
+        min-height:var(--uie-battle-bottom-height)!important;
+        max-height:var(--uie-battle-bottom-height)!important;
+        margin:0!important;
+        padding:0!important;
+        transform:none!important;
+        display:flex!important;
+        flex-direction:column!important;
+        gap:0!important;
+        overflow:hidden!important;
+        border-radius:7px!important;
+        backdrop-filter:none!important;
+        -webkit-backdrop-filter:none!important;
+    }
+    #battle-screen.uie-battle-tactical .dock-party-strip {
+        flex:0 0 27px!important;
+        height:27px!important;
+        min-height:27px!important;
+        padding:2px 4px!important;
+        gap:3px!important;
+        overflow-x:auto!important;
+        overflow-y:hidden!important;
+    }
+    #battle-screen.uie-battle-tactical .dock-party-token {
+        height:22px!important;
+        min-height:22px!important;
+        padding:1px 4px!important;
+        gap:3px!important;
+        border-radius:4px!important;
+    }
+    #battle-screen.uie-battle-tactical .dock-party-token-avatar {
+        width:17px!important;
+        height:17px!important;
+    }
+    #battle-screen.uie-battle-tactical .dock-party-token-name {
+        max-width:46px!important;
+        font-size:6.5px!important;
+    }
+    #battle-screen.uie-battle-tactical .dock-party-token-hp {
+        width:34px!important;
+    }
+
+    #battle-screen.uie-battle-tactical .dock-main-row {
+        flex:1 1 auto!important;
+        min-height:0!important;
+        height:53px!important;
+        display:grid!important;
+        grid-template-columns:minmax(0,1fr) 150px!important;
+        align-items:stretch!important;
+        overflow:hidden!important;
+    }
+    #battle-screen.uie-battle-tactical .dock-left-profile {
+        min-width:0!important;
+        height:53px!important;
+        padding:3px 6px!important;
+        border-right:1px solid rgba(255,255,255,.08)!important;
+        overflow:hidden!important;
+    }
+    #battle-screen.uie-battle-tactical .vitals-matrix {
+        display:grid!important;
+        grid-template-columns:repeat(2,minmax(0,1fr))!important;
+        gap:2px 7px!important;
+        margin:0!important;
+    }
+    #battle-screen.uie-battle-tactical .cb-stat-progress {
+        display:grid!important;
+        grid-template-columns:18px minmax(0,1fr) 33px!important;
+        align-items:center!important;
+        height:13px!important;
+        min-height:13px!important;
+        gap:3px!important;
+        margin:0!important;
+    }
+    #battle-screen.uie-battle-tactical .cb-stat-label,
+    #battle-screen.uie-battle-tactical .cb-stat-value {
+        min-width:0!important;
+        font-size:6.5px!important;
+        line-height:1!important;
+    }
+    #battle-screen.uie-battle-tactical .cb-stat-bar-container {
+        height:4px!important;
+    }
+    #battle-screen.uie-battle-tactical .battle-player-statuses {
+        display:none!important;
+    }
+
+    #battle-screen.uie-battle-tactical .dock-center-actions {
+        position:relative!important;
+        width:150px!important;
+        min-width:150px!important;
+        max-width:150px!important;
+        height:53px!important;
+        min-height:53px!important;
+        padding:3px 4px!important;
+        gap:2px!important;
+        overflow:hidden!important;
+    }
+    #battle-screen.uie-battle-tactical .primary-command-row,
+    #battle-screen.uie-battle-tactical .action-grid {
+        display:grid!important;
+        grid-template-columns:repeat(3,minmax(0,1fr))!important;
+        grid-auto-rows:21px!important;
+        width:100%!important;
+        min-height:0!important;
+        height:47px!important;
+        gap:3px!important;
+        margin:0!important;
+        padding:0!important;
+        align-content:start!important;
+    }
+    #battle-screen.uie-battle-tactical :is(.btn-action,.cb-menu-btn) {
+        width:auto!important;
+        min-width:0!important;
+        max-width:none!important;
+        height:21px!important;
+        min-height:21px!important;
+        max-height:21px!important;
+        padding:1px 2px!important;
+        gap:2px!important;
+        font-size:6.5px!important;
+        line-height:1!important;
+        white-space:nowrap!important;
+        overflow:hidden!important;
+    }
+    #battle-screen.uie-battle-tactical .sub-action-pane {
+        position:absolute!important;
+        inset:3px 4px!important;
+        width:auto!important;
+        height:auto!important;
+        min-width:0!important;
+        min-height:0!important;
+        max-width:none!important;
+        max-height:none!important;
+        margin:0!important;
+        padding:0!important;
+        border:0!important;
+        background:rgba(7,12,19,.98)!important;
+        overflow-y:auto!important;
+        overflow-x:hidden!important;
+    }
+    #battle-screen.uie-battle-tactical .battle-sub-back {
+        position:sticky!important;
+        top:0!important;
+        z-index:3!important;
+        width:100%!important;
+        min-height:17px!important;
+        margin:0 0 2px!important;
+        padding:2px 4px!important;
+        border:1px solid rgba(203,163,92,.46)!important;
+        border-radius:4px!important;
+        background:rgba(10,15,23,.98)!important;
+        color:#f0c56f!important;
+        font-size:6.5px!important;
+        font-weight:900!important;
+        line-height:1!important;
+    }
+    #battle-screen.uie-battle-tactical .pane-title {
+        display:block!important;
+        margin:0 0 2px!important;
+        font-size:6px!important;
+        line-height:1!important;
+    }
+    #battle-screen.uie-battle-tactical .sub-button-row {
+        display:grid!important;
+        grid-template-columns:1fr!important;
+        gap:2px!important;
+        max-height:none!important;
+        overflow:visible!important;
+    }
+    #battle-screen.uie-battle-tactical :is(.btn-sub,.subpanel-item) {
+        width:100%!important;
+        min-width:0!important;
+        max-width:100%!important;
+        min-height:17px!important;
+        padding:2px 3px!important;
+        font-size:6.5px!important;
+        line-height:1!important;
+    }
+
+    #battle-screen.uie-battle-tactical #battle-log-panel {
+        position:fixed!important;
+        top:auto!important;
+        right:var(--uie-battle-log-right)!important;
+        bottom:5px!important;
+        left:auto!important;
+        width:var(--uie-battle-log-width)!important;
+        max-width:var(--uie-battle-log-width)!important;
+        height:var(--uie-battle-bottom-height)!important;
+        min-height:var(--uie-battle-bottom-height)!important;
+        max-height:var(--uie-battle-bottom-height)!important;
+        margin:0!important;
+        padding:0!important;
+        overflow:hidden!important;
+        border-radius:7px!important;
+    }
+    #battle-screen.uie-battle-tactical #battle-log {
+        position:relative!important;
+        inset:auto!important;
+        width:100%!important;
+        min-width:0!important;
+        max-width:100%!important;
+        height:100%!important;
+        min-height:0!important;
+        max-height:100%!important;
+        margin:0!important;
+        padding:5px 7px!important;
+        overflow-y:auto!important;
+        font-size:8px!important;
+        line-height:1.2!important;
+        border-radius:7px!important;
+    }
+    #battle-screen.uie-battle-tactical #battle-log .battle-log-entry {
+        margin:0 0 4px!important;
+        padding:0!important;
+        font-size:inherit!important;
+        line-height:inherit!important;
+        text-align:left!important;
+    }
+
+    #uie-battle-target-modal {
+        padding:8px!important;
+    }
+    #uie-battle-target-modal .uie-battle-target-card {
+        width:min(620px,88vw)!important;
+        max-height:88dvh!important;
+        padding:10px!important;
+    }
+    #uie-battle-target-modal #uie-battle-target-list {
+        grid-template-columns:repeat(2,minmax(0,1fr))!important;
+        gap:5px!important;
+    }
+    #uie-battle-target-modal .uie-battle-target-row {
+        min-height:48px!important;
+        padding:6px!important;
+        gap:6px!important;
+    }
+}
+
+@media (pointer:coarse) and (orientation:landscape) and (max-height:430px) {
+    #battle-screen.uie-battle-tactical {
+        --uie-battle-bottom-height:74px;
+    }
+    #battle-screen.uie-battle-tactical .battle-stage {
+        bottom:84px!important;
+    }
+    #battle-screen.uie-battle-tactical .battle-sprite-container {
+        height:clamp(160px,46dvh,212px)!important;
+    }
+    #battle-screen.uie-battle-tactical .dock-party-strip {
+        flex-basis:24px!important;
+        height:24px!important;
+        min-height:24px!important;
+    }
+    #battle-screen.uie-battle-tactical .dock-main-row,
+    #battle-screen.uie-battle-tactical .dock-left-profile,
+    #battle-screen.uie-battle-tactical .dock-center-actions {
+        height:50px!important;
+        min-height:50px!important;
+    }
+}
+
+/* UIE_BATTLE_ACTION_DRAWER
+ * The permanent 80px command strip remains compact. Skills, Magic, and Items
+ * receive their own temporary scrollable drawer above it.
+ */
+@media (pointer:coarse) and (orientation:landscape) {
+    #battle-screen.uie-battle-tactical {
+        --uie-battle-action-drawer-height:132px;
+        --uie-battle-action-drawer-gap:7px;
+    }
+
+    #battle-screen.uie-battle-tactical.has-action-drawer .battle-stage {
+        bottom:calc(
+            var(--uie-battle-bottom-height) +
+            var(--uie-battle-action-drawer-height) +
+            var(--uie-battle-action-drawer-gap) +
+            14px
+        )!important;
+    }
+
+    #battle-screen.uie-battle-tactical #battle-action-drawer {
+        position:fixed!important;
+        left:var(--uie-battle-dock-left)!important;
+        right:auto!important;
+        bottom:calc(
+            var(--uie-battle-bottom-height) +
+            var(--uie-battle-action-drawer-gap) +
+            5px
+        )!important;
+        z-index:28!important;
+        width:var(--uie-battle-dock-width)!important;
+        min-width:0!important;
+        max-width:var(--uie-battle-dock-width)!important;
+        height:var(--uie-battle-action-drawer-height)!important;
+        min-height:var(--uie-battle-action-drawer-height)!important;
+        max-height:var(--uie-battle-action-drawer-height)!important;
+        display:grid!important;
+        grid-template-rows:27px minmax(0,1fr)!important;
+        margin:0!important;
+        padding:0!important;
+        overflow:hidden!important;
+        border:1px solid rgba(203,163,92,.58)!important;
+        border-radius:7px!important;
+        background:rgba(7,12,19,.985)!important;
+        box-shadow:0 10px 28px rgba(0,0,0,.56)!important;
+        color:#e5f4ff!important;
+        backdrop-filter:none!important;
+        -webkit-backdrop-filter:none!important;
+        box-sizing:border-box!important;
+    }
+
+    #battle-screen.uie-battle-tactical .battle-action-drawer-head {
+        display:grid!important;
+        grid-template-columns:62px minmax(0,1fr) 24px!important;
+        align-items:center!important;
+        gap:5px!important;
+        min-width:0!important;
+        height:27px!important;
+        padding:3px 5px!important;
+        border-bottom:1px solid rgba(203,163,92,.26)!important;
+        background:rgba(14,20,30,.98)!important;
+        box-sizing:border-box!important;
+    }
+
+    #battle-screen.uie-battle-tactical .battle-action-drawer-head strong {
+        min-width:0!important;
+        overflow:hidden!important;
+        white-space:nowrap!important;
+        text-overflow:ellipsis!important;
+        color:#f0c56f!important;
+        font-size:8px!important;
+        line-height:1!important;
+        letter-spacing:.08em!important;
+        text-align:center!important;
+    }
+
+    #battle-screen.uie-battle-tactical .battle-action-drawer-head > span {
+        display:grid!important;
+        place-items:center!important;
+        width:20px!important;
+        height:18px!important;
+        border-radius:999px!important;
+        background:rgba(203,163,92,.16)!important;
+        color:#fde68a!important;
+        font-size:7px!important;
+        font-weight:900!important;
+    }
+
+    #battle-screen.uie-battle-tactical .battle-drawer-back {
+        width:62px!important;
+        min-width:62px!important;
+        height:19px!important;
+        min-height:19px!important;
+        margin:0!important;
+        padding:1px 5px!important;
+        border:1px solid rgba(203,163,92,.46)!important;
+        border-radius:4px!important;
+        background:rgba(22,27,36,.98)!important;
+        color:#f0c56f!important;
+        font-size:7px!important;
+        font-weight:900!important;
+        line-height:1!important;
+    }
+
+    #battle-screen.uie-battle-tactical .battle-action-drawer-list {
+        display:grid!important;
+        grid-template-columns:repeat(3,minmax(0,1fr))!important;
+        grid-auto-rows:minmax(31px,auto)!important;
+        align-content:start!important;
+        gap:5px!important;
+        width:100%!important;
+        min-width:0!important;
+        height:100%!important;
+        min-height:0!important;
+        margin:0!important;
+        padding:6px!important;
+        overflow-y:auto!important;
+        overflow-x:hidden!important;
+        scrollbar-width:thin!important;
+        box-sizing:border-box!important;
+    }
+
+    #battle-screen.uie-battle-tactical .battle-action-drawer-list .btn-sub {
+        width:100%!important;
+        min-width:0!important;
+        max-width:100%!important;
+        min-height:31px!important;
+        height:auto!important;
+        margin:0!important;
+        padding:4px 6px!important;
+        font-size:7.5px!important;
+        line-height:1.08!important;
+        white-space:normal!important;
+        overflow:hidden!important;
+        text-overflow:ellipsis!important;
+        word-break:normal!important;
+        border-radius:5px!important;
+    }
+
+    #battle-screen.uie-battle-tactical .battle-action-drawer-list .subpanel-badge {
+        min-height:13px!important;
+        padding:0 3px!important;
+        font-size:6px!important;
+    }
+
+    #battle-screen.uie-battle-tactical .battle-action-drawer-list .subpanel-item-tooltip {
+        display:none!important;
+    }
+
+    /* Main commands stay visible beneath the open drawer so the user may jump
+       directly from Skills to Magic or Items without closing first. */
+    #battle-screen.uie-battle-tactical .dock-center-actions .primary-command-row {
+        display:grid!important;
+    }
+}
+
+@media (pointer:coarse) and (orientation:landscape) and (max-height:430px) {
+    #battle-screen.uie-battle-tactical {
+        --uie-battle-action-drawer-height:116px;
+    }
+
+    #battle-screen.uie-battle-tactical .battle-action-drawer-list {
+        grid-template-columns:repeat(2,minmax(0,1fr))!important;
+        grid-auto-rows:minmax(29px,auto)!important;
+        gap:4px!important;
+        padding:5px!important;
+    }
+
+    #battle-screen.uie-battle-tactical .battle-action-drawer-list .btn-sub {
+        min-height:29px!important;
+        padding:3px 5px!important;
+        font-size:7px!important;
+    }
+}
+
+
+
+/* UIE_BATTLE_COMPACT_TABS_V4
+ * Mobile landscape:
+ * - one short permanent command bar
+ * - stacked life trackers
+ * - Skills / Magic / Items open a separate screen even when empty
+ */
+@media (pointer: coarse) and (orientation: landscape) {
+    #battle-screen.uie-battle-tactical {
+        --uie-battle-bottom-height: 68px;
+        --uie-battle-bottom-gap: 5px;
+        --uie-battle-dock-left: 11vw;
+        --uie-battle-dock-width: 56vw;
+        --uie-battle-log-right: 11vw;
+        --uie-battle-log-width: 20vw;
+        --uie-battle-action-drawer-height: 96px;
+    }
+
+    #battle-screen.uie-battle-tactical .battle-stage {
+        bottom: calc(
+            var(--uie-battle-bottom-height) +
+            var(--uie-battle-bottom-gap) +
+            8px
+        ) !important;
+    }
+
+    #battle-screen.uie-battle-tactical.has-action-drawer .battle-stage {
+        bottom: calc(
+            var(--uie-battle-bottom-height) +
+            var(--uie-battle-action-drawer-height) +
+            16px
+        ) !important;
+    }
+
+    #battle-screen.uie-battle-tactical #battle-bottom-dock {
+        position: fixed !important;
+        left: var(--uie-battle-dock-left) !important;
+        right: auto !important;
+        bottom: var(--uie-battle-bottom-gap) !important;
+        width: var(--uie-battle-dock-width) !important;
+        min-width: 0 !important;
+        max-width: var(--uie-battle-dock-width) !important;
+        height: var(--uie-battle-bottom-height) !important;
+        min-height: var(--uie-battle-bottom-height) !important;
+        max-height: var(--uie-battle-bottom-height) !important;
+        margin: 0 !important;
+        padding: 3px !important;
+        overflow: hidden !important;
+        transform: none !important;
+        box-sizing: border-box !important;
+    }
+
+    #battle-screen.uie-battle-tactical #battle-log-panel {
+        position: fixed !important;
+        right: var(--uie-battle-log-right) !important;
+        left: auto !important;
+        bottom: var(--uie-battle-bottom-gap) !important;
+        width: var(--uie-battle-log-width) !important;
+        min-width: 0 !important;
+        max-width: var(--uie-battle-log-width) !important;
+        height: var(--uie-battle-bottom-height) !important;
+        min-height: var(--uie-battle-bottom-height) !important;
+        max-height: var(--uie-battle-bottom-height) !important;
+        margin: 0 !important;
+        padding: 4px 6px !important;
+        overflow: hidden !important;
+        transform: none !important;
+        box-sizing: border-box !important;
+    }
+
+    #battle-screen.uie-battle-tactical #battle-log {
+        width: 100% !important;
+        height: 100% !important;
+        min-height: 0 !important;
+        max-height: 100% !important;
+        padding: 0 !important;
+        overflow-y: auto !important;
+        font-size: 8px !important;
+        line-height: 1.16 !important;
+    }
+
+    #battle-screen.uie-battle-tactical .dock-battle-log-title {
+        display: none !important;
+    }
+
+    #battle-screen.uie-battle-tactical .dock-main-row {
+        display: grid !important;
+        grid-template-columns:
+            132px
+            minmax(150px, 1fr)
+            150px !important;
+        align-items: stretch !important;
+        gap: 4px !important;
+        width: 100% !important;
+        height: 100% !important;
+        min-height: 0 !important;
+        max-height: 100% !important;
+        overflow: hidden !important;
+    }
+
+    #battle-screen.uie-battle-tactical .dock-party-strip {
+        display: flex !important;
+        align-items: stretch !important;
+        gap: 3px !important;
+        min-width: 0 !important;
+        height: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        border: 0 !important;
+        overflow-x: auto !important;
+        overflow-y: hidden !important;
+    }
+
+    #battle-screen.uie-battle-tactical .dock-party-token {
+        flex: 0 0 62px !important;
+        width: 62px !important;
+        min-width: 62px !important;
+        max-width: 62px !important;
+        height: 100% !important;
+        min-height: 0 !important;
+        padding: 3px !important;
+        display: grid !important;
+        grid-template-rows: 27px minmax(0, 1fr) !important;
+        justify-items: center !important;
+        align-items: center !important;
+        gap: 1px !important;
+        overflow: hidden !important;
+    }
+
+    #battle-screen.uie-battle-tactical .dock-party-token-avatar {
+        width: 25px !important;
+        height: 25px !important;
+    }
+
+    #battle-screen.uie-battle-tactical .dock-party-token-info {
+        width: 100% !important;
+        min-width: 0 !important;
+        align-items: center !important;
+    }
+
+    #battle-screen.uie-battle-tactical .dock-party-token-name {
+        width: 100% !important;
+        font-size: 6.5px !important;
+        text-align: center !important;
+    }
+
+    #battle-screen.uie-battle-tactical .dock-party-token-hp {
+        width: 48px !important;
+        height: 3px !important;
+    }
+
+    #battle-screen.uie-battle-tactical .dock-left-profile {
+        min-width: 0 !important;
+        height: 100% !important;
+        margin: 0 !important;
+        padding: 2px 4px !important;
+        border: 0 !important;
+        overflow-y: auto !important;
+        overflow-x: hidden !important;
+    }
+
+    #battle-screen.uie-battle-tactical .vitals-matrix,
+    #battle-screen.uie-battle-tactical .cb-stats-row {
+        display: grid !important;
+        grid-template-columns: minmax(0, 1fr) !important;
+        grid-auto-flow: row !important;
+        align-content: start !important;
+        gap: 2px !important;
+        width: 100% !important;
+        min-width: 0 !important;
+        margin: 0 !important;
+    }
+
+    #battle-screen.uie-battle-tactical .gauge-row,
+    #battle-screen.uie-battle-tactical .cb-stat-progress {
+        display: grid !important;
+        grid-template-columns: 20px minmax(0, 1fr) 46px !important;
+        align-items: center !important;
+        gap: 4px !important;
+        width: 100% !important;
+        height: 15px !important;
+        min-height: 15px !important;
+        margin: 0 !important;
+    }
+
+    #battle-screen.uie-battle-tactical .cb-stat-label {
+        width: auto !important;
+        min-width: 0 !important;
+        font-size: 7px !important;
+    }
+
+    #battle-screen.uie-battle-tactical .cb-stat-bar-container {
+        height: 5px !important;
+    }
+
+    #battle-screen.uie-battle-tactical .cb-stat-value {
+        width: auto !important;
+        min-width: 0 !important;
+        font-size: 7px !important;
+    }
+
+    #battle-screen.uie-battle-tactical .dock-center-actions {
+        min-width: 0 !important;
+        height: 100% !important;
+        margin: 0 !important;
+        padding: 1px !important;
+        border: 0 !important;
+        overflow: hidden !important;
+    }
+
+    #battle-screen.uie-battle-tactical .primary-command-row,
+    #battle-screen.uie-battle-tactical .action-grid {
+        display: grid !important;
+        grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+        grid-template-rows: repeat(2, minmax(0, 1fr)) !important;
+        width: 100% !important;
+        height: 100% !important;
+        min-height: 0 !important;
+        gap: 3px !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow: hidden !important;
+    }
+
+    #battle-screen.uie-battle-tactical .btn-action,
+    #battle-screen.uie-battle-tactical .cb-menu-btn {
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: none !important;
+        height: auto !important;
+        min-height: 0 !important;
+        max-height: none !important;
+        margin: 0 !important;
+        padding: 2px !important;
+        gap: 2px !important;
+        font-size: 6.5px !important;
+        line-height: 1 !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+    }
+
+    #battle-screen.uie-battle-tactical .btn-action i,
+    #battle-screen.uie-battle-tactical .cb-menu-btn i {
+        font-size: 7px !important;
+    }
+
+    #battle-screen.uie-battle-tactical #battle-action-drawer {
+        position: fixed !important;
+        left: var(--uie-battle-dock-left) !important;
+        right: auto !important;
+        bottom: calc(
+            var(--uie-battle-bottom-height) +
+            var(--uie-battle-bottom-gap) +
+            5px
+        ) !important;
+        z-index: 80 !important;
+        width: var(--uie-battle-dock-width) !important;
+        min-width: 0 !important;
+        max-width: var(--uie-battle-dock-width) !important;
+        height: var(--uie-battle-action-drawer-height) !important;
+        min-height: var(--uie-battle-action-drawer-height) !important;
+        max-height: var(--uie-battle-action-drawer-height) !important;
+        display: grid !important;
+        grid-template-rows: 24px minmax(0, 1fr) !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow: hidden !important;
+        border: 1px solid rgba(203, 163, 92, .62) !important;
+        border-radius: 7px !important;
+        background: rgba(7, 12, 19, .985) !important;
+        box-shadow: 0 10px 28px rgba(0, 0, 0, .56) !important;
+        color: #e5f4ff !important;
+        box-sizing: border-box !important;
+    }
+
+    #battle-screen.uie-battle-tactical .battle-action-drawer-head {
+        display: grid !important;
+        grid-template-columns: 54px minmax(0, 1fr) 22px !important;
+        align-items: center !important;
+        gap: 4px !important;
+        height: 24px !important;
+        padding: 2px 4px !important;
+        border-bottom: 1px solid rgba(203, 163, 92, .25) !important;
+        background: rgba(14, 20, 30, .98) !important;
+    }
+
+    #battle-screen.uie-battle-tactical .battle-action-drawer-head strong {
+        min-width: 0 !important;
+        overflow: hidden !important;
+        white-space: nowrap !important;
+        text-overflow: ellipsis !important;
+        text-align: center !important;
+        color: #f0c56f !important;
+        font-size: 8px !important;
+        text-transform: uppercase !important;
+    }
+
+    #battle-screen.uie-battle-tactical .battle-action-drawer-head > span {
+        display: grid !important;
+        place-items: center !important;
+        width: 20px !important;
+        height: 17px !important;
+        border-radius: 999px !important;
+        background: rgba(203, 163, 92, .17) !important;
+        color: #fde68a !important;
+        font-size: 7px !important;
+    }
+
+    #battle-screen.uie-battle-tactical .battle-drawer-back {
+        width: 54px !important;
+        min-width: 54px !important;
+        height: 18px !important;
+        min-height: 18px !important;
+        margin: 0 !important;
+        padding: 1px 3px !important;
+        border: 1px solid rgba(203, 163, 92, .48) !important;
+        border-radius: 4px !important;
+        background: rgba(22, 27, 36, .98) !important;
+        color: #f0c56f !important;
+        font-size: 6.5px !important;
+        font-weight: 900 !important;
+    }
+
+    #battle-screen.uie-battle-tactical .battle-action-drawer-list {
+        display: grid !important;
+        grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+        grid-auto-rows: minmax(27px, auto) !important;
+        align-content: start !important;
+        gap: 4px !important;
+        min-width: 0 !important;
+        min-height: 0 !important;
+        margin: 0 !important;
+        padding: 5px !important;
+        overflow-y: auto !important;
+        overflow-x: hidden !important;
+    }
+
+    #battle-screen.uie-battle-tactical .battle-action-drawer-list .btn-sub {
+        width: 100% !important;
+        min-width: 0 !important;
+        min-height: 27px !important;
+        max-height: none !important;
+        padding: 3px 5px !important;
+        display: grid !important;
+        grid-template-columns: minmax(0, 1fr) auto !important;
+        align-items: center !important;
+        gap: 4px !important;
+        font-size: 7px !important;
+        line-height: 1.05 !important;
+        white-space: normal !important;
+        overflow: hidden !important;
+    }
+
+    #battle-screen.uie-battle-tactical .battle-action-drawer-list .btn-sub > span {
+        min-width: 0 !important;
+        overflow: hidden !important;
+        white-space: nowrap !important;
+        text-overflow: ellipsis !important;
+    }
+
+    #battle-screen.uie-battle-tactical .battle-action-drawer-list .btn-sub small {
+        color: #f0c56f !important;
+        font-size: 6px !important;
+        white-space: nowrap !important;
+    }
+
+    #battle-screen.uie-battle-tactical .battle-action-empty {
+        grid-column: 1 / -1 !important;
+        min-height: 58px !important;
+        display: grid !important;
+        grid-template-columns: 22px minmax(0, 1fr) !important;
+        grid-template-rows: auto auto !important;
+        align-content: center !important;
+        column-gap: 7px !important;
+        padding: 7px 10px !important;
+        border: 1px dashed rgba(203, 163, 92, .32) !important;
+        border-radius: 6px !important;
+        background: rgba(255, 255, 255, .025) !important;
+        color: #d1d5db !important;
+    }
+
+    #battle-screen.uie-battle-tactical .battle-action-empty i {
+        grid-row: 1 / 3 !important;
+        align-self: center !important;
+        color: #f0c56f !important;
+        font-size: 15px !important;
+    }
+
+    #battle-screen.uie-battle-tactical .battle-action-empty strong {
+        font-size: 8px !important;
+        color: #fff !important;
+    }
+
+    #battle-screen.uie-battle-tactical .battle-action-empty span {
+        font-size: 7px !important;
+        opacity: .68 !important;
+    }
+}
+
+@media (pointer: coarse) and (orientation: landscape) and (max-height: 430px) {
+    #battle-screen.uie-battle-tactical {
+        --uie-battle-bottom-height: 62px;
+        --uie-battle-action-drawer-height: 86px;
+    }
+
+    #battle-screen.uie-battle-tactical .dock-main-row {
+        grid-template-columns:
+            122px
+            minmax(142px, 1fr)
+            144px !important;
+    }
+
+    #battle-screen.uie-battle-tactical .gauge-row,
+    #battle-screen.uie-battle-tactical .cb-stat-progress {
+        height: 14px !important;
+        min-height: 14px !important;
+    }
+}
+
+
+
+
+
+/* UIE_BATTLE_LEAN_DOCK_V2_START
+ * The battlefield sprites are the character cards.
+ * No duplicate portrait strip in the command dock.
+ * The mobile option drawer is narrow and the log is cut to a compact height.
+ */
+#battle-screen.uie-battle-tactical .dock-party-strip,
+#battle-screen.uie-battle-tactical .dock-party-token {
+    display: none !important;
+}
+
+/* Shared desktop/mobile fallback after removing the duplicate portrait strip. */
+#battle-screen.uie-battle-tactical .dock-main-row {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) 220px !important;
+    align-items: stretch !important;
+}
+
+@media (pointer: coarse) and (orientation: landscape) {
+    #battle-screen.uie-battle-tactical {
+        --uie-battle-bottom-edge: max(3px, env(safe-area-inset-bottom, 0px));
+        --uie-battle-command-height: 68px;
+        --uie-battle-dock-left: 14vw;
+        --uie-battle-dock-width: 46vw;
+        --uie-battle-drawer-width: clamp(340px, 34vw, 520px);
+        --uie-battle-log-width: clamp(300px, 29vw, 430px);
+        --uie-battle-log-height: 86px;
+        --uie-battle-log-right: max(8px, 2vw);
+    }
+
+    #battle-screen.uie-battle-tactical #battle-bottom-dock {
+        position: fixed !important;
+        top: auto !important;
+        right: auto !important;
+        bottom: var(--uie-battle-bottom-edge) !important;
+        left: var(--uie-battle-dock-left) !important;
+        width: var(--uie-battle-dock-width) !important;
+        min-width: 0 !important;
+        max-width: var(--uie-battle-dock-width) !important;
+        height: var(--uie-battle-command-height) !important;
+        min-height: var(--uie-battle-command-height) !important;
+        max-height: var(--uie-battle-command-height) !important;
+        margin: 0 !important;
+        padding: 3px !important;
+        transform: none !important;
+        overflow: hidden !important;
+    }
+
+    #battle-screen.uie-battle-tactical .dock-main-row {
+        grid-template-columns: minmax(170px, 1fr) 150px !important;
+        width: 100% !important;
+        height: 100% !important;
+        min-height: 0 !important;
+        gap: 4px !important;
+        overflow: hidden !important;
+    }
+
+    #battle-screen.uie-battle-tactical .dock-left-profile,
+    #battle-screen.uie-battle-tactical .dock-center-actions {
+        height: 100% !important;
+        min-height: 0 !important;
+        max-height: 100% !important;
+    }
+
+    /* Drawer sits above the commands only, not across the trackers. */
+    #battle-screen.uie-battle-tactical #battle-action-drawer {
+        left: calc(
+            var(--uie-battle-dock-left) +
+            var(--uie-battle-dock-width) -
+            var(--uie-battle-drawer-width)
+        ) !important;
+        right: auto !important;
+        width: var(--uie-battle-drawer-width) !important;
+        min-width: var(--uie-battle-drawer-width) !important;
+        max-width: var(--uie-battle-drawer-width) !important;
+    }
+
+    #battle-screen.uie-battle-tactical #battle-log-panel {
+        position: fixed !important;
+        top: auto !important;
+        right: var(--uie-battle-log-right) !important;
+        bottom: var(--uie-battle-bottom-edge) !important;
+        left: auto !important;
+        width: var(--uie-battle-log-width) !important;
+        min-width: var(--uie-battle-log-width) !important;
+        max-width: var(--uie-battle-log-width) !important;
+        height: var(--uie-battle-log-height) !important;
+        min-height: var(--uie-battle-log-height) !important;
+        max-height: var(--uie-battle-log-height) !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        border: 0 !important;
+        background: transparent !important;
+        box-shadow: none !important;
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+        transform: none !important;
+        overflow: visible !important;
+    }
+
+    #battle-screen.uie-battle-tactical .dock-battle-log-title {
+        display: none !important;
+    }
+
+    #battle-screen.uie-battle-tactical #battle-log {
+        position: relative !important;
+        inset: auto !important;
+        width: 100% !important;
+        height: 100% !important;
+        min-height: 0 !important;
+        max-height: 100% !important;
+        margin: 0 !important;
+        padding: 7px 9px !important;
+        overflow-x: hidden !important;
+        overflow-y: auto !important;
+        background: rgba(7, 12, 19, .97) !important;
+        border: 1px solid rgba(203, 163, 92, .52) !important;
+        border-radius: 8px !important;
+        box-shadow: 0 8px 22px rgba(0, 0, 0, .44) !important;
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+        font-size: 8.5px !important;
+        line-height: 1.2 !important;
+        box-sizing: border-box !important;
+    }
+
+    #battle-screen.uie-battle-tactical .battle-stage {
+        bottom: calc(
+            var(--uie-battle-log-height) +
+            var(--uie-battle-bottom-edge) +
+            7px
+        ) !important;
+    }
+
+    #battle-screen.uie-battle-tactical.has-action-drawer .battle-stage {
+        bottom: max(
+            calc(
+                var(--uie-battle-log-height) +
+                var(--uie-battle-bottom-edge) +
+                7px
+            ),
+            calc(
+                var(--uie-battle-command-height) +
+                var(--uie-battle-action-drawer-height, 96px) +
+                var(--uie-battle-bottom-edge) +
+                12px
+            )
+        ) !important;
+    }
+}
+
+@media (pointer: coarse) and (orientation: landscape) and (max-height: 430px) {
+    #battle-screen.uie-battle-tactical {
+        --uie-battle-command-height: 62px;
+        --uie-battle-log-height: 80px;
+        --uie-battle-drawer-width: clamp(320px, 33vw, 480px);
+    }
+}
+/* UIE_BATTLE_LEAN_DOCK_V2_END */
 `;
 }
 
@@ -1534,13 +2954,30 @@ async function collectChatSpeakerTargets(map, s) {
     } catch (_) {}
 }
 
+function isSyntheticBattleTarget(target) {
+    const name = normalizeName(target?.name).toLowerCase();
+    const source = String(target?.source || "").toLowerCase();
+
+    // These are UI trackers/stage controls, not people or combatants.
+    if (!/^(custom|first aid|focus)$/.test(name)) return false;
+
+    // A genuine character with one of these names may still be selected when
+    // it came from character/social/chat data rather than only UI trackers.
+    const genuineCharacterSource =
+        /social\/|scene characters|chat speaker|macro speaker|manual\/macro/.test(source);
+
+    return !genuineCharacterSource;
+}
+
 async function getSceneBattleTargets() {
     const s = getSettings();
     const targets = new Map();
     collectSettingsTargets(targets, s);
     collectDomSceneTargets(targets);
     await collectChatSpeakerTargets(targets, s);
-    return Array.from(targets.values()).sort((a, b) => String(a.name).localeCompare(String(b.name)));
+    return Array.from(targets.values())
+        .filter((target) => !isSyntheticBattleTarget(target))
+        .sort((a, b) => String(a.name).localeCompare(String(b.name)));
 }
 
 const ENEMY_ARCHETYPES = {
@@ -1592,6 +3029,17 @@ const ENEMY_ARCHETYPES = {
         trackers: { hp: 1.0, mp: 0.8, ap: 0.8 },
         threat: 2,
     },
+};
+
+const ENEMY_LOADOUTS = {
+    beast: { equipment: [{ name: "Natural Hide", slotId: "body", defense: 2, con: 1 }], items: [], disposition: "territorial", objectives: ["drive intruders away", "protect its territory"] },
+    undead: { equipment: [{ name: "Grave Robes", slotId: "body", magicalDefense: 3, wis: 1 }], items: [], disposition: "mindless", objectives: ["guard the haunted ground", "drain the living"] },
+    mage: { equipment: [{ name: "Channeling Focus", slotId: "weapon", int: 2, magicalDefense: 1 }], items: [{ name: "Restoration Draught", heal: 24 }], disposition: "calculating", objectives: ["disable the opposition", "protect forbidden knowledge"] },
+    brute: { equipment: [{ name: "Heavy Maul", slotId: "weapon", str: 2 }, { name: "Scrap Plate", slotId: "body", defense: 4, speed: -1 }], items: [{ name: "Field Tonic", heal: 18 }], disposition: "aggressive", objectives: ["break the enemy line", "force a surrender"] },
+    assassin: { equipment: [{ name: "Balanced Daggers", slotId: "weapon", dex: 2, criticalChance: 2 }, { name: "Shadow Leathers", slotId: "body", evasion: 2 }], items: [{ name: "Quick Mend", heal: 14 }], disposition: "self-preserving", objectives: ["complete the contract", "escape after gaining leverage"] },
+    machine: { equipment: [{ name: "Armored Chassis", slotId: "body", defense: 4, con: 2 }, { name: "Targeting Array", slotId: "head", accuracy: 3 }], items: [{ name: "Repair Capsule", heal: 20 }], disposition: "construct", objectives: ["enforce its directive", "secure the area"] },
+    fiend: { equipment: [{ name: "Infernal Carapace", slotId: "body", defense: 2, magicalDefense: 2 }], items: [], disposition: "fanatic", objectives: ["terrorize its victims", "claim a captive"] },
+    humanoid: { equipment: [{ name: "Serviceable Weapon", slotId: "weapon", str: 1 }, { name: "Travel-Worn Armor", slotId: "body", defense: 2 }], items: [{ name: "Minor Healing Potion", heal: 16 }], disposition: "wary", objectives: ["defend its position", "take valuables and withdraw", "force the opposition to yield"] },
 };
 
 function detectEnemyArchetype(name, context, type) {
@@ -1684,6 +3132,14 @@ function makeEnemyFromTarget(target) {
     const xp = Math.round((30 + level * 18) * (0.9 + rng.next() * 0.25));
     const gold = Math.round((10 + level * 8) * (0.8 + rng.next() * 0.5));
     const loot = rng.next() < 0.5 ? [`${name.split(/\s+/)[0]} Essence`] : [];
+    const loadout = ENEMY_LOADOUTS[archetype] || ENEMY_LOADOUTS.humanoid;
+    const equipment = Array.isArray(target?.equipment)
+        ? target.equipment.map((item) => ({ ...item }))
+        : loadout.equipment.filter(() => rng.next() < 0.82).map((item) => ({ ...item }));
+    if (!equipment.length && loadout.equipment.length) equipment.push({ ...rng.pick(loadout.equipment) });
+    const items = Array.isArray(target?.items)
+        ? target.items.map((item) => typeof item === "string" ? { name: item } : { ...item })
+        : loadout.items.filter(() => rng.next() < 0.45).map((item) => ({ ...item }));
     return {
         id: `enemy_${slugifyEnemyName(name)}_${seedNonce}`,
         name,
@@ -1700,6 +3156,11 @@ function makeEnemyFromTarget(target) {
         stats,
         type: "enemy",
         attacks,
+        equipment,
+        items,
+        disposition: target?.disposition || loadout.disposition,
+        objective: target?.objective || rng.pick(loadout.objectives),
+        morale: Number.isFinite(Number(target?.morale)) ? Number(target.morale) : Number((0.14 + rng.next() * 0.22).toFixed(2)),
         loot,
         xp,
         gold,
@@ -1718,6 +3179,7 @@ async function generateEnemyDefinition(target) {
             name: fallback.name,
             context,
             player_level: playerLevel,
+            player_stats: s?.character?.stats || {},
             tier: fallback.threatTier,
             seed_nonce: `${Date.now()}_${Math.floor(Math.random() * 1e9)}`,
         }, { required: false, timeoutMs: 1200 });
@@ -1755,7 +3217,7 @@ export async function openBattleTargetPicker() {
     modal.style.cssText = "position:fixed;inset:0;z-index:2147483651;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.72);padding:16px;box-sizing:border-box;";
 
     const targetRows = targets.length ? targets.map((t, i) => `
-        <button class="uie-battle-target" data-index="${i}" style="display:flex;align-items:center;gap:10px;width:100%;padding:10px;border:1px solid rgba(203, 163, 92,.24);border-radius:8px;background:rgba(255,255,255,.055);color:#f8fafc;cursor:pointer;text-align:left;">
+        <button class="uie-battle-target uie-battle-target-row" data-index="${i}" style="display:flex;align-items:center;gap:10px;width:100%;padding:10px;border:1px solid rgba(203, 163, 92,.24);border-radius:8px;background:rgba(255,255,255,.055);color:#f8fafc;cursor:pointer;text-align:left;">
             <span style="width:34px;height:34px;border-radius:6px;background:${t.imageUrl ? `url('${escHtml(t.imageUrl)}') center/cover` : "rgba(220,20,60,.28)"};border:1px solid rgba(255,255,255,.18);display:inline-block;flex:0 0 auto;"></span>
             <span style="display:flex;flex-direction:column;min-width:0;">
                 <strong style="font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escHtml(t.name)}</strong>
@@ -1765,7 +3227,7 @@ export async function openBattleTargetPicker() {
     `).join("") : `<div style="padding:12px;color:#cbd5e1;border:1px solid rgba(255,255,255,.12);border-radius:8px;">No scene names were found yet. Enter a name below to start a battle from a macro speaker or unnamed card.</div>`;
 
     modal.innerHTML = `
-        <div style="width:min(560px,96vw);max-height:86vh;overflow:auto;border:1px solid rgba(203, 163, 92,.42);border-radius:8px;background:linear-gradient(135deg,rgba(15,10,18,.98),rgba(27,13,24,.97));box-shadow:0 24px 80px rgba(0,0,0,.7);padding:16px;color:#f8fafc;font-family:system-ui,sans-serif;">
+        <div class="uie-battle-target-card" style="width:min(672px,96vw);max-height:90vh;overflow:auto;border:1px solid rgba(203, 163, 92,.42);border-radius:10px;background:linear-gradient(135deg,rgba(15,10,18,.98),rgba(27,13,24,.97));box-shadow:0 24px 80px rgba(0,0,0,.7);padding:19px;color:#f8fafc;font-family:system-ui,sans-serif;">
             <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
                 <div style="font-weight:900;color:#cba35c;letter-spacing:.08em;text-transform:uppercase;">Battle Target</div>
                 <button id="uie-battle-target-close" title="Close" style="margin-left:auto;width:32px;height:32px;border-radius:8px;border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.06);color:#fff;cursor:pointer;">x</button>
@@ -1892,7 +3354,7 @@ function buildBattleScreenHtml(enemies = [], party = []) {
             </div>
 
             <!-- Battle Target Header Buttons (Top Right) -->
-            <div style="position: absolute; top: 20px; right: 20px; z-index: 20; display: flex; gap: 8px;">
+            <div class="battle-header-actions" style="position: absolute; top: 20px; right: 20px; z-index: 20; display: flex; gap: 8px;">
                 <button type="button" id="battle-auto-btn" style="
                     background: rgba(0,0,0,0.75); border: 2px solid rgba(14,165,233,0.6);
                     color: #0ea5e9; padding: 10px 16px;
@@ -1917,17 +3379,9 @@ function buildBattleScreenHtml(enemies = [], party = []) {
 
             <!-- Bottom Dock -->
             <div id="battle-bottom-dock"></div>
-
-            <!-- Battle Log (Left overlay) -->
-            <div id="battle-log" style="
-                position: absolute; left: 20px; bottom: 200px;
-                width: 480px; height: 320px; z-index: 10;
-                background: rgba(3,7,18,0.85); border: 1px solid rgba(14,165,233,0.22);
-                border-radius: 8px; overflow-y: auto; padding: 10px;
-                font-family: monospace; font-size: 12px;
-                box-shadow: 0 10px 24px rgba(0,0,0,0.5);
-                display: block;
-            "></div>
+            <aside id="battle-log-panel" aria-label="Battle log">
+                <div id="battle-log" role="log" aria-live="polite"></div>
+            </aside>
 
             <!-- Status Message -->
             <div id="battle-status-message" style="
@@ -1963,6 +3417,7 @@ function buildBattleScreenHtml(enemies = [], party = []) {
         <div id="battle-defeat-window" class="battle-result-window" style="display:none;position:fixed;inset:0;z-index:2147483642;align-items:center;justify-content:center;background:rgba(0,0,0,.72);padding:16px;">
             <div class="battle-result-card" style="width:min(520px,94vw);max-height:86vh;overflow:auto;background:linear-gradient(135deg,rgba(28,8,12,.98),rgba(42,12,18,.96));border:2px solid rgba(220,20,60,.62);border-radius:10px;padding:18px;color:#fff;box-shadow:0 24px 80px rgba(0,0,0,.72);">
                 <h2 style="margin:0 0 10px;color:#ff6b81;">Defeat</h2>
+                <div id="defeat-narration" style="margin:8px 0 12px;padding:10px;border:1px solid rgba(255,255,255,.12);border-radius:8px;background:rgba(0,0,0,.22);color:#ffe4e9;line-height:1.5;">Resolving the aftermath...</div>
                 <div id="defeat-penalties-list" style="display:grid;gap:8px;margin:10px 0;"></div>
                 <div id="defeat-effects-section" style="display:none;margin-top:10px;">
                     <h3 style="margin:0 0 8px;color:#fecdd3;">Effects</h3>
@@ -1985,10 +3440,16 @@ function getCombatantSpeed(c) {
 function buildTurnQueue() {
     const allies = (battleState?.allies || []).map(c => ({ ...c, side: "ally" }));
     const enemies = (battleState?.enemies || []).map(c => ({ ...c, side: "enemy" }));
-    return [...allies, ...enemies]
+    const queue = [...allies, ...enemies]
         .filter(c => Number(c.hp || c.vitals?.hp || 0) > 0)
         .sort((a, b) => getCombatantSpeed(b) - getCombatantSpeed(a))
         .map(c => ({ id: c.id, name: c.name, side: c.side, speed: getCombatantSpeed(c) }));
+    if (Number(battleState?.round || 0) <= 1 && battleState?.surprised !== true) {
+        const controlledId = String(battleState?.projection?.controlledCombatantId || battleState?.player?.id || "");
+        const playerIndex = queue.findIndex((token) => token.side === "ally" && (!controlledId || String(token.id) === controlledId));
+        if (playerIndex > 0) queue.unshift(queue.splice(playerIndex, 1)[0]);
+    }
+    return queue;
 }
 
 function getCombatantByTurnToken(token) {
@@ -2311,6 +3772,14 @@ function beginCurrentTurn() {
     battleState.activeSide = token.side;
     battleState.selectedAction = null;
     battleState.selectedTargetId = null;
+        if (Number(actor.hp || actor.vitals?.hp || 0) <= 0) {
+        advanceTurn();
+        return;
+    }
+    battleState.activeActorId = actor.id;
+    battleState.activeSide = token.side;
+    battleState.selectedAction = null;
+    battleState.selectedTargetId = null;
     selectedTarget = null;
     pendingAction = null;
     tickStatusEffects(actor);
@@ -2320,6 +3789,22 @@ function beginCurrentTurn() {
     }
     if (token.side === "ally") {
         battleState.player = actor;
+        
+        // Helper Pet Emergency Heal Support
+        const sPet = getSettings();
+        if (sPet.helperPet && battleActive) {
+            const playerHp = Number(actor.hp || actor.vitals?.hp || 0);
+            const playerMaxHp = Number(actor.maxHp || actor.vitals?.maxHp || 100);
+            const petLevel = Number(sPet.helperPet.level || 1);
+            if (playerHp > 0 && (playerHp / playerMaxHp) < 0.35 && Math.random() < 0.40) {
+                const healAmt = Math.round(playerMaxHp * (0.10 + petLevel * 0.01));
+                actor.hp = Math.min(playerMaxHp, playerHp + healAmt);
+                if (actor.vitals) actor.vitals.hp = actor.hp;
+                addBattleLog(`🐾 Emergency Heal! ${sPet.helperPet.name} heals you for ${healAmt} HP!`, "critical");
+                saveSettings();
+            }
+        }
+
         if (hasStatus(actor, "stunned")) {
             battleState.phase = "resolving";
             addBattleLog(`${actor.name} is stunned and cannot act!`, "critical");
@@ -2334,6 +3819,7 @@ function beginCurrentTurn() {
             removeStatus(actor, "guarded");
         }
         battleState.phase = "player_select";
+        activeSubTab = "main";
         addBattleLog(`${actor.name}'s turn.`, "player-action");
         renderBattleStage();
         renderBottomDock();
@@ -2364,6 +3850,9 @@ function advanceTurn() {
     battleState.selectedTargetId = null;
     selectedTarget = null;
     pendingAction = null;
+    activeSubTab = "main";
+    document.getElementById("battle-action-drawer")?.remove();
+    document.getElementById("battle-screen")?.classList.remove("has-action-drawer");
     if (liveEnemies().length === 0) { endBattle(true); return; }
     if (livingAllies().length === 0) { endBattle(false); return; }
     battleState.turnIndex = Number(battleState.turnIndex || 0) + 1;
@@ -2386,6 +3875,135 @@ async function generateEnemyPortrait(enemy) {
         console.warn("[Battle] Failed to generate enemy portrait:", err);
         return null;
     }
+}
+
+function updateBattlePetAdvisor(hoveredEnemy = null, hoveredEl = null) {
+    const adviceEl = document.getElementById("uie-battle-pet-advice");
+    if (!battleActive || !battleState) {
+        if (adviceEl) adviceEl.remove();
+        return;
+    }
+    
+    // Check if helper pet is enabled
+    const s = getSettings();
+    if (!s.helperPet || s.helperPet.enabled === false) {
+        if (adviceEl) adviceEl.remove();
+        return;
+    }
+
+    const enemy = hoveredEnemy || battleState.enemies.find(e => String(e.id) === String(selectedTarget));
+    if (!enemy || Number(enemy.hp || 0) <= 0) {
+        if (adviceEl) adviceEl.remove();
+        return;
+    }
+
+    const targetEl = hoveredEl || document.querySelector(`.battle-sprite-container[data-enemy-id="${enemy.id}"]`);
+    if (!targetEl) {
+        if (adviceEl) adviceEl.remove();
+        return;
+    }
+
+    const petName = s.helperPet?.name || "Helper Pet";
+    const petType = s.helperPet?.type || "fox";
+    const petPersonality = s.helperPet?.personality || "neutral";
+
+    const CHIBI_ASSETS = {
+        cat_boy: "./assets/Helper Pet/Chibi_Cat_Boy.png",
+        chibi_woman: "./assets/Helper Pet/Chibi_Woman.png",
+        phoenix: "./assets/Helper Pet/Chimera_Pheonix_.png",
+        crow: "./assets/Helper Pet/Dark_Crow.png",
+        fox: "./assets/Helper Pet/Mystical_Fox.png"
+    };
+    const chibiUrl = CHIBI_ASSETS[petType] || CHIBI_ASSETS.fox;
+
+    const isUnknown = String(enemy.name).toLowerCase().includes("unknown") || enemy.isUnknown || enemy.unknown === true;
+
+    const hpText = isUnknown ? "??? / ???" : `${enemy.hp} / ${enemy.maxHp}`;
+    const levelText = isUnknown ? "??" : `${enemy.level}`;
+
+    const playerLevel = Number(s.character?.level || s.jobClass?.level || 1) || 1;
+    let threatWarningHtml = "";
+    if (!isUnknown) {
+        if (enemy.level >= playerLevel + 5) {
+            threatWarningHtml = `<div style="color:#f43f5e; font-weight:bold; margin-top:4px; font-size:10px;"><i class="fa-solid fa-triangle-exclamation"></i> DEADLY THREAT LEVEL!</div>`;
+        } else if (enemy.level >= playerLevel + 3) {
+            threatWarningHtml = `<div style="color:#fb923c; font-weight:bold; margin-top:4px; font-size:10px;"><i class="fa-solid fa-triangle-exclamation"></i> HIGH THREAT LEVEL!</div>`;
+        } else {
+            threatWarningHtml = `<div style="color:#34d399; font-size:10px;">Threat Level: Normal</div>`;
+        }
+    }
+
+    let dialogue = "Scanning target parameters...";
+    if (isUnknown) {
+        dialogue = "Data unavailable. Engage in combat to scan this unknown entity.";
+    } else {
+        const dialogs = {
+            neutral: "Target analysis completed. Recommend staggered attacks to deplete break bars.",
+            sarcastic: `Oh great, a Level ${enemy.level} ${enemy.className || 'foe'}. Try not to get knocked out this time.`,
+            clinical: `Target: ${enemy.name}. Level: ${enemy.level}. Probability of success is ${enemy.level >= playerLevel + 5 ? "24%" : "88%"}. Coordinate skills.`,
+            whimsical: `Whoa! Look at this Level ${enemy.level} creature! Let's blast them with sparklers!`,
+            ominous: "Their shadow falls long. Cast them into the abyss, Master...",
+            loyal: `I have scanned this foe for you, Master. Level is ${enemy.level}. I stand ready.`
+        };
+        dialogue = dialogs[petPersonality] || dialogs.neutral;
+    }
+
+    let el = document.getElementById("uie-battle-pet-advice");
+    if (!el) {
+        el = document.createElement("div");
+        el.id = "uie-battle-pet-advice";
+        el.style.cssText = `
+            position: absolute;
+            z-index: 1000;
+            width: 270px;
+            background: linear-gradient(135deg, rgba(8, 12, 20, 0.98) 0%, rgba(15, 23, 42, 0.98) 100%);
+            border: 1.5px solid #cba35c;
+            border-radius: 10px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.6), 0 0 14px rgba(203, 163, 92, 0.25);
+            padding: 10px;
+            font-family: 'Inter', sans-serif;
+            color: #f1f5f9;
+            display: flex;
+            gap: 10px;
+            pointer-events: none;
+            box-sizing: border-box;
+        `;
+        const battleScreen = document.getElementById("battle-screen");
+        if (battleScreen) battleScreen.appendChild(el);
+    }
+
+    el.innerHTML = `
+        <div style="flex:0 0 46px; height:46px; border-radius:50%; border:1px solid #cba35c; background:url('${chibiUrl}') center/contain no-repeat, rgba(255,255,255,0.05); background-size:82%;"></div>
+        <div style="flex:1; min-width:0; display:flex; flex-direction:column; gap:2px;">
+            <div style="font-family:'Orbitron', monospace; font-size:9px; color:#cba35c; font-weight:bold; letter-spacing:0.5px; text-transform:uppercase;">
+                🤖 ${esc(petName)} ADV-01
+            </div>
+            <div style="font-weight:bold; font-size:12px; color:#fff; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                ${esc(enemy.name)}
+            </div>
+            <div style="font-size:10px; color:#cbd5e1; display:flex; gap:10px;">
+                <span>HP: ${hpText}</span>
+                <span>Lv. ${levelText}</span>
+            </div>
+            ${threatWarningHtml}
+            <div style="font-style:italic; font-size:10px; margin-top:4px; color:#94a3b8; line-height:1.3; border-top:1px solid rgba(255,255,255,0.08); padding-top:4px;">
+                "${esc(dialogue)}"
+            </div>
+        </div>
+    `;
+
+    const battleScreen = document.getElementById("battle-screen");
+    const targetRect = targetEl.getBoundingClientRect();
+    const battleRect = battleScreen.getBoundingClientRect();
+
+    const left = targetRect.left - battleRect.left + (targetRect.width / 2) - 135;
+    const top = targetRect.top - battleRect.top - 120;
+
+    const maxLeft = battleRect.width - 280;
+    const maxTop = battleRect.height - 150;
+    el.style.left = `${Math.max(10, Math.min(maxLeft, left))}px`;
+    el.style.top = `${Math.max(10, Math.min(maxTop, top))}px`;
+    el.style.display = "flex";
 }
 
 function renderBattleStage() {
@@ -2443,14 +4061,29 @@ function renderBattleStage() {
             const breakIndicator = Number(enemy.breakStacks || 0) >= 2
                 ? `<div class="break-indicator">BREAK x${enemy.breakStacks}</div>` : "";
 
+            const isUnknownEnemy = String(enemy.name).toLowerCase().includes("unknown") || enemy.isUnknown || enemy.unknown === true;
+            const enemyHpText = isUnknownEnemy ? "??? / ???" : `${enemy.hp} / ${enemy.maxHp}`;
+
             el.innerHTML = `
                 ${intent ? `<div class="enemy-intent-chip ${intentClass}">${esc(intent.label)}</div>` : ""}
                 ${statusBadges ? `<div class="status-badge-row">${statusBadges}</div>` : ""}
                 ${breakIndicator}
                 ${portrait ? `<img class="sprite-base" src="${portrait}">` : '<div class="sprite-base" style="background:linear-gradient(135deg, rgba(239,68,68,0.3), rgba(139,92,246,0.3)); display:flex; align-items:center; justify-content:center; font-size:48px; color:rgba(255,255,255,0.5);">⚔</div>'}
-                <span class="sprite-name-lbl">${esc(enemy.name)}</span>
-                <div class="sprite-hp-bar"><div class="sprite-hp-fill" style="width:${Math.max(0, Math.min(100, hpRatio * 100))}%"></div></div>
+                <span class="sprite-name-lbl">${isUnknownEnemy ? esc(enemy.name) : `[Lv. ${enemy.level}] ${esc(enemy.name)}`}</span>
+                <div class="sprite-hp-bar" style="height:8px; display:flex; align-items:center; justify-content:center; position:relative; overflow:visible;">
+                    <div class="sprite-hp-fill" style="width:${Math.max(0, Math.min(100, hpRatio * 100))}%; height:100%; position:absolute; left:0; top:0;"></div>
+                    <span style="position:absolute; width:100%; text-align:center; font-size:7.5px; color:#fff; font-weight:900; text-shadow:0 0 2px #000; line-height:8px; pointer-events:none;">
+                        ${enemyHpText}
+                    </span>
+                </div>
             `;
+
+            // Target selection must not summon the Helper Pet advisor.
+            // Keep the main Helper Pet available, but remove Battle's
+            // automatic hover/tap analysis card.
+            $(el).off("mouseenter.petAdvice mouseleave.petAdvice");
+            const stalePetAdvice = document.getElementById("uie-battle-pet-advice");
+            if (stalePetAdvice) stalePetAdvice.remove();
 
             if ((pendingAction || battleState?.phase === "target_select") && hpVal > 0) {
                 el.classList.add("is-targetable");
@@ -2499,17 +4132,61 @@ function renderBattleStage() {
                 `<span class="status-badge status-${esc(String(st.name || "").toLowerCase())}">${esc(st.name)}</span>`
             ).join("");
 
+            const allyHpText = `${Math.max(0, Math.round(hpVal))} / ${Math.max(1, Math.round(hpMax))}`;
+            const allyLevel = Number(member.level || member.jobLevel || 0);
             el.innerHTML = `
                 ${statusBadges ? `<div class="status-badge-row">${statusBadges}</div>` : ""}
-                ${portrait ? `<img class="sprite-base" src="${portrait}">` : ""}
-                <span class="sprite-name-lbl">${esc(member.name)}</span>
-                <div class="sprite-hp-bar"><div class="sprite-hp-fill" style="width:${Math.max(0, Math.min(100, hpRatio * 100))}%"></div></div>
+                ${portrait ? `<img class="sprite-base" src="${portrait}">` : '<div class="sprite-base battle-sprite-placeholder">◆</div>'}
+                <span class="sprite-name-lbl">${allyLevel > 0 ? `[Lv. ${allyLevel}] ` : ""}${esc(member.name)}</span>
+                <div class="sprite-hp-bar" style="height:8px;display:flex;align-items:center;justify-content:center;position:relative;overflow:visible;">
+                    <div class="sprite-hp-fill" style="width:${Math.max(0, Math.min(100, hpRatio * 100))}%;height:100%;position:absolute;left:0;top:0;"></div>
+                    <span class="sprite-hp-text">${allyHpText}</span>
+                </div>
             `;
+
+            // UIE_BATTLE_ALLY_SPRITE_SWITCH_V1
+            // The battlefield portrait is the ally selector. Switching here
+            // updates the controlled actor without needing duplicate dock cards.
+            if (hpVal > 0) {
+                el.onclick = () => {
+                    if (!battleActive || !battleState) return;
+                    if (!["player_select", "target_select"].includes(String(battleState.phase || ""))) return;
+
+                    const queue = Array.isArray(battleState.turnQueue)
+                        ? battleState.turnQueue
+                        : [];
+                    const queueIndex = queue.findIndex((token) => {
+                        if (String(token?.side || "") !== "ally") return false;
+                        const tokenId =
+                            token?.id ??
+                            token?.actorId ??
+                            token?.combatantId ??
+                            token?.entityId ??
+                            token?.memberId ??
+                            "";
+                        return String(tokenId) === String(member.id);
+                    });
+
+                    if (queueIndex >= 0) battleState.turnIndex = queueIndex;
+                    battleState.activeActorId = member.id;
+                    battleState.activeSide = "ally";
+                    battleState.player = member;
+                    battleState.selectedAction = null;
+                    pendingAction = null;
+                    activeSubTab = "main";
+
+                    renderBattleStage();
+                    renderBottomDock();
+                    renderTurnTimeline();
+                };
+            }
 
             partyStage.appendChild(el);
         });
     }
     renderTurnTimeline();
+    const stalePetAdvice = document.getElementById("uie-battle-pet-advice");
+    if (stalePetAdvice) stalePetAdvice.remove();
 }
 
 function renderTurnTimeline() {
@@ -2547,280 +4224,371 @@ function renderTurnTimeline() {
 
 function renderBottomDock() {
     const dock = document.getElementById("battle-bottom-dock");
-    if (!dock) return;
-    if (!battleState) return;
+    const logPanel = document.getElementById("battle-log-panel");
+    if (!dock || !battleState) return;
+
+    const validTabs = new Set(["main", "skills", "magic", "items"]);
     if (activeSubTab === "runes") activeSubTab = "items";
-    dock.innerHTML = "";
+    if (!validTabs.has(activeSubTab)) activeSubTab = "main";
+
+    const battleScreen = document.getElementById("battle-screen");
+    const useMobileDrawer = Boolean(
+        window.matchMedia?.("(pointer: coarse) and (orientation: landscape)")?.matches
+    );
 
     const allies = battleState?.allies || [];
     const player = battleState?.player || allies[0];
     const activeId = battleState?.activeActorId;
     const selectedId = battleState?.selectedTargetId || selectedTarget;
-    const isPlayerTurn = battleState?.phase === "player_select" || battleState?.phase === "target_select";
+    const isPlayerTurn =
+        battleState?.phase === "player_select" ||
+        battleState?.phase === "target_select";
 
-    const partyStrip = document.createElement("div");
-    partyStrip.className = "dock-party-strip";
-    allies.forEach((m) => {
-        const isDead = Number(m.hp || m.vitals?.hp || 0) <= 0;
-        const isActive = String(m.id) === String(activeId);
-        const token = document.createElement("div");
-        token.className = `dock-party-token${isActive ? " is-active" : ""}${isDead ? " is-dead" : ""}`;
-        const avatarUrl = m.presentation?.portrait || m.imageUrl || m.sprite || "";
-        const hpRatio = Math.max(0, Math.min(100, Number(m.hp || 0) / Math.max(1, Number(m.maxHp || 100)) * 100));
-        token.innerHTML = `
-            <div class="dock-party-token-avatar" style="${avatarUrl ? `background-image:url('${escHtml(avatarUrl)}')` : ""}"></div>
-            <div class="dock-party-token-info">
-                <span class="dock-party-token-name">${esc(m.name)}</span>
-                <div class="dock-party-token-hp"><div class="dock-party-token-hp-fill" style="width:${hpRatio}%"></div></div>
-            </div>
-        `;
-        partyStrip.appendChild(token);
+    const skillActions = (player?.actions || []).filter((action) => {
+        const type = String(action?.skillType || action?.type || "").toLowerCase();
+        return type === "skill" || action?.source === "SkillTree";
     });
-    dock.appendChild(partyStrip);
+
+    const magicActions = (player?.actions || []).filter((action) => {
+        const type = String(action?.skillType || action?.type || "").toLowerCase();
+        return (
+            type === "magic" ||
+            type === "spell" ||
+            (Array.isArray(action?.tags) && action.tags.includes("magic"))
+        );
+    });
+
+    const combatItems = getCombatItems();
+    const isSubTab = ["skills", "magic", "items"].includes(activeSubTab);
+
+    let subPanelHeader = "";
+    let subPanelContent = "";
+    let subPanelCount = 0;
+
+    if (activeSubTab === "skills") {
+        subPanelHeader = "Skills";
+        subPanelCount = skillActions.length;
+        subPanelContent = skillActions.map((action, index) => {
+            const preview = getActionPreview(action, player, null);
+            return `
+                <button class="btn-sub subpanel-item sub-action-node"
+                        data-type="skill"
+                        data-idx="${index}"
+                        ${!isPlayerTurn ? "disabled" : ""}>
+                    <span>${esc(action.label || action.name)}</span>
+                    <small>${esc(preview?.costs || "Free")}</small>
+                    <div class="subpanel-item-tooltip">
+                        <strong>${esc(action.label || action.name)}</strong><br>
+                        Cost: ${esc(preview?.costs || "Free")}<br>
+                        ${esc(action.description || "Active tactical skill.")}
+                    </div>
+                </button>
+            `;
+        }).join("");
+
+        if (!skillActions.length) {
+            subPanelContent = `
+                <div class="battle-action-empty">
+                    <i class="fa-solid fa-bolt"></i>
+                    <strong>No skills available</strong>
+                    <span>This combatant has no usable battle skills.</span>
+                </div>
+            `;
+        }
+    } else if (activeSubTab === "magic") {
+        subPanelHeader = "Magic";
+        subPanelCount = magicActions.length;
+        subPanelContent = magicActions.map((action, index) => {
+            const preview = getActionPreview(action, player, null);
+            return `
+                <button class="btn-sub subpanel-item sub-action-node"
+                        data-type="magic"
+                        data-idx="${index}"
+                        ${!isPlayerTurn ? "disabled" : ""}>
+                    <span>${esc(action.label || action.name)}</span>
+                    <small>${esc(preview?.costs || "Free")}</small>
+                    <div class="subpanel-item-tooltip">
+                        <strong>${esc(action.label || action.name)}</strong><br>
+                        Cost: ${esc(preview?.costs || "Free")}<br>
+                        ${esc(action.description || "Cast a magical spell.")}
+                    </div>
+                </button>
+            `;
+        }).join("");
+
+        if (!magicActions.length) {
+            subPanelContent = `
+                <div class="battle-action-empty">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i>
+                    <strong>No magic unlocked</strong>
+                    <span>This combatant has no usable spells.</span>
+                </div>
+            `;
+        }
+    } else if (activeSubTab === "items") {
+        subPanelHeader = "Items";
+        subPanelCount = combatItems.length;
+        subPanelContent = combatItems.map((item, index) => `
+            <button class="btn-sub subpanel-item sub-action-node"
+                    data-type="item"
+                    data-idx="${index}"
+                    ${!isPlayerTurn ? "disabled" : ""}>
+                <span>${esc(item.name)}</span>
+                <small>x${Number(item.qty || item.quantity || 1)}</small>
+                ${isRuneItem(item) ? '<b class="subpanel-badge">Rune</b>' : ""}
+                <div class="subpanel-item-tooltip">
+                    <strong>${esc(item.name)}</strong><br>
+                    ${esc(
+                        item.description ||
+                        (isRuneItem(item)
+                            ? "Inventory rune item."
+                            : "Consumable combat item.")
+                    )}
+                </div>
+            </button>
+        `).join("");
+
+        if (!combatItems.length) {
+            subPanelContent = `
+                <div class="battle-action-empty">
+                    <i class="fa-solid fa-flask"></i>
+                    <strong>No combat items</strong>
+                    <span>No carried item is currently usable in battle.</span>
+                </div>
+            `;
+        }
+    }
+
+    dock.replaceChildren();
 
     const mainRow = document.createElement("div");
     mainRow.className = "dock-main-row";
 
-    const leftPanel = document.createElement("div");
-    leftPanel.className = "dock-left-profile";
-    const avatarUrl = player?.presentation?.portrait || player?.imageUrl || player?.sprite || "";
+    const vitalsPanel = document.createElement("div");
+    vitalsPanel.className = "dock-left-profile";
     const vitals = getCombatVitals(player);
-    leftPanel.innerHTML = `
-        <div style="display:flex;align-items:center;gap:8px;">
-            <div class="cb-active-avatar avatar-frame-glow" style="width:36px;height:36px;flex:0 0 36px;${avatarUrl ? `background-image:url('${avatarUrl}')` : ""}"></div>
-            <div>
-                <div style="font-size:12px;font-weight:700;color:#fff;">${esc(player?.name || "Player")}</div>
-                <div style="font-size:9px;color:#0ea5e9;">LV ${player?.level || 1} ${esc(player?.className || "Ally")}</div>
-            </div>
-        </div>
-        <div class="cb-stats-row vitals-matrix" style="gap:3px;">
-            ${vitals.map(v => `
-                <div class="cb-stat-progress gauge-row" style="height:12px;">
-                    <span class="cb-stat-label gauge-id" style="font-size:8px;">${esc(v.label)}</span>
-                    <div class="cb-stat-bar-container gauge-track" style="height:4px;">
-                        <div class="cb-stat-bar-fill gauge-bar vital-${esc(v.key)}" style="width:${v.ratio}%;"></div>
+
+    vitalsPanel.innerHTML = `
+        <div class="cb-stats-row vitals-matrix" aria-label="Life trackers">
+            ${vitals.map((vital) => `
+                <div class="cb-stat-progress gauge-row">
+                    <span class="cb-stat-label gauge-id">${esc(vital.label)}</span>
+                    <div class="cb-stat-bar-container gauge-track">
+                        <div class="cb-stat-bar-fill gauge-bar vital-${esc(vital.key)}"
+                             style="width:${vital.ratio}%">
+                        </div>
                     </div>
-                    <span class="cb-stat-value gauge-fraction" style="font-size:8px;min-width:28px;">${Math.round(v.value)}/${Math.round(v.max)}</span>
+                    <span class="cb-stat-value gauge-fraction">
+                        ${Math.round(vital.value)}/${Math.round(vital.max)}
+                    </span>
                 </div>
             `).join("")}
         </div>
     `;
-    mainRow.appendChild(leftPanel);
 
-    const centerPanel = document.createElement("div");
-    centerPanel.className = "dock-center-actions";
+    const commandPanel = document.createElement("div");
+    commandPanel.className = "dock-center-actions";
 
-    const hasTarget = !!selectedId;
     const commands = [
-        { id: "attack", label: "Attack", tab: "attack", icon: "fa-solid fa-sword", needsTarget: true },
-        { id: "skills", label: "Skills", tab: "skills", icon: "fa-solid fa-bolt", needsTarget: false },
-        { id: "magic", label: "Magic", tab: "magic", icon: "fa-solid fa-wand-magic-sparkles", needsTarget: false },
-        { id: "items", label: "Items", tab: "items", icon: "fa-solid fa-flask", needsTarget: false },
-        { id: "defend", label: "Defend", tab: "defend", icon: "fa-solid fa-shield-halved", needsTarget: false },
-        { id: "flee", label: "Flee", tab: "flee", icon: "fa-solid fa-person-running", needsTarget: false },
-        { id: "wait", label: "Wait", tab: "wait", icon: "fa-solid fa-hourglass", needsTarget: false }
+        { id: "attack", label: "Attack", icon: "fa-solid fa-sword", needsTarget: true },
+        { id: "skills", label: "Skills", icon: "fa-solid fa-bolt" },
+        { id: "magic", label: "Magic", icon: "fa-solid fa-wand-magic-sparkles" },
+        { id: "items", label: "Items", icon: "fa-solid fa-flask" },
+        { id: "defend", label: "Defend", icon: "fa-solid fa-shield-halved" },
     ];
 
-    const menuButtons = commands.map((cmd) => {
-        const isActive = activeSubTab === cmd.tab;
-        const disabled = !isPlayerTurn || (cmd.needsTarget && !hasTarget && cmd.id === "attack");
+    const menuButtons = commands.map((command) => {
+        const isActive = activeSubTab === command.id;
+        const disabled = !isPlayerTurn || (command.needsTarget && !selectedId);
+
         return `
-            <button type="button" class="btn-action cb-menu-btn action-trigger-btn ${isActive ? 'active selected' : ''}" data-cmd="${cmd.id}" ${disabled ? 'disabled style="opacity:0.4;pointer-events:none;"' : ''}>
-                <i class="${cmd.icon}"></i> ${cmd.label.toUpperCase()}
+            <button type="button"
+                    class="btn-action cb-menu-btn action-trigger-btn
+                           ${isActive ? "active selected" : ""}"
+                    data-cmd="${command.id}"
+                    ${disabled ? 'disabled aria-disabled="true"' : ""}>
+                <i class="${command.icon}"></i>
+                <span>${command.label}</span>
             </button>
         `;
     }).join("");
 
-    let subPanelContent = "";
-    let subPanelHeader = activeSubTab;
-
-    if (activeSubTab === "skills") {
-        const skills = (player?.actions || []).filter(a => String(a.skillType || a.type).toLowerCase() === "skill" || a.source === "SkillTree");
-        subPanelContent = skills.map((s, idx) => {
-            const preview = getActionPreview(s, player, null);
-            return `
-                <button class="btn-sub subpanel-item sub-action-node" data-type="skill" data-idx="${idx}" ${!isPlayerTurn ? 'disabled' : ''}>
-                    ${esc(s.label || s.name)}
-                    <div class="subpanel-item-tooltip">
-                        <strong>${esc(s.label || s.name)}</strong><br>
-                        Cost: ${preview?.costs || "Free"}<br>
-                        ${esc(s.description || "Active tactical skill.")}
-                    </div>
-                </button>
-            `;
-        }).join("");
-        if (!skills.length) subPanelContent = `<div style="font-size:10px;opacity:0.6;padding:10px;">No skills available.</div>`;
-    } else if (activeSubTab === "magic") {
-        const magic = (player?.actions || []).filter(a => {
-            const t = String(a.skillType || a.type).toLowerCase();
-            return t === "magic" || t === "spell" || (Array.isArray(a.tags) ? a.tags.includes("magic") : false);
-        });
-        subPanelContent = magic.map((s, idx) => {
-            const preview = getActionPreview(s, player, null);
-            return `
-                <button class="btn-sub subpanel-item sub-action-node" data-type="magic" data-idx="${idx}" ${!isPlayerTurn ? 'disabled' : ''}>
-                    ${esc(s.label || s.name)}
-                    <div class="subpanel-item-tooltip">
-                        <strong>${esc(s.label || s.name)}</strong><br>
-                        Cost: ${preview?.costs || "Free"}<br>
-                        ${esc(s.description || "Cast magical spell.")}
-                    </div>
-                </button>
-            `;
-        }).join("");
-        if (!magic.length) subPanelContent = `<div style="font-size:10px;opacity:0.6;padding:10px;">No spells unlocked.</div>`;
-    } else if (activeSubTab === "items") {
-        const items = getCombatItems();
-        subPanelContent = items.map((it, idx) => `
-            <button class="btn-sub subpanel-item sub-action-node" data-type="item" data-idx="${idx}" ${!isPlayerTurn ? 'disabled' : ''}>
-                ${esc(it.name)} (x${it.qty || it.quantity || 1})
-                ${isRuneItem(it) ? '<span class="subpanel-badge">Rune</span>' : ''}
-                <div class="subpanel-item-tooltip">
-                    <strong>${esc(it.name)}</strong><br>
-                    ${esc(it.description || (isRuneItem(it) ? "Inventory rune item." : "Consumable combat item."))}
+    const desktopSubPanel = !useMobileDrawer && isSubTab
+        ? `
+            <div class="sub-action-pane internal-sub-menu-view">
+                <div class="battle-inline-sub-head">
+                    <button type="button" class="battle-sub-back">← Back</button>
+                    <span class="pane-title sub-view-title">
+                        ${subPanelHeader.toUpperCase()}
+                    </span>
+                    <b>${subPanelCount}</b>
                 </div>
-            </button>
-        `).join("");
-        if (!items.length) subPanelContent = `<div style="font-size:10px;opacity:0.6;padding:10px;">No items usable in battle.</div>`;
-    }
+                <div class="sub-button-row subpanel-list sub-options-flex-wrapper">
+                    ${subPanelContent}
+                </div>
+            </div>
+        `
+        : "";
 
-    let previewHtml = "";
-    if (battleState?.selectedAction && isPlayerTurn) {
-        const target = selectedId ? (battleState.enemies.find(e => String(e.id) === String(selectedId)) || battleState.allies.find(a => String(a.id) === String(selectedId))) : null;
-        const preview = getActionPreview(battleState.selectedAction, player, target);
-        if (preview) {
-            previewHtml = `<div class="action-preview">Cost: ${esc(preview.costs)}${preview.estimate ? ` | ${esc(preview.estimate)}` : ""}</div>`;
-        }
-    }
-
-    centerPanel.innerHTML = `
-        <div class="action-grid primary-command-row" style="grid-template-columns:repeat(3,1fr);">
+    commandPanel.innerHTML = `
+        <div class="action-grid primary-command-row">
             ${menuButtons}
         </div>
-        <div class="sub-action-pane internal-sub-menu-view" style="${(activeSubTab === 'skills' || activeSubTab === 'magic' || activeSubTab === 'items') ? '' : 'display: none;'}">
-            <span class="pane-title sub-view-title">${subPanelHeader.toUpperCase()} AVAILABLE</span>
-            <div class="sub-button-row subpanel-list sub-options-flex-wrapper">
-                ${subPanelContent}
-            </div>
-        </div>
-        ${previewHtml}
+        ${desktopSubPanel}
     `;
 
-    centerPanel.querySelectorAll(".action-grid .btn-action").forEach(btn => {
-        btn.onclick = () => {
-            const cmd = btn.dataset.cmd;
-            if (cmd === "attack") {
-                if (selectedId) {
-                    handleBattleAction({ id: "attack", label: "Attack", type: "attack", cost: { ap: 1 } });
-                } else {
-                    addBattleLog("Select a target first!", "normal");
-                }
-            } else if (cmd === "defend") {
-                handleBattleAction({ id: "defend", label: "Defend", type: "defend", cost: {} });
-            } else if (cmd === "flee") {
-                handleBattleAction({ id: "flee", label: "Flee", type: "flee", cost: {} });
-            } else if (cmd === "wait") {
-                handleBattleAction({ id: "wait", label: "Wait", type: "wait", cost: {} });
-            } else {
-                activeSubTab = cmd;
-                renderBottomDock();
-            }
-        };
-    });
+    mainRow.append(vitalsPanel, commandPanel);
+    dock.appendChild(mainRow);
 
-    centerPanel.querySelectorAll(".sub-action-pane .btn-sub").forEach(itemEl => {
-        itemEl.onclick = () => {
-            const type = itemEl.dataset.type;
-            const idx = Number(itemEl.dataset.idx);
+    let actionDrawer = document.getElementById("battle-action-drawer");
 
-            if (type === "skill" || type === "magic") {
-                const list = (player?.actions || []).filter(a => {
-                    const t = String(a.skillType || a.type).toLowerCase();
-                    if (type === "skill") return t === "skill" || a.source === "SkillTree";
-                    return t === "magic" || t === "spell" || (Array.isArray(a.tags) ? a.tags.includes("magic") : false);
-                });
-                const act = list[idx];
-                if (act) handleBattleAction(act);
-            } else if (type === "item") {
-                const list = getCombatItems();
-                const it = list[idx];
-                if (it) {
-                    if (!isRuneItem(it)) {
-                        useBattleItem(it);
-                        return;
-                    }
-                    openRuneDrawingModal(it, (accuracy) => {
-                        if (accuracy >= 45) {
-                            const action = { id: "rune_cast_" + it.name, label: it.name, type: "skill", costs: { mp: 5 } };
-                            handleBattleAction(action);
-                            consumeInventoryItem(it);
-                        }
-                    });
-                }
-            }
-        };
-    });
+    if (useMobileDrawer && isSubTab && battleScreen) {
+        if (!actionDrawer) {
+            actionDrawer = document.createElement("section");
+            actionDrawer.id = "battle-action-drawer";
+            battleScreen.appendChild(actionDrawer);
+        }
 
-    mainRow.appendChild(centerPanel);
-
-    const rightPanel = document.createElement("div");
-    rightPanel.className = "dock-right-inspector";
-    const targetCombatant = selectedId
-        ? (battleState.enemies.find(e => String(e.id) === String(selectedId)) || battleState.allies.find(a => String(a.id) === String(selectedId)))
-        : null;
-
-    if (targetCombatant) {
-        const tVitals = getCombatVitals(targetCombatant);
-        const tStatuses = Array.isArray(targetCombatant.statuses) ? targetCombatant.statuses : [];
-        const threatLabel = getThreatTierLabel(targetCombatant.threatTier || targetCombatant.tier);
-        rightPanel.innerHTML = `
-            <div class="target-inspector">
-                <div class="target-inspector-title">Target</div>
-                <div class="target-inspector-name">${esc(targetCombatant.name)}</div>
-                ${tVitals.map(v => `
-                    <div class="target-inspector-row">
-                        <span>${esc(v.label)}</span>
-                        <span>${Math.round(v.value)}/${Math.round(v.max)}</span>
-                    </div>
-                `).join("")}
-                <div class="target-inspector-row">
-                    <span>Threat</span>
-                    <span>${esc(threatLabel)}</span>
-                </div>
-                ${tStatuses.length ? `
-                    <div class="target-inspector-row">
-                        <span>Status</span>
-                        <span>${tStatuses.map(s => esc(s.name)).join(", ")}</span>
-                    </div>
-                ` : ""}
-                ${targetCombatant.type === "enemy" ? `
-                    <div class="target-inspector-row">
-                        <span>Break</span>
-                        <span>${Number(targetCombatant.breakStacks || 0)}/3</span>
-                    </div>
-                    ${(() => {
-                        const intel = getEnemyIntelligence(targetCombatant);
-                        const smartLabel = intel.int >= 12 ? "Genius" : intel.int >= 9 ? "Cunning" : intel.int >= 6 ? "Alert" : "Feral";
-                        const smartColor = intel.int >= 12 ? "#f97316" : intel.int >= 9 ? "#eab308" : intel.int >= 6 ? "#3b82f6" : "#6b7280";
-                        return `<div class="target-inspector-row">
-                            <span>Intel</span>
-                            <span style="color:${smartColor};font-weight:900;">${smartLabel}</span>
-                        </div>`;
-                    })()}
-                ` : ""}
+        battleScreen.classList.add("has-action-drawer");
+        actionDrawer.dataset.tab = activeSubTab;
+        actionDrawer.innerHTML = `
+            <header class="battle-action-drawer-head">
+                <button type="button"
+                        class="battle-drawer-back"
+                        aria-label="Back to main battle commands">
+                    ← Back
+                </button>
+                <strong>${subPanelHeader}</strong>
+                <span>${subPanelCount}</span>
+            </header>
+            <div class="battle-action-drawer-list
+                        sub-button-row
+                        subpanel-list
+                        sub-options-flex-wrapper">
+                ${subPanelContent}
             </div>
         `;
     } else {
-        rightPanel.innerHTML = `
-            <div class="target-inspector" style="opacity:0.5;">
-                <div class="target-inspector-title">Target</div>
-                <div style="font-size:10px;color:#64748b;">Select an enemy to inspect</div>
-            </div>
-        `;
+        battleScreen?.classList.remove("has-action-drawer");
+        actionDrawer?.remove();
+        actionDrawer = null;
     }
-    mainRow.appendChild(rightPanel);
 
-    dock.appendChild(mainRow);
+    const closeSubScreen = () => {
+        activeSubTab = "main";
+        battleScreen?.classList.remove("has-action-drawer");
+        document.getElementById("battle-action-drawer")?.remove();
+        renderBottomDock();
+    };
+
+    commandPanel.querySelectorAll(".action-grid .btn-action").forEach((button) => {
+        button.onclick = () => {
+            const command = button.dataset.cmd;
+
+            if (command === "attack") {
+                if (selectedId) {
+                    activeSubTab = "main";
+                    handleBattleAction({
+                        id: "attack",
+                        label: "Attack",
+                        type: "attack",
+                        cost: { ap: 1 },
+                    });
+                } else {
+                    addBattleLog("Select a target first!", "normal");
+                }
+                return;
+            }
+
+            if (command === "defend") {
+                activeSubTab = "main";
+                handleBattleAction({
+                    id: "defend",
+                    label: "Defend",
+                    type: "defend",
+                    cost: {},
+                });
+                return;
+            }
+
+            activeSubTab = activeSubTab === command ? "main" : command;
+            renderBottomDock();
+        };
+    });
+
+    commandPanel
+        .querySelector(".battle-sub-back")
+        ?.addEventListener("click", closeSubScreen);
+
+    actionDrawer
+        ?.querySelector(".battle-drawer-back")
+        ?.addEventListener("click", closeSubScreen);
+
+    const optionHosts = [commandPanel, actionDrawer].filter(Boolean);
+
+    optionHosts.forEach((host) => {
+        host.querySelectorAll(".btn-sub").forEach((option) => {
+            option.onclick = () => {
+                const type = option.dataset.type;
+                const index = Number(option.dataset.idx);
+
+                if (type === "skill" || type === "magic") {
+                    const list = type === "skill" ? skillActions : magicActions;
+                    const action = list[index];
+
+                    if (action) {
+                        activeSubTab = "main";
+                        battleScreen?.classList.remove("has-action-drawer");
+                        document.getElementById("battle-action-drawer")?.remove();
+                        handleBattleAction(action);
+                    }
+                    return;
+                }
+
+                if (type !== "item") return;
+
+                const item = combatItems[index];
+                if (!item) return;
+
+                activeSubTab = "main";
+                battleScreen?.classList.remove("has-action-drawer");
+                document.getElementById("battle-action-drawer")?.remove();
+
+                if (!isRuneItem(item)) {
+                    useBattleItem(item);
+                    return;
+                }
+
+                openRuneDrawingModal(item, (accuracy) => {
+                    if (accuracy < 45) return;
+
+                    const action = {
+                        id: `rune_cast_${item.name}`,
+                        label: item.name,
+                        type: "skill",
+                        costs: { mp: 5 },
+                    };
+
+                    handleBattleAction(action);
+                    consumeInventoryItem(item);
+                });
+            };
+        });
+    });
+
+    const logElement = logPanel?.querySelector("#battle-log");
+    if (!logElement) return;
+
+    logElement.replaceChildren();
+
+    battleLog.forEach((entry) => {
+        const row = document.createElement("div");
+        row.className = `battle-log-entry ${entry.type || "normal"}`;
+        row.textContent = String(entry.message || "");
+        logElement.appendChild(row);
+    });
+
+    logElement.scrollTop = logElement.scrollHeight;
 }
 
 function openRuneDrawingModal(runeItem, onDone) {
@@ -2990,175 +4758,9 @@ function openRuneDrawingModal(runeItem, onDone) {
     };
 }
 
-function openRuneDrawingModalDuplicateUnused(runeItem, onDone) {
-    const modal = document.createElement("div");
-    modal.id = "uie-rune-canvas-modal";
-    modal.style.cssText = "position:fixed;inset:0;z-index:2147483654;background:rgba(3,7,18,0.92);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px;color:#fff;font-family:system-ui,sans-serif;";
-    
-    const runeName = String(runeItem?.name || "Rune").toLowerCase();
-    let shape = "circle";
-    if (runeName.includes("fire") || runeName.includes("pyro")) shape = "triangle";
-    else if (runeName.includes("ice") || runeName.includes("cryo")) shape = "star";
-    else if (runeName.includes("lightning") || runeName.includes("bolt")) shape = "zigzag";
-    
-    modal.innerHTML = `
-        <div style="width:min(720px,96vw);background:#0a0e17;border:2px solid #0ea5e9;border-radius:12px;padding:20px;box-shadow:0 0 30px rgba(14,165,233,0.3);text-align:center;">
-            <h3 style="margin-top:0;color:#0ea5e9;text-transform:uppercase;letter-spacing:1px;">Draw Rune: ${escHtml(runeItem?.name || "Ancient Sigil")}</h3>
-            <p style="font-size:12px;color:#94a3b8;margin-bottom:16px;">Trace the pattern on the left onto the drawing canvas on the right.</p>
-            
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;justify-items:center;margin-bottom:20px;">
-                <div>
-                    <div style="font-size:11px;color:#cba35c;margin-bottom:6px;text-transform:uppercase;">Expected Pattern</div>
-                    <canvas id="rune-template-canvas" width="200" height="200" style="border:1px dashed rgba(14,165,233,0.3);background:#070a0f;border-radius:8px;"></canvas>
-                </div>
-                <div>
-                    <div style="font-size:11px;color:#0ea5e9;margin-bottom:6px;text-transform:uppercase;">Draw Area</div>
-                    <canvas id="rune-draw-canvas" width="200" height="200" style="border:1px solid #0ea5e9;background:#070a0f;border-radius:8px;cursor:crosshair;"></canvas>
-                </div>
-            </div>
-            
-            <div id="rune-accuracy-lbl" style="font-weight:900;font-size:16px;color:#cba35c;margin-bottom:16px;height:24px;"></div>
-            
-            <div style="display:flex;gap:12px;justify-content:center;">
-                <button id="rune-clear-btn" class="reply-tool-btn" style="width:auto;padding:8px 16px;cursor:pointer;">Clear</button>
-                <button id="rune-cancel-btn" class="reply-tool-btn" style="width:auto;padding:8px 16px;border-color:#ef4444!important;color:#ef4444!important;cursor:pointer;">Cancel</button>
-                <button id="rune-cast-btn" class="reply-tool-btn" style="width:auto;padding:8px 16px;background:#0ea5e9;color:#070a0f;border-color:#0ea5e9;cursor:pointer;">Cast Rune</button>
-            </div>
-        </div>
-    `;
-    
-    document.body.appendChild(modal);
-    
-    const tCanvas = modal.querySelector("#rune-template-canvas");
-    const dCanvas = modal.querySelector("#rune-draw-canvas");
-    const tCtx = tCanvas.getContext("2d");
-    const dCtx = dCanvas.getContext("2d");
-    
-    tCtx.strokeStyle = "rgba(14, 165, 233, 0.4)";
-    tCtx.lineWidth = 10;
-    tCtx.lineCap = "round";
-    tCtx.lineJoin = "round";
-    
-    function drawTemplatePattern() {
-        tCtx.clearRect(0, 0, 200, 200);
-        tCtx.beginPath();
-        if (shape === "triangle") {
-            tCtx.moveTo(100, 30);
-            tCtx.lineTo(170, 170);
-            tCtx.lineTo(30, 170);
-            tCtx.closePath();
-        } else if (shape === "star") {
-            tCtx.moveTo(100, 20);
-            tCtx.lineTo(120, 70);
-            tCtx.lineTo(175, 75);
-            tCtx.lineTo(135, 115);
-            tCtx.lineTo(145, 170);
-            tCtx.lineTo(100, 140);
-            tCtx.lineTo(55, 170);
-            tCtx.lineTo(65, 115);
-            tCtx.lineTo(25, 75);
-            tCtx.lineTo(80, 70);
-            tCtx.closePath();
-        } else if (shape === "zigzag") {
-            tCtx.moveTo(40, 40);
-            tCtx.lineTo(160, 40);
-            tCtx.lineTo(40, 100);
-            tCtx.lineTo(160, 100);
-            tCtx.lineTo(40, 160);
-            tCtx.lineTo(160, 160);
-        } else {
-            tCtx.arc(100, 100, 70, 0, Math.PI * 2);
-        }
-        tCtx.stroke();
-    }
-    
-    drawTemplatePattern();
-    
-    let drawing = false;
-    dCtx.strokeStyle = "#0ea5e9";
-    dCtx.lineWidth = 8;
-    dCtx.lineCap = "round";
-    dCtx.lineJoin = "round";
-    
-    function getMousePos(canvas, evt) {
-        const rect = canvas.getBoundingClientRect();
-        return {
-            x: (evt.clientX - rect.left) * (canvas.width / rect.width),
-            y: (evt.clientY - rect.top) * (canvas.height / rect.height)
-        };
-    }
-    
-    const startDraw = (e) => {
-        drawing = true;
-        const pos = getMousePos(dCanvas, e);
-        dCtx.beginPath();
-        dCtx.moveTo(pos.x, pos.y);
-    };
-    
-    const drawMove = (e) => {
-        if (!drawing) return;
-        const pos = getMousePos(dCanvas, e);
-        dCtx.lineTo(pos.x, pos.y);
-        dCtx.stroke();
-    };
-    
-    const stopDraw = () => {
-        drawing = false;
-    };
-    
-    dCanvas.addEventListener("mousedown", startDraw);
-    dCanvas.addEventListener("mousemove", drawMove);
-    window.addEventListener("mouseup", stopDraw);
-    
-    // Support Touch Events
-    dCanvas.addEventListener("touchstart", (e) => {
-        if (e.touches.length > 0) startDraw(e.touches[0]);
-    });
-    dCanvas.addEventListener("touchmove", (e) => {
-        if (e.touches.length > 0) drawMove(e.touches[0]);
-    });
-    window.addEventListener("touchend", stopDraw);
-    
-    modal.querySelector("#rune-clear-btn").onclick = () => {
-        dCtx.clearRect(0, 0, 200, 200);
-        modal.querySelector("#rune-accuracy-lbl").textContent = "";
-    };
-    
-    modal.querySelector("#rune-cancel-btn").onclick = () => {
-        modal.remove();
-    };
-    
-    modal.querySelector("#rune-cast-btn").onclick = () => {
-        const tImgData = tCtx.getImageData(0, 0, 200, 200).data;
-        const dImgData = dCtx.getImageData(0, 0, 200, 200).data;
-        
-        let match = 0;
-        let total = 0;
-        
-        for (let i = 0; i < tImgData.length; i += 16) {
-            const tAlpha = tImgData[i + 3];
-            const dAlpha = dImgData[i + 3];
-            
-            if (tAlpha > 50 || dAlpha > 50) {
-                total++;
-                if (tAlpha > 50 && dAlpha > 50) {
-                    match++;
-                }
-            }
-        }
-        
-        const accuracy = total > 0 ? Math.round((match / total) * 100) : 0;
-        modal.querySelector("#rune-accuracy-lbl").textContent = `Drawing Accuracy: ${accuracy}%`;
-        
-        setTimeout(() => {
-            modal.remove();
-            onDone(accuracy);
-        }, 1200);
-    };
-}
-
 export function ensureBattle(enemies = [], options = {}) {
     if (battleActive) return;
+    activeSubTab = "main";
     ensureBattleCss();
 
     const s = getSettings();
@@ -3167,6 +4769,7 @@ export function ensureBattle(enemies = [], options = {}) {
         return;
     }
     battleActive = true;
+    activeSubTab = "main";
     const projection = buildCombatProjection(s, {
         ...options,
         enemies,
@@ -3181,7 +4784,10 @@ export function ensureBattle(enemies = [], options = {}) {
     }
     const existingBattleScreen = document.getElementById("battle-screen");
     if (existingBattleScreen) {
-        existingBattleScreen.classList.add("uie-battle-tactical");
+        existingBattleScreen.classList.add("uie-battle-tactical", "uie-fullscreen-app");
+        const overlayRoot = document.getElementById("game-overlay-root") || document.body;
+        if (existingBattleScreen.parentElement !== overlayRoot) overlayRoot.appendChild(existingBattleScreen);
+        Object.assign(existingBattleScreen.style, { display: "block", width: "100vw", height: "100dvh", maxWidth: "none", maxHeight: "none", inset: "0", pointerEvents: "auto", transform: "none", zoom: "1", position: "fixed" });
         applyBattleLocationBackground();
     }
     bindBattleControls();
@@ -3197,6 +4803,7 @@ export function ensureBattle(enemies = [], options = {}) {
     battleState.activeActorId = null;
     battleState.activeSide = null;
     battleState.phase = "start";
+    battleState.surprised = options.surprised === true || options.ambush === true;
     battleState.selectedAction = null;
     battleState.selectedTargetId = null;
     battleState.enemyIntents = {};
@@ -3218,14 +4825,17 @@ export function ensureBattle(enemies = [], options = {}) {
         saveSettings();
     } catch (_) {}
     clearBattleLog();
-    addBattleLog("Battle has begun!", "normal");
+    const enemyNames = projectedEnemies.map((enemy) => enemy?.name).filter(Boolean);
+    const encounterLocation = String(s?.worldState?.location || s?.map?.location || "the current area").trim();
+    addBattleLog(`Encounter at ${encounterLocation}: ${enemyNames.join(", ") || "an unknown threat"} blocks the way.`, "critical");
+    addBattleLog(battleState.surprised ? "The enemy has the advantage!" : `${controlledMember?.name || "You"} can act before the enemy.`, "normal");
     console.log("[Battle] Battle initiated");
 
     animateGlassShatter(snapshotCanvas, () => {
         if (!battleActive || !battleState) return;
         const battleScreen = document.getElementById("battle-screen");
         if (battleScreen) {
-            battleScreen.classList.add("uie-battle-tactical", "landscape-gameplay");
+            battleScreen.classList.add("uie-battle-tactical", "landscape-gameplay", "uie-fullscreen-app");
             applyBattleLocationBackground();
             battleScreen.style.display = "block";
 
@@ -3423,12 +5033,74 @@ async function requestEnemyBattlePlan(enemy, extra = {}) {
             character: enemy.name,
             opponent: battleState?.player?.name || "User",
             allies: (battleState?.enemies || []).map(e => e.name).filter(Boolean),
-            context: battleContextSnapshot({ activeEnemy: enemy.name, ...extra }),
+            context: battleContextSnapshot({
+                activeEnemy: enemy.name,
+                enemyProfile: {
+                    name: enemy.name,
+                    level: enemy.level || enemy.jobClass?.level || 1,
+                    hp: enemy.hp,
+                    maxHp: enemy.maxHp,
+                    stats: enemy.stats || enemy.derived?.stats || {},
+                    derived: enemy.derived || {},
+                    equipment: enemy.equipment || [],
+                    items: enemy.items || [],
+                    actions: enemy.actions || enemy.attacks || [],
+                    morale: enemy.morale,
+                    disposition: enemy.disposition,
+                    objective: enemy.objective,
+                },
+                ...extra,
+            }),
         }, { required: false, timeoutMs: 900 });
         return response?.ok ? response.plan : null;
     } catch (_) {
         return null;
     }
+}
+
+function isMagicalCombatAction(action = {}) {
+    return /magic|spell|arcane|fire|frost|lightning|holy|curse/.test(actionText(action));
+}
+
+function statBasedDamage(attacker, defender, action, baseRoll = 10) {
+    const magical = isMagicalCombatAction(action);
+    const attack = Number(magical ? attacker?.derived?.magicalAttack : attacker?.derived?.physicalAttack)
+        || Number(magical ? attacker?.stats?.int : attacker?.stats?.str)
+        || 10;
+    const defense = Number(magical ? defender?.derived?.magicalDefense : defender?.derived?.defense)
+        || Number(magical ? defender?.stats?.wis : defender?.stats?.con)
+        || 10;
+    const level = Math.max(1, Number(attacker?.level || attacker?.jobClass?.level || 1));
+    const variance = 0.88 + Math.random() * 0.24;
+    return Math.max(1, Math.round((Number(baseRoll || 10) + attack * 0.55 + level * 0.35 - defense * 0.42) * variance));
+}
+
+function enemyShouldYield(enemy) {
+    if (!enemy || Number(enemy.hp || 0) <= 0) return false;
+    const disposition = String(enemy.disposition || enemy.personality || enemy.archetype || "").toLowerCase();
+    if (/mindless|fanatic|berserk|construct|undead/.test(disposition)) return false;
+    const ratio = Number(enemy.hp || 0) / Math.max(1, Number(enemy.maxHp || 100));
+    const morale = Math.max(0.08, Math.min(0.45, Number(enemy.morale ?? 0.2)));
+    return ratio <= morale && Math.random() < 0.65;
+}
+
+function tryUseEnemyBattleItem(enemy) {
+    if (!enemy || !Array.isArray(enemy.items) || !enemy.items.length) return false;
+    const hpRatio = Number(enemy.hp || 0) / Math.max(1, Number(enemy.maxHp || 100));
+    if (hpRatio > 0.4) return false;
+    const index = enemy.items.findIndex((item) => Number(item?.heal || item?.healing || item?.hp || 0) > 0);
+    if (index < 0) return false;
+    const item = enemy.items[index];
+    const heal = Math.max(1, Number(item.heal || item.healing || item.hp || 0));
+    enemy.hp = Math.min(Number(enemy.maxHp || 100), Number(enemy.hp || 0) + heal);
+    if (enemy.vitals) enemy.vitals.hp = enemy.hp;
+    const qty = Math.max(1, Number(item.qty || item.quantity || 1));
+    if (qty > 1) item.qty = qty - 1;
+    else enemy.items.splice(index, 1);
+    addBattleLog(`${enemy.name} uses ${item.name || "a carried item"} and restores ${heal} HP.`, "enemy-action");
+    renderBattleStage();
+    renderBottomDock();
+    return true;
 }
 
 function chooseContextualActionFromLocalRules() {
@@ -3517,7 +5189,47 @@ function executePlayerAction(action, targetId) {
                 return;
             }
             const result = evaluateAction(battleState.player, action, target);
-            const outcome = executeAction(battleState.player, result, target);
+            let baseDamage = statBasedDamage(battleState.player, target, action, Math.max(1, Number(result?.roll?.total || 10) - 5));
+            
+            // 1. Elemental Synergies
+            let synergyApplied = "";
+            const actText = actionText(action);
+            
+            if (hasStatus(target, "burning") && (actText.includes("frost") || actText.includes("ice") || actText.includes("water") || actText.includes("cryo"))) {
+                baseDamage = Math.round(baseDamage * 1.8);
+                removeStatus(target, "burning");
+                synergyApplied = "❄️ MELT / VAPORIZE (1.8x DMG!)";
+            } else if (hasStatus(target, "poisoned") && (actText.includes("fire") || actText.includes("pyro") || actText.includes("explode") || actText.includes("burst"))) {
+                baseDamage = Math.round(baseDamage * 1.6);
+                removeStatus(target, "poisoned");
+                synergyApplied = "💥 TOXIC DETONATION (1.6x DMG!)";
+            } else if (hasStatus(target, "stunned") || hasStatus(target, "broken")) {
+                if (actText.includes("slash") || actText.includes("strike") || actText.includes("bite") || actText.includes("heavy") || actText.includes("backstab")) {
+                    baseDamage = Math.round(baseDamage * 1.5);
+                    synergyApplied = "⚔️ EXECUTE CRITICAL (1.5x DMG!)";
+                }
+            }
+
+            // 2. Archetype Weaknesses
+            let weaknessExploited = false;
+            const enemyClass = String(target.className || "").toLowerCase();
+            
+            if ((enemyClass.includes("beast") || target.disposition?.includes("beast")) && (actText.includes("fire") || actText.includes("pyro") || actText.includes("burn"))) {
+                weaknessExploited = true;
+            } else if (enemyClass.includes("undead") && (actText.includes("holy") || actText.includes("light") || actText.includes("heal") || actText.includes("sun"))) {
+                weaknessExploited = true;
+            } else if (enemyClass.includes("machine") && (actText.includes("lightning") || actText.includes("bolt") || actText.includes("elec") || actText.includes("storm"))) {
+                weaknessExploited = true;
+            } else if (enemyClass.includes("fiend") && (actText.includes("frost") || actText.includes("ice") || actText.includes("cryo"))) {
+                weaknessExploited = true;
+            }
+
+            if (weaknessExploited) {
+                baseDamage = Math.round(baseDamage * 1.4);
+                target.breakStacks = Number(target.breakStacks || 0) + 2;
+            }
+
+            const outcome = executeAction(battleState.player, result, target, String(baseDamage));
             if (hasStatus(target, "broken")) {
                 outcome.damage = Math.round(Number(outcome.damage || 0) * 1.5);
                 target.hp = Math.max(0, Number(target.hp || 0) - Math.round(Number(outcome.damage || 0) * 0.5));
@@ -3533,12 +5245,27 @@ function executePlayerAction(action, targetId) {
                 logMsg += ` ${outcome.damage} damage.`;
                 addBattleLog(logMsg, "player-action");
             }
+
+            if (synergyApplied) {
+                addBattleLog(`[Reaction] ${synergyApplied}`, "critical");
+                const targetEl = document.querySelector(`.battle-sprite-container[data-enemy-id="${target.id}"]`);
+                showFloatingNumber(targetEl, synergyApplied.split(" ")[0], "#60a5fa");
+            }
+            if (weaknessExploited) {
+                addBattleLog(`⚠️ WEAKNESS EXPLOITED! ${target.name} takes extra stagger & damage!`, "critical");
+                const targetEl = document.querySelector(`.battle-sprite-container[data-enemy-id="${target.id}"]`);
+                showFloatingNumber(targetEl, "⚠️ WEAKNESS!", "#fbbf24");
+            }
             
             renderBattleStage();
             renderBottomDock();
             
+            if (!outcome.targetDefeated && enemyShouldYield(target)) {
+                outcome.targetDefeated = true;
+                outcome.surrendered = true;
+            }
             if (outcome.targetDefeated || Number(target.hp || 0) <= 0) {
-                addBattleLog(`${target.name} has been defeated!`, "critical");
+                addBattleLog(outcome.surrendered ? `${target.name} yields and leaves the fight!` : `${target.name} is incapacitated and defeated!`, "critical");
                 removeEnemy(target);
                 
                 if (liveEnemies().length === 0) {
@@ -3585,41 +5312,18 @@ async function executeEnemyTurn(opts = {}) {
             return;
         }
 
+        if (tryUseEnemyBattleItem(enemy)) {
+            setTimeout(advanceTurn, 650);
+            return;
+        }
+
         const plan = await requestEnemyBattlePlan(enemy, { mode: "enemy_turn" });
         const intel = getEnemyIntelligence(enemy);
         const smartChoice = chooseSmartEnemyAction(enemy, target);
         const guarded = smartChoice?.guarded === true;
         const chosenAttack = smartChoice?.attack;
         const opener = chosenAttack ? (chosenAttack.label || chosenAttack.name || String(plan?.opener || "attacks")) : String(plan?.opener || "attacks");
-
-        const threatMult = [0.6, 0.8, 1.0, 1.4, 2.0][(enemy.threatTier || 2) - 1] || 1.0;
-        const planBias = /magic|ranged/i.test(opener) ? 2 : /strength|force/i.test(opener) ? 3 : /feint|speed|circle/i.test(opener) ? 1 : 0;
-        const intBonus = Math.max(0, (intel.int - 5) * 0.4);
-        const baseDamage = Math.floor(Math.random() * 15) + 5 + planBias + intBonus;
         const defended = hasStatus(target, "guarded");
-        const damage = Math.max(1, Math.round((baseDamage - (defended ? 8 : 0)) * threatMult));
-
-        const s = getSettings();
-        target.hp = Math.max(0, Number(target.hp || target.vitals?.hp || 100) - damage);
-        if (!target.vitals || typeof target.vitals !== "object") target.vitals = {};
-        target.vitals.hp = target.hp;
-        target.vitals.maxHp = Number(target.maxHp || target.vitals.maxHp || 100);
-        applyCombatantVitalsToSettings(s, target);
-        saveSettings();
-
-        const enemyVerb = opener && opener !== "attacks" ? opener : "attacks";
-        const guardNote = defended ? " (Guarded)" : "";
-        const learnNote = guarded ? " (Anticipated!)" : "";
-        addBattleLog(`${enemy.name} ${enemyVerb} ${target.name}! ${damage} damage!${guardNote}${learnNote}`, "enemy-action");
-
-        const targetEl = document.querySelector(`.battle-sprite-container[data-combatant-id="${target.id}"]`);
-        showFloatingNumber(targetEl, `-${damage}`, guarded ? "#f97316" : "#ef4444");
-        showBattleVfx(targetEl);
-
-        if (guarded) {
-            applyStatusEffect(enemy, { name: "guarded", turns: 1, value: 0 });
-        }
-
         if (intel.seesThroughFeints && Math.random() < 0.2) {
             const counterAttack = enemy.attacks?.find(a => /counter|riposte|retaliate/i.test(a.label || a.name || ""));
             if (counterAttack) {
@@ -3801,11 +5505,44 @@ function showFloatingNumber(targetEl, text, color) {
 
 async function narrateCombatOutcome(action, target, outcome) {
     try {
-        const payload = `[Combat Action: Player used ${action?.label || action?.name || "Attack"} on ${target?.name || "target"}. Result: ${outcome.criticalSuccess ? "Critical Hit, " : ""}${outcome.damage} DMG. Target State: ${outcome.targetDefeated ? "Dead" : `${target.hp}/${target.maxHp} HP`}. Synthesize this exact mechanical outcome into one vivid combat narration sentence. Do not calculate damage.]`;
+        const payload = `[Combat Action: Player used ${action?.label || action?.name || "Attack"} on ${target?.name || "target"}. Result: ${outcome.criticalSuccess ? "Critical Hit, " : ""}${outcome.damage} DMG. Target State: ${outcome.surrendered ? "Yielded" : outcome.targetDefeated ? "Defeated and incapacitated, not automatically dead" : `${target.hp}/${target.maxHp} HP`}. Synthesize this exact mechanical outcome into one vivid combat narration sentence. Do not calculate damage or turn defeat into death.]`;
         const text = await generateContent(payload, "Combat Narrative");
         const line = String(typeof text === "string" ? text : text?.content || "").trim();
         if (line) addBattleLog(line.slice(0, 500), "normal");
     } catch (_) {}
+}
+
+async function narrateBattleResolution(victory, { permadeath = false, penalties = {} } = {}) {
+    const s = getSettings();
+    const location = String(s?.worldState?.location || s?.map?.location || "the current location").trim();
+    const enemies = [...(battleState?.defeatedEnemies || []), ...(battleState?.enemies || [])]
+        .map((enemy) => enemy?.name).filter(Boolean);
+    const recent = (battleLog || []).slice(-8).map((entry) => entry?.message).filter(Boolean).join(" | ");
+    const fallback = victory
+        ? `The fight at ${location} ends with the opposition overcome.`
+        : permadeath
+            ? `The final blow at ${location} ends the player's life.`
+            : `The fight at ${location} ends in defeat, but the player survives—wounded and unable to continue the battle.`;
+    try {
+        const prompt = [
+            "Write one short, vivid aftermath paragraph for this completed RPG battle. Plain prose only.",
+            `Outcome: ${victory ? "victory" : permadeath ? "permadeath death" : "nonlethal defeat"}.`,
+            `Location: ${location}. Opponents: ${enemies.join(", ") || "unknown"}.`,
+            !victory && !permadeath ? "The player is alive. Defeat is not death. Describe incapacitation, surrender, rescue, capture, or forced retreat. Do not change location unless the battle log explicitly says so." : "",
+            !victory && permadeath ? "Permadeath is active, so this defeat is a true death. State it clearly without inventing a resurrection." : "",
+            !victory ? `Mechanical aftermath: HP ${Number(s.hp || 0)}, XP lost ${Number(penalties.xpLost || 0)}, gold lost ${Number(penalties.goldLost || 0)}.` : "",
+            `Recent battle log: ${recent.slice(0, 1600)}`,
+            "Do not calculate new damage, rewards, penalties, items, or travel.",
+        ].filter(Boolean).join("\n");
+        const generated = await Promise.race([
+            generateContent(prompt, "Combat Narrative"),
+            new Promise((resolve) => setTimeout(() => resolve(""), 4500)),
+        ]);
+        const text = String(typeof generated === "string" ? generated : generated?.content || "").trim();
+        return text || fallback;
+    } catch (_) {
+        return fallback;
+    }
 }
 
 function removeEnemy(enemy) {
@@ -3819,6 +5556,8 @@ function removeEnemy(enemy) {
         }, 300);
     }
     
+    if (!Array.isArray(battleState.defeatedEnemies)) battleState.defeatedEnemies = [];
+    if (!battleState.defeatedEnemies.some((entry) => String(entry?.id || "") === String(enemy?.id || ""))) battleState.defeatedEnemies.push({ ...enemy });
     const index = battleState.enemies.findIndex(e => e.id === enemy.id || e.name === enemy.name);
     if (index >= 0) battleState.enemies.splice(index, 1);
 }
@@ -3836,10 +5575,30 @@ function endBattle(victory) {
         
         try { injectRpEvent("[System: Combat Victory! All enemies defeated.]"); } catch (_) {}
 
+        // Helper Pet XP Rewards
+        try {
+            const s = getSettings();
+            if (s.helperPet) {
+                s.helperPet.xp = Number(s.helperPet.xp || 0) + 15;
+                const petName = s.helperPet.name || "Helper Pet";
+                const currentLv = Number(s.helperPet.level || 1);
+                const nextLvXp = currentLv * 100;
+                addBattleLog(`🐾 ${petName} gained 15 XP.`, "party-action");
+                if (s.helperPet.xp >= nextLvXp) {
+                    s.helperPet.xp -= nextLvXp;
+                    s.helperPet.level = currentLv + 1;
+                    addBattleLog(`🐾 LEVELED UP! ${petName} is now Lv. ${s.helperPet.level}!`, "critical");
+                }
+                saveSettings();
+            }
+        } catch (e) {
+            console.warn("[Pet] Failed to award battle XP:", e);
+        }
+
         const baseRewards = {
-            xp: battleState.enemies.reduce((sum, e) => sum + (e.xp || 50), 50),
-            gold: battleState.enemies.reduce((sum, e) => sum + (e.gold || 25), 25),
-            loot: battleState.enemies.flatMap(e => e.loot || []).slice(0, 3)
+            xp: (battleState.defeatedEnemies || battleState.enemies).reduce((sum, e) => sum + (e.xp || 50), 0),
+            gold: (battleState.defeatedEnemies || battleState.enemies).reduce((sum, e) => sum + (e.gold || 25), 0),
+            loot: (battleState.defeatedEnemies || battleState.enemies).flatMap(e => e.loot || []).slice(0, 3)
         };
         
         setTimeout(() => {
@@ -3850,6 +5609,9 @@ function endBattle(victory) {
         addBattleLog("☠ DEFEAT ☠", "critical");
         showBattleStatus("☠ DEFEAT ☠", 2000);
         
+        const s = getSettings();
+        const isPermadeath = permadeathEnabled(s);
+        battleState.resolutionPermadeath = isPermadeath;
         const penalties = {
             xpLost: Math.floor(Math.random() * 50) + 10,
             goldLost: Math.floor(Math.random() * 30) + 5,
@@ -3857,8 +5619,21 @@ function endBattle(victory) {
         };
         
         try {
-            injectRpEvent("[System: Combat Defeat! The party was vanquished.]");
-            const s = getSettings();
+            injectRpEvent(isPermadeath
+                ? "[System: Combat defeat with PERMADEATH ACTIVE. The player died.]"
+                : "[System: Nonlethal combat defeat. The player survived and must never be described as dead.]");
+            if (!isPermadeath) {
+                const allies = Array.isArray(battleState?.allies) ? battleState.allies : [];
+                for (const ally of allies) {
+                    if (Number(ally?.hp || ally?.vitals?.hp || 0) > 0) continue;
+                    ally.hp = 1;
+                    if (!ally.vitals || typeof ally.vitals !== "object") ally.vitals = {};
+                    ally.vitals.hp = 1;
+                    ally.vitals.maxHp = Number(ally.maxHp || ally.vitals.maxHp || 100);
+                    applyCombatantVitalsToSettings(s, ally);
+                }
+                s.hp = Math.max(1, Number(s.hp || 0));
+            }
             if (s.inventory) {
                 s.inventory.gold = Math.max(0, (s.inventory.gold || 0) - penalties.goldLost);
                 injectRpEvent(`[System: Lost -${penalties.goldLost} Gold due to defeat.]`);
@@ -3882,7 +5657,18 @@ function endBattle(victory) {
             try { window.dispatchEvent(new CustomEvent("uie:updateVitals")); } catch (_) {}
         } catch (_) {}
 
+        battleState.resolutionNarration = narrateBattleResolution(false, { permadeath: isPermadeath, penalties })
+            .then((text) => {
+                const narration = String(text || "").trim();
+                const box = document.getElementById("defeat-narration");
+                if (box) box.textContent = narration;
+                if (narration) injectRpEvent(`[System: Battle aftermath narration: ${narration}]`);
+                return narration;
+            });
+
         setTimeout(() => {
+            const title = document.querySelector("#battle-defeat-window h2");
+            if (title) title.textContent = isPermadeath ? "Death" : "Defeat — You Survived";
             showDefeatWindow(penalties);
         }, 2500);
     }
@@ -3918,6 +5704,8 @@ export function closeBattle(options = {}) {
     if (victoryWindow) victoryWindow.style.display = "none";
     const defeatWindow = document.getElementById("battle-defeat-window");
     if (defeatWindow) defeatWindow.style.display = "none";
+    const adviceEl = document.getElementById("uie-battle-pet-advice");
+    if (adviceEl) adviceEl.remove();
 
     const vnScreen = document.getElementById("reality-stage") || document.getElementById("vn-screen");
     if (vnScreen) vnScreen.style.display = "block";
@@ -3967,6 +5755,23 @@ export function initBattle() {
 }
 
 function bindBattleControls() {
+    if (!document.documentElement.dataset.uieBattleDelegatedControls) {
+        document.documentElement.dataset.uieBattleDelegatedControls = "true";
+        document.addEventListener("click", (event) => {
+            const close = event.target?.closest?.("#battle-close-btn, .flee-action");
+            if (close) {
+                event.preventDefault();
+                event.stopPropagation();
+                fleeBattle();
+                return;
+            }
+            const auto = event.target?.closest?.("#battle-auto-btn");
+            if (!auto) return;
+            event.preventDefault();
+            event.stopPropagation();
+            toggleAutoBattle(auto);
+        }, true);
+    }
     const victoryBtn = document.getElementById("victory-continue");
     if (victoryBtn) {
         victoryBtn.onclick = () => {
@@ -3978,10 +5783,15 @@ function bindBattleControls() {
 
     const defeatContinue = document.getElementById("defeat-continue");
     if (defeatContinue) {
-        defeatContinue.onclick = () => {
+        defeatContinue.onclick = async () => {
+            try { await battleState?.resolutionNarration; } catch (_) {}
             const window = document.getElementById("battle-defeat-window");
             if (window) window.style.display = "none";
-            closeBattle();
+            const died = battleState?.resolutionPermadeath === true;
+            closeBattle({ outcome: died ? "permadeath" : "defeat_survived", reason: died ? "permadeath" : "nonlethal_defeat" });
+            if (died) {
+                try { globalThis.UIE?.penalties?.checkDeathState?.(); } catch (_) {}
+            }
         };
     }
 
@@ -3997,30 +5807,32 @@ function bindBattleControls() {
 
     const closeBtn = document.getElementById("battle-close-btn");
     if (closeBtn) {
-        closeBtn.onclick = () => {
-            fleeBattle();
-        };
+        closeBtn.style.pointerEvents = "auto";
+        closeBtn.onclick = null;
     }
     
     // Auto Battle button
     const autoBtn = document.getElementById("battle-auto-btn");
     if (autoBtn) {
+        autoBtn.style.pointerEvents = "auto";
         const s = getSettings();
         if (!s.rpgSettings) s.rpgSettings = {};
         autoBtn.textContent = s.rpgSettings.autoBattleEnabled ? "Auto: ON" : "Auto: OFF";
-        autoBtn.onclick = () => {
-            const sNow = getSettings();
-            sNow.rpgSettings.autoBattleEnabled = !sNow.rpgSettings.autoBattleEnabled;
-            saveSettings();
-            autoBtn.textContent = sNow.rpgSettings.autoBattleEnabled ? "Auto: ON" : "Auto: OFF";
-            
-            if (sNow.rpgSettings.autoBattleEnabled) {
-                notify("info", "Auto Battle Enabled", "Combat");
-                if (battleState?.phase === "player_select") runAutoBattleTurn();
-            } else {
-                notify("info", "Auto Battle Disabled", "Combat");
-            }
-        };
+        autoBtn.onclick = null;
+    }
+}
+
+function toggleAutoBattle(button = document.getElementById("battle-auto-btn")) {
+    const sNow = getSettings();
+    if (!sNow.rpgSettings) sNow.rpgSettings = {};
+    sNow.rpgSettings.autoBattleEnabled = !sNow.rpgSettings.autoBattleEnabled;
+    saveSettings();
+    if (button) button.textContent = sNow.rpgSettings.autoBattleEnabled ? "Auto: ON" : "Auto: OFF";
+    if (sNow.rpgSettings.autoBattleEnabled) {
+        notify("info", "Auto Battle Enabled", "Combat");
+        if (battleState?.phase === "player_select") runAutoBattleTurn();
+    } else {
+        notify("info", "Auto Battle Disabled", "Combat");
     }
 }
 

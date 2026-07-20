@@ -24,7 +24,7 @@ const settings = {
       { name: "Tide Skiff", category: "boat", owned: true },
     ],
   },
-  party: { members: [{ name: "Mika" }] },
+  party: { members: [{ name: "Mika", followsUser: true }] },
   playerRoom: { day: 1, hour: 8, minute: 0 },
   ui: { timeProgress: { enabled: true, logToChat: false, toastAck: false, mapUnitMinutes: 1 } },
 };
@@ -417,6 +417,7 @@ const travelAssets = await import("../src/modules/travelAssets.js");
   assert.match(newGameHtml, /option value="spacecraft"/);
 
   const html = fs.readFileSync(new URL("../game.html", import.meta.url), "utf8");
+  const settingsHtml = fs.readFileSync(new URL("../src/templates/settings_window.html", import.meta.url), "utf8");
   const menuHtml = fs.readFileSync(new URL("../src/templates/hamburger_menu.html", import.meta.url), "utf8");
   const navigationJs = fs.readFileSync(new URL("../src/modules/navigation.js", import.meta.url), "utf8");
   const mapJs = fs.readFileSync(new URL("../src/modules/map.js", import.meta.url), "utf8");
@@ -435,14 +436,14 @@ const travelAssets = await import("../src/modules/travelAssets.js");
   assert.match(navigationJs, /export function rotateView/);
   assert.match(navigationJs, /export function activateDirection/);
   assert.match(navigationJs, /addEventListener\("keydown"/);
-  assert.match(navigationJs, /First swipe previews the destination/);
-  assert.match(navigationJs, /void activateDirection\(direction\)/);
-  assert.match(navigationJs, /document\.body\.appendChild\(popup\)/);
+  assert.match(navigationJs, /First swipe[\s\S]{0,100}shows path info/);
+  assert.match(navigationJs, /swipeSequence[\s\S]{0,180}activateDirection\(direction\)/);
+  assert.match(navigationJs, /mountGameplayLayer\(popup\)/);
   assert.match(navigationJs, /z-index:2147483646/);
   assert.match(navigationJs, /#vn-stage,#re-bg\{touch-action:none/);
   assert.doesNotMatch(navigationJs, /re-screen-minimap/);
-  assert.doesNotMatch(html, /data-visibility="minimap"/);
-  assert.doesNotMatch(navigationJs, /addEventListener\("touchend"/);
+  assert.match(html, /data-visibility="minimap"/);
+  assert.match(navigationJs, /addEventListener\("touchend"/);
   assert.doesNotMatch(navigationJs, /addEventListener\("dblclick"/);
   assert.match(navigationJs, /openBarrierInspection/);
   assert.match(mapJs, /export async function unlockExit/);
@@ -470,13 +471,14 @@ const travelAssets = await import("../src/modules/travelAssets.js");
   assert.doesNotMatch(html, /id="msg-box-prev"|id="msg-box-next"/);
   assert.doesNotMatch(html, /id="msg-box-continue"/);
   assert.match(html, /class="uie-dialogue-continue"/);
-  assert.match(html, /cfg-msg-auto-continue/);
+  assert.match(settingsHtml, /cfg-msg-auto-continue/);
   assert.match(html, /sentencesPerBox/);
   assert.match(html, /navigation\.activateDirection\?\.\(dir\)/);
   assert.match(html, /__uieNativeCloseFallbackBound/);
   assert.match(html, /Quick Bag/);
   assert.match(html, /window\.__uieBootWatchdog/);
-  assert.match(html, /Boot watchdog released the loading screen/);
+  assert.match(html, /never reveal a partially initialized game/);
+  assert.match(html, /requireLocalRuntimeBeforeUi/);
   assert.match(html, /await m\.openMap\?\.\(\)/);
   assert.match(html, /window\.openConfigModal\("mainapi"\)/);
   assert.match(html, /#uie-diary-window", "diary\.js", "renderDiary", "initDiary"/);

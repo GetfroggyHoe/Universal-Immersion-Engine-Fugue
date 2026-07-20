@@ -1491,6 +1491,28 @@ ENEMY_ARCHETYPES: dict[str, dict[str, Any]] = {
     },
 }
 
+ENEMY_EQUIPMENT: dict[str, list[str]] = {
+    "beast": ["Natural Hide", "Fangs"],
+    "undead": ["Tarnished Mail", "Grave Relic"],
+    "mage": ["Arcane Focus", "Ward Robes"],
+    "brute": ["Heavy Armor", "Crushing Weapon"],
+    "assassin": ["Light Armor", "Poisoned Blade"],
+    "machine": ["Armor Plating", "Integrated Weapon"],
+    "fiend": ["Infernal Hide", "Shadow Claws"],
+    "humanoid": ["Travel Armor", "Sidearm"],
+}
+
+ENEMY_OBJECTIVES: dict[str, list[str]] = {
+    "beast": ["defend its territory", "drive intruders away", "secure food"],
+    "undead": ["guard a bound place", "recover a lost relic", "spread its curse"],
+    "mage": ["complete a ritual", "capture forbidden knowledge", "force a surrender"],
+    "brute": ["break the opposition", "hold the route", "take a valuable captive"],
+    "assassin": ["escape unseen", "steal the objective", "disable the strongest threat"],
+    "machine": ["protect its directive", "contain the area", "acquire a target"],
+    "fiend": ["extract a bargain", "corrupt the site", "claim a living prisoner"],
+    "humanoid": ["win control of the area", "take supplies", "force the enemy to retreat"],
+}
+
 
 def _enemy_archetype(name: str, context: str, declared_type: str = "") -> str:
     text = f"{declared_type} {name} {context}".lower()
@@ -1566,6 +1588,11 @@ def generate_enemy_definition(
     gold = int(round((10 + level * 8) * rng.uniform(0.8, 1.3)))
     loot = [f"{name.split()[0]} Essence"] if rng.random() < 0.5 else []
     enemy_id = f"enemy_{_slug(name)}_{seed_nonce or seed}"
+    equipment = [
+        {"name": item, "equipped": True, "source": "Generated"}
+        for item in ENEMY_EQUIPMENT.get(archetype, ENEMY_EQUIPMENT["humanoid"])
+    ]
+    objective = rng.choice(ENEMY_OBJECTIVES.get(archetype, ENEMY_OBJECTIVES["humanoid"]))
 
     return {
         "id": enemy_id,
@@ -1587,6 +1614,11 @@ def generate_enemy_definition(
         "xp": xp,
         "gold": gold,
         "loot": loot,
+        "equipment": equipment,
+        "items": [],
+        "objective": objective,
+        "morale": rng.randint(45, 90),
+        "disposition": "hostile",
         "imageUrl": "",
         "seed": seed,
     }
@@ -1962,6 +1994,75 @@ async def startup() -> None:
     init_db()
 
 
+def voice_runtime_health() -> dict[str, Any]:
+    """Validate local voice engines without loading their large models.
+
+    Startup succeeds when at least one bundled voice engine is usable. Optional
+    engines that are not installed are reported as warnings instead of blocking
+    the entire game.
+    """
+    try:
+        import importlib.util
+
+        required_modules = ("numpy", "onnxruntime", "soundfile", "sentencepiece")
+        missing_modules = [name for name in required_modules if importlib.util.find_spec(name) is None]
+        pocket_assets = (
+            "bundle.json",
+            "flow_lm_main_int8.onnx",
+            "flow_lm_flow_int8.onnx",
+            "mimi_decoder_int8.onnx",
+            "text_conditioner.onnx",
+            "tokenizer.model",
+        )
+        missing_pocket_assets = [name for name in pocket_assets if not (POCKET_TTS_ONNX_MODEL_DIR / name).exists()]
+        pocket_ready = not missing_modules and not missing_pocket_assets and bool(POCKET_PRESET_VOICES)
+
+        kokoro_model = next((path for path in (
+            KOKORO_MODEL_DIR / "kokoro-v1.0.int8.onnx",
+            KOKORO_MODEL_DIR / "kokoro-v1.0.onnx",
+            KOKORO_MODEL_DIR / "kokoro-v1.0.fp16.onnx",
+        ) if path.exists()), None)
+        kokoro_voices = next((path for path in (
+            KOKORO_MODEL_DIR / "voices-v1.0.bin",
+            KOKORO_MODEL_DIR / "voices.bin",
+        ) if path.exists()), None)
+        kokoro_package = importlib.util.find_spec("kokoro_onnx") is not None or importlib.util.find_spec("kokoro") is not None
+        kokoro_ready = bool(kokoro_package and kokoro_model and kokoro_voices)
+        voice_ready = pocket_ready or kokoro_ready
+
+        pocket_issues = []
+        if missing_modules:
+            pocket_issues.append(f"Missing Python voice packages: {', '.join(missing_modules)}")
+        if missing_pocket_assets:
+            pocket_issues.append(f"Missing Pocket TTS assets: {', '.join(missing_pocket_assets)}")
+        if not POCKET_PRESET_VOICES:
+            pocket_issues.append("No Pocket TTS voice embeddings were found.")
+
+        kokoro_issue = "Kokoro package or bundled model assets are missing."
+        errors = [] if voice_ready else [*pocket_issues, kokoro_issue]
+        warnings = []
+        if voice_ready and not pocket_ready:
+            warnings.extend(pocket_issues)
+        if voice_ready and not kokoro_ready:
+            warnings.append(kokoro_issue)
+
+        return {
+            "ok": voice_ready,
+            "pocket": {"ready": pocket_ready, "voices": len(POCKET_PRESET_VOICES)},
+            "kokoro": {"ready": kokoro_ready},
+            "errors": errors,
+            "warnings": warnings,
+        }
+    except Exception as exc:
+        return {
+            "ok": False,
+            "pocket": {"ready": False, "voices": 0},
+            "kokoro": {"ready": False},
+            "errors": [str(exc)],
+            "warnings": [],
+        }
+
+
 @app.get("/health")
 def health() -> dict[str, Any]:
     init_db()
@@ -1978,6 +2079,7 @@ def health() -> dict[str, Any]:
         "events": events,
         "image_assets": image_assets,
         "capabilities": BACKEND_CAPABILITIES,
+        "voice_bridge": voice_runtime_health(),
     }
 
 
@@ -3398,6 +3500,16 @@ def world_tick(payload: TickPayload) -> dict[str, Any]:
         rows = conn.execute("select * from characters order by name").fetchall()
         for row in rows:
             generated.extend(simulate_character(conn, character_from_row(row), payload.minutes, active_party=payload.active_party, user_available=payload.user_available))
+        
+        # Smart AI World Event Engine integration
+        try:
+            from python.world_events import simulate_world_events
+            event_logs = simulate_world_events(conn, payload.minutes)
+            generated.extend(event_logs)
+        except Exception as e:
+            import logging
+            logging.error(f"AI World Events Simulation error: {e}")
+
         add_event(conn, "world_tick", "World", payload.current_location, {"minutes": payload.minutes, "generated": len(generated)})
         chars = [character_from_row(row) for row in conn.execute("select * from characters order by name").fetchall()]
         recent = recent_events_conn(conn, 30) if payload.include_feed else []
@@ -3560,11 +3672,30 @@ def phone_contact(payload: PhonePayload) -> dict[str, Any]:
 
 @app.post("/battle/plan")
 def battle_plan(payload: BattlePlanPayload) -> dict[str, Any]:
+    profile = payload.context.get("enemyProfile", {}) if isinstance(payload.context, dict) else {}
     with db_lock, db() as conn:
         row = conn.execute("select * from characters where lower(name)=lower(?)", (payload.character,)).fetchone()
-        if not row:
+        if row:
+            character = character_from_row(row)
+        elif isinstance(profile, dict) and profile:
+            raw_stats = profile.get("stats") if isinstance(profile.get("stats"), dict) else {}
+            derived = profile.get("derived") if isinstance(profile.get("derived"), dict) else {}
+            derived_stats = derived.get("stats") if isinstance(derived.get("stats"), dict) else {}
+            merged_stats = {**derived_stats, **raw_stats}
+            character = {
+                "name": str(profile.get("name") or payload.character),
+                "stats": {
+                    "strength": merged_stats.get("strength", merged_stats.get("str", 5)),
+                    "agility": merged_stats.get("agility", merged_stats.get("dex", 5)),
+                    "magic": merged_stats.get("magic", merged_stats.get("int", 5)),
+                    "resolve": merged_stats.get("resolve", merged_stats.get("wis", 5)),
+                    "tactics": merged_stats.get("tactics", merged_stats.get("per", 5)),
+                },
+                "tactics_seen": [],
+                "location": str(payload.context.get("location") or ""),
+            }
+        else:
             return {"ok": False, "reason": "unknown_character"}
-        character = character_from_row(row)
         plan = battle_plan_for(character, payload.opponent, payload.context)
         add_event(conn, "battle_plan_generated", character["name"], character.get("location", ""), {"plan": plan, "allies": payload.allies})
     return {"ok": True, "plan": plan}

@@ -1,0 +1,233 @@
+<div id="uie-player-home-window" class="uie-window uie-player-home-app" data-open-display="flex" aria-hidden="true" style="display:none">
+  <header class="uie-home-app-header">
+    <div class="uie-home-app-icon"><i class="fa-solid fa-house-chimney-window"></i></div>
+    <div class="uie-home-app-title">
+      <div class="uie-home-eyebrow">PLAYER HOME</div>
+      <h2>Residences & Household</h2>
+      <p id="uie-home-header-subtitle">Choose a location from the map</p>
+    </div>
+    <div class="uie-home-header-controls">
+      <select id="uie-home-selector" aria-label="Selected player home"><option>No homes claimed</option></select>
+      <div id="uie-home-current-badge"><span class="uie-home-pill is-away">Away</span></div>
+      <button type="button" class="close-btn" title="Close" aria-label="Close">×</button>
+    </div>
+  </header>
+
+  <div class="uie-home-app-body">
+    <nav class="uie-home-tabs" aria-label="Player Home sections">
+      <button type="button" data-home-tab="overview" class="is-active"><i class="fa-solid fa-house"></i><span>Overview</span></button>
+      <button type="button" data-home-tab="homes"><i class="fa-solid fa-map-location-dot"></i><span>Homes</span></button>
+      <button type="button" data-home-tab="household"><i class="fa-solid fa-people-roof"></i><span>Household</span></button>
+      <button type="button" data-home-tab="rooms"><i class="fa-solid fa-door-open"></i><span>Rooms</span></button>
+      <button type="button" data-home-tab="visitors"><i class="fa-solid fa-bell"></i><span>Visitors</span></button>
+      <button type="button" data-home-tab="history"><i class="fa-solid fa-clock-rotate-left"></i><span>History</span></button>
+    </nav>
+    <main id="uie-home-content" class="uie-home-content" tabindex="0"></main>
+  </div>
+
+  <style>
+    #uie-player-home-window {
+      position: fixed;
+      inset: 5dvh auto auto 50%;
+      transform: translateX(-50%);
+      z-index: 2147482500;
+      width: min(1120px, 95vw);
+      height: min(820px, 90dvh);
+      flex-direction: column;
+      overflow: hidden;
+      border: 1px solid rgba(226,190,112,.48);
+      border-radius: 18px;
+      background: linear-gradient(145deg,#13110e,#211d17 54%,#0c171b);
+      color: #f8ecd2;
+      box-shadow: 0 24px 80px rgba(0,0,0,.72);
+      font-family: Inter,system-ui,sans-serif;
+      pointer-events: auto !important;
+      touch-action: pan-y !important;
+      overscroll-behavior: contain !important;
+    }
+    #uie-player-home-window * { box-sizing: border-box; }
+    .uie-home-app-header {
+      display: flex;
+      align-items: center;
+      gap: 13px;
+      flex: 0 0 auto;
+      min-height: 76px;
+      padding: 13px 16px;
+      border-bottom: 1px solid rgba(255,255,255,.11);
+      background: rgba(255,255,255,.035);
+    }
+    .uie-home-app-icon {
+      width: 45px;
+      height: 45px;
+      flex: 0 0 45px;
+      display: grid;
+      place-items: center;
+      border-radius: 13px;
+      border: 1px solid rgba(216,184,111,.4);
+      background: rgba(216,184,111,.12);
+      color: #e7c77c;
+      font-size: 20px;
+    }
+    .uie-home-app-title { min-width: 0; flex: 1; }
+    .uie-home-app-title h2 { margin: 2px 0 0; font: 700 20px/1.1 Georgia,serif; color: #fff3dc; }
+    .uie-home-app-title p { margin: 4px 0 0; color: #aaa398; font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .uie-home-eyebrow { color: #d8b86f; font-size: 9px; font-weight: 900; letter-spacing: .16em; text-transform: uppercase; }
+    .uie-home-header-controls { display: flex; align-items: center; justify-content: flex-end; gap: 8px; min-width: 0; }
+    #uie-home-selector {
+      width: min(260px, 30vw);
+      height: 34px;
+      border: 1px solid rgba(216,184,111,.3);
+      border-radius: 8px;
+      background: rgba(0,0,0,.28);
+      color: #f8ecd2;
+      padding: 0 9px;
+      font-weight: 700;
+      font-size: 11px;
+    }
+    #uie-player-home-window button,
+    #uie-player-home-window select,
+    #uie-player-home-window input {
+      pointer-events: auto !important;
+      touch-action: manipulation !important;
+      -webkit-tap-highlight-color: transparent;
+    }
+    #uie-player-home-window button {
+      min-height: 34px;
+      border: 1px solid rgba(216,184,111,.28);
+      border-radius: 8px;
+      background: rgba(255,255,255,.055);
+      color: #f4ead5;
+      padding: 7px 10px;
+      cursor: pointer;
+      font-weight: 800;
+      font-size: 11px;
+    }
+    #uie-player-home-window button:hover { background: rgba(216,184,111,.15); border-color: rgba(216,184,111,.58); }
+    #uie-player-home-window button:disabled { opacity: .38; cursor: not-allowed; }
+    #uie-player-home-window button.is-danger { border-color: rgba(239,68,68,.28); color: #fda4af; }
+    #uie-player-home-window .close-btn { width: 38px; height: 38px; min-height: 38px; padding: 0; border: 0; background: transparent; font-size: 27px; }
+    .uie-home-app-body { display: grid; grid-template-columns: 150px minmax(0,1fr); min-height: 0; flex: 1; }
+    .uie-home-tabs {
+      min-height: 0;
+      padding: 12px 9px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      border-right: 1px solid rgba(255,255,255,.09);
+      background: rgba(0,0,0,.16);
+      overflow-y: auto;
+    }
+    .uie-home-tabs button { display: flex; align-items: center; justify-content: flex-start; gap: 9px; width: 100%; text-align: left; }
+    .uie-home-tabs button i { width: 17px; text-align: center; color: #d8b86f; }
+    .uie-home-tabs button.is-active { border-color: #d8b86f; background: rgba(216,184,111,.16); color: #fff; }
+    .uie-home-content {
+      min-width: 0;
+      min-height: 0;
+      padding: 14px;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      -webkit-overflow-scrolling: touch;
+      touch-action: pan-y !important;
+    }
+    .uie-home-hero,
+    .uie-home-panel,
+    .uie-home-card,
+    .uie-home-member-card,
+    .uie-home-empty {
+      border: 1px solid rgba(255,255,255,.09);
+      border-radius: 13px;
+      background: rgba(7,12,15,.55);
+    }
+    .uie-home-hero { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; padding: 16px; margin-bottom: 12px; }
+    .uie-home-hero h3,.uie-home-panel h3,.uie-home-card h3 { margin: 4px 0 7px; color: #fff4df; font: 700 19px/1.15 Georgia,serif; }
+    .uie-home-hero p,.uie-home-card p,.uie-home-panel p { color: #c5beb1; font-size: 12px; line-height: 1.5; }
+    .uie-home-hero-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 7px; }
+    .uie-home-pills,.uie-home-chip-list { display: flex; flex-wrap: wrap; gap: 6px; }
+    .uie-home-pill,.uie-home-person-chip {
+      display: inline-flex;
+      align-items: center;
+      min-height: 25px;
+      padding: 4px 8px;
+      border: 1px solid rgba(255,255,255,.1);
+      border-radius: 999px;
+      background: rgba(255,255,255,.055);
+      color: #d7d1c5;
+      font-size: 10px;
+      font-weight: 800;
+    }
+    .uie-home-pill.is-here,.uie-home-person-chip.is-present { border-color: rgba(34,197,94,.45); background: rgba(34,197,94,.12); color: #bbf7d0; }
+    .uie-home-pill.is-away { color: #a8a29e; }
+    .uie-home-pill.is-warning { border-color: rgba(250,204,21,.45); background: rgba(250,204,21,.12); color: #fde68a; }
+    .uie-home-summary-grid { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 9px; margin-bottom: 12px; }
+    .uie-home-summary-grid article { min-width: 0; padding: 12px; border: 1px solid rgba(255,255,255,.08); border-radius: 11px; background: rgba(255,255,255,.035); }
+    .uie-home-summary-grid span,.uie-home-summary-grid small { display: block; color: #aaa398; font-size: 9px; }
+    .uie-home-summary-grid strong { display: block; margin: 3px 0; color: #f4d88f; font-size: 21px; }
+    .uie-home-summary-grid small { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .uie-home-panel { padding: 13px; margin-bottom: 10px; }
+    .uie-home-panel-head,.uie-home-card-head,.uie-home-member-title { display: flex; align-items: center; justify-content: space-between; gap: 9px; }
+    .uie-home-panel-head h4 { margin: 3px 0 0; color: #fff; font-size: 13px; }
+    .uie-home-muted { color: #aaa398 !important; font-size: 11px !important; }
+    .uie-home-action-grid { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 7px; }
+    .uie-home-card-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px; }
+    .uie-home-card { padding: 13px; min-width: 0; }
+    .uie-home-card.is-selected { border-color: rgba(216,184,111,.62); box-shadow: inset 0 0 0 1px rgba(216,184,111,.12); }
+    .uie-home-card-actions { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 11px; }
+    .uie-home-field { display: grid; gap: 5px; margin-top: 10px; color: #aaa398; font-size: 10px; }
+    .uie-home-field select,.uie-home-member-fields select,.uie-home-add-member select {
+      height: 33px;
+      min-width: 0;
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 7px;
+      background: #141617;
+      color: #f8ecd2;
+      padding: 0 8px;
+    }
+    .uie-home-add-member { display: grid; grid-template-columns: minmax(150px,1fr) 150px auto; gap: 7px; margin-top: 12px; }
+    .uie-home-member-list { display: grid; gap: 8px; }
+    .uie-home-member-card { display: grid; grid-template-columns: 48px minmax(0,1fr) 35px; align-items: center; gap: 10px; padding: 10px; }
+    .uie-home-member-card.is-present { border-color: rgba(34,197,94,.32); }
+    .uie-home-avatar { width: 44px; height: 44px; display: grid; place-items: center; border: 1px solid rgba(216,184,111,.35); border-radius: 50%; overflow: hidden; background: rgba(255,255,255,.05); color: #d8b86f; }
+    .uie-home-avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .uie-home-member-main { min-width: 0; }
+    .uie-home-member-title strong { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #fff; }
+    .uie-home-member-title span { color: #aaa398; font-size: 9px; }
+    .uie-home-member-fields { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 7px; margin-top: 7px; }
+    .uie-home-member-fields label { display: grid; gap: 3px; color: #aaa398; font-size: 9px; }
+    .uie-home-icon-btn { width: 34px; min-width: 34px; padding: 0 !important; }
+    .uie-home-door-panel.is-ringing { border-color: rgba(250,204,21,.38); box-shadow: 0 0 22px rgba(250,204,21,.08); }
+    .uie-home-timeline { display: grid; gap: 7px; }
+    .uie-home-timeline article { display: grid; grid-template-columns: 150px minmax(0,1fr) 70px; gap: 9px; align-items: center; padding: 10px 12px; border: 1px solid rgba(255,255,255,.08); border-radius: 9px; background: rgba(255,255,255,.035); }
+    .uie-home-timeline span,.uie-home-timeline small { color: #8f8a82; font-size: 9px; }
+    .uie-home-timeline strong { min-width: 0; color: #ddd6c9; font-size: 11px; }
+    .uie-home-empty { min-height: 260px; display: grid; place-items: center; align-content: center; gap: 10px; padding: 28px; text-align: center; }
+    .uie-home-empty i { color: #d8b86f; font-size: 36px; }
+    .uie-home-empty h3 { margin: 0; color: #fff; font: 700 21px Georgia,serif; }
+    .uie-home-empty p { max-width: 560px; margin: 0; color: #aaa398; font-size: 12px; line-height: 1.55; }
+    .uie-home-empty-compact { padding: 24px; border: 1px dashed rgba(255,255,255,.12); border-radius: 11px; color: #aaa398; text-align: center; }
+to { opacity:1; transform:scale(1.12); } }
+
+    /* UIE_HOME_MENU_SAFETY_NORMALIZE */
+    #uie-main-menu
+#uie-main-menu
+@media (max-width: 760px) {
+      #uie-player-home-window { inset: 2dvh 2vw auto; transform: none; width: 96vw; height: 96dvh; border-radius: 12px; }
+      .uie-home-app-header { min-height: 60px; padding: 8px 10px; }
+      .uie-home-app-icon { display: none; }
+      .uie-home-app-title h2 { font-size: 16px; }
+      .uie-home-app-title p { display: none; }
+      #uie-home-selector { width: 170px; max-width: 34vw; }
+      .uie-home-app-body { grid-template-columns: 104px minmax(0,1fr); }
+      .uie-home-tabs { padding: 7px 5px; }
+      .uie-home-tabs button { padding: 6px; font-size: 9px; gap: 6px; }
+      .uie-home-content { padding: 8px; }
+      .uie-home-summary-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+      .uie-home-action-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+      .uie-home-card-grid { grid-template-columns: 1fr; }
+      .uie-home-hero { padding: 11px; }
+      .uie-home-add-member { grid-template-columns: 1fr 120px; }
+      .uie-home-add-member button { grid-column: 1 / -1; }
+      .uie-home-timeline article { grid-template-columns: 100px minmax(0,1fr); }
+      .uie-home-timeline small { display: none; }
+    }
+  </style>
+</div>

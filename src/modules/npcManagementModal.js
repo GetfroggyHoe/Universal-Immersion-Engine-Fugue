@@ -1362,6 +1362,79 @@ function upsertLocalNpc(npc) {
   publishNpcOrganizationIntel(npc, card);
   saveSettings();
 }
+
+/**
+ * Register a character as a full game NPC without opening the editor.
+ * This is the shared entry point for systems that discover or create people
+ * (shops, scene generation, imports). It fills every NPC Management section,
+ * creates/updates the Character Card, adds the NPC to the active registries,
+ * and exposes the public profile through Social. Secrets remain stored for the
+ * NPC editor/secrets engine and are not rendered by Social's read profile.
+ */
+export function registerNPCRecord(raw = {}, options = {}) {
+  const payload = completeNpcManagementPayload(raw);
+  upsertLocalNpc(payload);
+  const s = getSettings();
+  const key = String(payload.name || "").trim().toLowerCase();
+  const npc = (Array.isArray(s.npcs) ? s.npcs : []).find((item) =>
+    String(item?.name || "").trim().toLowerCase() === key ||
+    (payload.cardId && String(item?.cardId || item?.characterCardId || "") === String(payload.cardId))
+  ) || payload;
+  if (options.emit !== false) {
+    try { window.dispatchEvent(new CustomEvent("uie:npc-created", { detail: { npc, source: options.source || "registry" } })); } catch (_) {}
+    try { window.dispatchEvent(new CustomEvent("uie:social_updated", { detail: { name: npc.name, source: options.source || "registry" } })); } catch (_) {}
+  }
+  return npc;
+}
+
+/** Register active Character Cards as NPCs so cards used by the current game
+ * automatically receive NPC Management and Social records. Library-only cards
+ * remain reusable templates until added to the game or a scene. */
+export function syncActiveCharacterCardsToNpcs(options = {}) {
+  const s = getSettings();
+  const cards = Array.isArray(s.character_cards) ? s.character_cards : [];
+  const activeIds = new Set((Array.isArray(s.gameCharacters) ? s.gameCharacters : []).map(String));
+  for (const scene of (Array.isArray(s.sceneCharacters) ? s.sceneCharacters : [])) {
+    const id = String(scene?.cardId || scene?.characterCardId || scene?.id || "").trim();
+    if (id) activeIds.add(id);
+  }
+  let count = 0;
+  for (const card of cards) {
+    if (!card?.id || (!activeIds.has(String(card.id)) && card?.source !== "context_shop" && card?.data?.source !== "context_shop")) continue;
+    registerNPCRecord({
+      id: card.sourceNpcId || card.id,
+      cardId: card.id,
+      characterCardId: card.id,
+      name: card.name || card.data?.name,
+      role: card.role || card.title || "NPC",
+      title: card.title || card.role || "NPC",
+      age: card.age,
+      location: card.location || card.currentLocation,
+      appearance: card.appearance || card.description || card.data?.description,
+      personality: card.personality || card.traits || card.data?.personality,
+      bio: card.bio || card.description,
+      likes: card.likesList?.map?.((item) => item?.text || item) || card.likes,
+      dislikes: card.dislikesList?.map?.((item) => item?.text || item) || card.dislikes,
+      affiliations: card.affiliations || card.organizationAffiliations,
+      schedule: card.schedule,
+      schedules: card.schedules,
+      rumors: card.rumors,
+      avatar: card.avatar || card.portrait,
+      expressions: card.expressions,
+      voice_recipe: card.voice_recipe || card.voiceRecipe,
+      wants: card.wants || card.data?.wants,
+      needs: card.needs || card.data?.needs,
+      secrets: card.secrets || card.data?.secrets,
+      privateIntel: card.privateIntel || card.data?.privateIntel,
+      managementOptions: card.managementOptions || card.npcManagement || card.data?.npcManagement
+    }, { emit: false, source: options.source || "character_card_sync" });
+    count++;
+  }
+  if (count && options.emit !== false) {
+    try { window.dispatchEvent(new CustomEvent("uie:npc-registry-synced", { detail: { count } })); } catch (_) {}
+  }
+  return count;
+}
 function readAsDataUrl(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -1751,12 +1824,15 @@ export function closeNPCRosterPanel() {
 export function initNPCManagementModal() {
   ensureModal();
   ensureRosterPanel();
+  syncActiveCharacterCardsToNpcs({ emit: false, source: "npc_manager_init" });
   window.UIE_NPC_MANAGER = {
     open: openNPCManagementModal,
     openRoster: openNPCRosterPanel,
     close: closeNPCManagementModal,
     testVoice: testCurrentVoice,
     submit: submitCurrentNpc,
+    register: registerNPCRecord,
+    syncCharacterCards: syncActiveCharacterCardsToNpcs,
     recipeFromBlend
   };
   window.addEventListener("uie:open-npc-manager", (event) => openNPCManagementModal(event?.detail || {}));

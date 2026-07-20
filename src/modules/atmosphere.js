@@ -76,7 +76,93 @@ let _lastPx = 0;
 let _lastPy = 0;
 let atmosphereSyncInterval = null;
 let sensoryEventsBound = false;
+
+// ── Weather Audio Manager ───────────────────────────────────────────
+let _weatherAudio = null;
+let _weatherAudioTimer = null;
+
+function stopWeatherAudio() {
+    if (_weatherAudioTimer) { clearTimeout(_weatherAudioTimer); _weatherAudioTimer = null; }
+    if (_weatherAudio) {
+        try { _weatherAudio.pause(); _weatherAudio.src = ""; } catch (_) {}
+        _weatherAudio = null;
+    }
+}
+
+function playWeatherAudio(src, loop, durationSeconds) {
+    stopWeatherAudio();
+    if (!src) return;
+    try {
+        const audio = new Audio(src);
+        audio.loop = !!loop;
+        const settings = getSettings();
+        if (settings?.atmosphere?.audioEnabled === false) return;
+        audio.volume = Math.max(0, Math.min(1, Number(settings?.worldState?.weatherSoundVolume ?? 0.65)));
+        _weatherAudio = audio;
+        audio.play().catch(() => {});
+        if (durationSeconds > 0) {
+            _weatherAudioTimer = setTimeout(() => stopWeatherAudio(), durationSeconds * 1000);
+        }
+    } catch (_) {}
+}
+
+function loadWeatherSoundSrc(weatherKey, cb) {
+    try {
+        const request = indexedDB.open("uie_atmosphere_assets", 1);
+        request.onupgradeneeded = () => {
+            const db = request.result;
+            if (!db.objectStoreNames.contains("weatherSounds")) db.createObjectStore("weatherSounds");
+        };
+        request.onsuccess = () => {
+            const db = request.result;
+            const get = db.transaction("weatherSounds", "readonly").objectStore("weatherSounds").get(weatherKey);
+            get.onsuccess = () => {
+                if (get.result) cb(get.result);
+                else {
+                    try { cb(localStorage.getItem(`uie_weather_sound_${weatherKey}`) || null); } catch (_) { cb(null); }
+                }
+                db.close();
+            };
+            get.onerror = () => { db.close(); cb(null); };
+        };
+        request.onerror = () => {
+            try { cb(localStorage.getItem(`uie_weather_sound_${weatherKey}`) || null); } catch (_) { cb(null); }
+        };
+        return;
+    } catch (_) {}
+    try {
+        const key = `uie_weather_sound_${weatherKey}`;
+        const src = localStorage.getItem(key);
+        cb(src || null);
+    } catch (_) { cb(null); }
+}
+
+function saveWeatherSoundSrc(weatherKey, dataUrl) {
+    try {
+        const request = indexedDB.open("uie_atmosphere_assets", 1);
+        request.onupgradeneeded = () => {
+            const db = request.result;
+            if (!db.objectStoreNames.contains("weatherSounds")) db.createObjectStore("weatherSounds");
+        };
+        request.onsuccess = () => {
+            const db = request.result;
+            const store = db.transaction("weatherSounds", "readwrite").objectStore("weatherSounds");
+            if (dataUrl) store.put(dataUrl, weatherKey);
+            else store.delete(weatherKey);
+            db.close();
+        };
+        try { localStorage.removeItem(`uie_weather_sound_${weatherKey}`); } catch (_) {}
+        return;
+    } catch (_) {}
+    try {
+        const key = `uie_weather_sound_${weatherKey}`;
+        if (dataUrl) localStorage.setItem(key, dataUrl);
+        else localStorage.removeItem(key);
+    } catch (_) {}
+}
+
 let sensoryFramePending = false;
+
 
 function refreshHudFromAtmosphere() {
     try {
@@ -200,9 +286,21 @@ export function updateAtmosphere(text = "") {
     const s = getSettings();
     const tf = document.getElementById("re-time-filter");
     const wl = document.getElementById("re-weather-layer");
+    s.atmosphere = s.atmosphere && typeof s.atmosphere === "object" ? s.atmosphere : {};
+    if (s.atmosphere.enabled === false) {
+        if (tf) { tf.style.backdropFilter = "none"; tf.style.background = ""; tf.dataset.mode = ""; }
+        if (wl) { wl.className = ""; wl.innerHTML = ""; }
+        stopWeatherAudio();
+        return;
+    }
 
     // 1. Time
-    let time = detectTime(text);
+    const controlMode = String(s.atmosphere.mode || "auto");
+    let time = controlMode === "auto" ? detectTime(text) : null;
+    if (controlMode === "clock") {
+        const hour = Number(s.playerRoom?.hour ?? 8);
+        time = hour < 6 || hour >= 21 ? "night" : hour >= 17 ? "sunset" : "day";
+    }
     if (!time && s.worldState?.time) {
         const wt = s.worldState.time.toLowerCase();
         if (wt.includes("night")) time = "night";
@@ -218,7 +316,7 @@ export function updateAtmosphere(text = "") {
     }
 
     // 2. Weather
-    let weather = detectWeather(text);
+    let weather = controlMode === "auto" ? detectWeather(text) : null;
     const configuredVisual = normalizeWeatherVisualMode(s.worldState?.weatherVisual);
     if (configuredVisual !== "auto") {
         weather = configuredVisual;
@@ -240,8 +338,14 @@ export function updateAtmosphere(text = "") {
     if (wl) {
         // Remove existing weather classes
         wl.className = "";
+        if (s.atmosphere.visualsEnabled === false) {
+            wl.innerHTML = "";
+            return;
+        }
         if (weather && WEATHER_EFFECTS[weather]) {
             wl.classList.add(`re-weather-${WEATHER_EFFECTS[weather]}`);
+            wl.dataset.animation = String(s.worldState?.weatherAnimation?.type || "particles");
+            wl.style.setProperty("--uie-weather-intensity", String(s.worldState?.weatherAnimation?.intensity || 1));
             // Add particles dynamically if needed, or rely on CSS pseudo-elements
             // For rain/snow, we often need inner elements for parallax
             if (weather === "rain" || weather === "snow") {
@@ -286,6 +390,8 @@ export function initAtmosphereWindow() {
     ensurePlayerClock(s);
     ensureTimeProgress(s);
     ensureCalendar(s);
+    s.atmosphere = s.atmosphere && typeof s.atmosphere === "object" ? s.atmosphere : {};
+    if (!s.atmosphere.mode) s.atmosphere.mode = "auto";
 
     // 1. Close Button
     $win.off("click.uieAtmoClose").on("click.uieAtmoClose", "#uie-atmosphere-close", () => {
@@ -302,6 +408,7 @@ export function initAtmosphereWindow() {
         const day = s.playerRoom?.day ?? 1;
         const rpDate = s.calendar?.rpDate ?? "";
         $("#uie-tweaker-clock-time").text(`${hour}:${minute}`);
+        $("#uie-atmo-clock-copy").text(`${hour}:${minute}`);
         $("#uie-tweaker-clock-date").text(`Day ${day} ${rpDate ? `· ${rpDate}` : ""}`);
         $("#uie-atmo-hour").val(Number(s.playerRoom?.hour ?? 8));
         $("#uie-atmo-minute").val(Number(s.playerRoom?.minute ?? 0));
@@ -312,7 +419,41 @@ export function initAtmosphereWindow() {
         $("#uie-atmo-dynamic").val(s.ui?.timeProgress?.enabled === false ? "off" : "on");
         $("#uie-atmo-weather-name").val(String(s.worldState?.weather || ""));
         $("#uie-atmo-weather-visual").val(normalizeWeatherVisualMode(s.worldState?.weatherVisual || "auto"));
+        $("#uie-atmo-scene-name").text(String(s.worldState?.location || s.location || "Unknown location"));
+        $("#uie-atmo-current-weather").text(String(s.worldState?.weather || "Clear"));
+        const modeLabels = { auto: "Auto Scene", clock: "Game Clock", manual: "Manual Hold" };
+        $("#uie-atmo-mode-label").text(modeLabels[s.atmosphere.mode] || "Auto Scene");
+        $win.find("[data-atmo-mode]").removeClass("active").filter(`[data-atmo-mode="${s.atmosphere.mode}"]`).addClass("active");
+        $("#uie-atmo-enabled").prop("checked", s.atmosphere.enabled !== false);
+        $("#uie-atmo-visuals-enabled").prop("checked", s.atmosphere.visualsEnabled !== false);
+        $("#uie-atmo-motion-enabled").prop("checked", s.atmosphere.motionEnabled !== false);
+        $("#uie-atmo-audio-enabled").prop("checked", s.atmosphere.audioEnabled !== false);
     }
+
+    function renderCustomPresets() {
+        const list = Array.isArray(s.atmosphere?.customWeatherPresets) ? s.atmosphere.customWeatherPresets : [];
+        $("#uie-atmo-preset-list").html(list.map((preset, index) =>
+            `<button type="button" class="atmo-preset-chip" data-atmo-preset="${index}" title="Apply ${String(preset.name || "")}">${String(preset.name || "Preset").replace(/</g, "&lt;")}</button>`
+        ).join(""));
+    }
+
+    $win.off("click.uieAtmoMode").on("click.uieAtmoMode", "[data-atmo-mode]", function() {
+        s.atmosphere.mode = String($(this).attr("data-atmo-mode") || "auto");
+        saveSettings();
+        updateAtmosphere("");
+        updateClockDisplay();
+    });
+
+    $win.off("change.uieAtmoMasters").on("change.uieAtmoMasters", "#uie-atmo-enabled,#uie-atmo-visuals-enabled,#uie-atmo-motion-enabled,#uie-atmo-audio-enabled", function() {
+        s.atmosphere.enabled = $("#uie-atmo-enabled").prop("checked");
+        s.atmosphere.visualsEnabled = $("#uie-atmo-visuals-enabled").prop("checked");
+        s.atmosphere.motionEnabled = $("#uie-atmo-motion-enabled").prop("checked");
+        s.atmosphere.audioEnabled = $("#uie-atmo-audio-enabled").prop("checked");
+        document.getElementById("re-bg")?.classList.toggle("re-breathing", s.atmosphere.motionEnabled && !window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches);
+        if (!s.atmosphere.audioEnabled) stopWeatherAudio();
+        saveSettings();
+        updateAtmosphere("");
+    });
 
     // Helper to highlight active time/weather buttons
     function updateButtonHighlights() {
@@ -360,12 +501,17 @@ export function initAtmosphereWindow() {
         const weatherVal = $(this).attr("data-weather");
         s.worldState = s.worldState || {};
         s.worldState.weatherVisual = weatherVal;
+        s.atmosphere.mode = "manual";
         s.worldState.weather = weatherVal === "clear" ? "Clear" : weatherVal.charAt(0).toUpperCase() + weatherVal.slice(1);
+        // Store selected weather for later submenu apply
+        $win.data("selectedWeather", weatherVal);
         saveSettings();
         updateAtmosphere();
         refreshHudFromAtmosphere();
         updateButtonHighlights();
         try { window.toastr?.success?.(`Weather set to: ${s.worldState.weather}`); } catch(_) {}
+        // Stop any playing weather audio on weather change (new settings not yet applied)
+        stopWeatherAudio();
     });
 
     $win.off("click.uieAtmoCustomWeather").on("click.uieAtmoCustomWeather", "#uie-atmo-apply-weather", function(e) {
@@ -388,6 +534,110 @@ export function initAtmosphereWindow() {
         updateClockDisplay();
         try { renderCalendar(); } catch (_) {}
         try { window.toastr?.success?.(`Weather set to: ${s.worldState.weather}`); } catch(_) {}
+    });
+
+    // 3b. Weather Submenu Apply
+    $win.off("click.uieAtmoSubmenu").on("click.uieAtmoSubmenu", "#uie-atmo-apply-weather-submenu", function(e) {
+        e.preventDefault();
+        const weatherKey = String($win.data("selectedWeather") || "clear");
+        s.worldState = s.worldState || {};
+
+        // ── Sound settings
+        const loop = $("#uie-atmo-sound-loop").prop("checked");
+        const soundDuration = Math.max(0, Number($("#uie-atmo-sound-duration").val() || 0));
+        const fileInput = document.getElementById("uie-atmo-sound-file");
+        const file = fileInput && fileInput.files && fileInput.files[0];
+
+        // ── Animation settings
+        const animationType = String($("#uie-atmo-animation-type").val() || "none");
+        const animDuration = Math.max(0, Number($("#uie-atmo-animation-duration").val() || 0));
+        const animLoop = $("#uie-atmo-animation-loop").prop("checked");
+        const intensity = Math.max(0.2, Math.min(2, Number($("#uie-atmo-animation-intensity").val() || 1)));
+        const volume = Math.max(0, Math.min(1, Number($("#uie-atmo-sound-volume").val() || 0.65)));
+
+        // Persist animation prefs
+        s.worldState.weatherAnimation = { type: animationType, duration: animDuration, loop: animLoop, intensity, weather: weatherKey };
+        s.worldState.weatherSoundVolume = volume;
+        saveSettings();
+        updateAtmosphere("");
+        updateButtonHighlights();
+
+        function applySound(src) {
+            s.worldState.weatherSoundSettings = s.worldState.weatherSoundSettings || {};
+            s.worldState.weatherSoundSettings[weatherKey] = { loop, duration: soundDuration };
+            saveSettings();
+            playWeatherAudio(src, loop, soundDuration);
+        }
+
+        const soundUrl = String($("#uie-atmo-sound-url").val() || "").trim();
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(ev) {
+                const dataUrl = ev.target.result;
+                saveWeatherSoundSrc(weatherKey, dataUrl);
+                applySound(dataUrl);
+            };
+            reader.readAsDataURL(file);
+        } else if (soundUrl) {
+            saveWeatherSoundSrc(weatherKey, soundUrl);
+            applySound(soundUrl);
+        } else {
+            loadWeatherSoundSrc(weatherKey, function(src) {
+                applySound(src);
+            });
+        }
+
+        try { window.toastr?.success?.("Weather settings applied."); } catch(_) {}
+    });
+
+    // 3c. Populate submenu fields when a weather button is clicked
+    $win.off("click.uieAtmoSubmenuPop").on("click.uieAtmoSubmenuPop", "[data-weather]", function() {
+        const weatherKey = $(this).attr("data-weather");
+        const saved = s.worldState?.weatherSoundSettings?.[weatherKey] || {};
+        const anim = (s.worldState?.weatherAnimation?.weather === weatherKey) ? s.worldState.weatherAnimation : {};
+        $("#uie-atmo-sound-loop").prop("checked", !!saved.loop);
+        $("#uie-atmo-sound-duration").val(saved.duration || 0);
+        $("#uie-atmo-animation-type").val(anim.type || "none");
+        $("#uie-atmo-animation-duration").val(anim.duration || 0);
+        $("#uie-atmo-animation-loop").prop("checked", !!anim.loop);
+        $("#uie-atmo-animation-intensity").val(anim.intensity || 1);
+        $("#uie-atmo-sound-volume").val(Number(s.worldState?.weatherSoundVolume ?? 0.65));
+        const fi = document.getElementById("uie-atmo-sound-file");
+        if (fi) fi.value = "";
+    });
+
+    $win.off("click.uieAtmoPreset").on("click.uieAtmoPreset", "#uie-atmo-save-preset,[data-atmo-preset]", function() {
+        s.atmosphere.customWeatherPresets = Array.isArray(s.atmosphere.customWeatherPresets) ? s.atmosphere.customWeatherPresets : [];
+        if (this.id === "uie-atmo-save-preset") {
+            const name = String($("#uie-atmo-weather-name").val() || "").trim();
+            if (!name) return;
+            const visual = normalizeWeatherVisualMode($("#uie-atmo-weather-visual").val() || "auto");
+            const existing = s.atmosphere.customWeatherPresets.findIndex((p) => String(p?.name || "").toLowerCase() === name.toLowerCase());
+            const preset = { name, visual, updatedAt: Date.now() };
+            if (existing >= 0) s.atmosphere.customWeatherPresets[existing] = preset;
+            else s.atmosphere.customWeatherPresets.push(preset);
+            saveSettings();
+            renderCustomPresets();
+            window.toastr?.success?.(`Saved weather preset: ${name}`);
+            return;
+        }
+        const preset = s.atmosphere.customWeatherPresets[Number($(this).attr("data-atmo-preset"))];
+        if (!preset) return;
+        $("#uie-atmo-weather-name").val(preset.name);
+        $("#uie-atmo-weather-visual").val(preset.visual);
+        $("#uie-atmo-apply-weather").trigger("click");
+    });
+
+    $win.off("click.uieAtmoPreview").on("click.uieAtmoPreview", "#uie-atmo-stop-preview,#uie-atmo-remove-sound", function() {
+        const weatherKey = String($win.data("selectedWeather") || s.worldState?.weatherVisual || "clear");
+        stopWeatherAudio();
+        if (this.id === "uie-atmo-remove-sound") {
+            saveWeatherSoundSrc(weatherKey, null);
+            $("#uie-atmo-sound-url").val("");
+            const input = document.getElementById("uie-atmo-sound-file");
+            if (input) input.value = "";
+            window.toastr?.info?.("Custom weather sound removed.");
+        }
     });
 
     $win.off("click.uieAtmoClockApply").on("click.uieAtmoClockApply", "#uie-atmo-apply-clock", function(e) {
@@ -439,4 +689,5 @@ export function initAtmosphereWindow() {
     // Initialize display state
     updateClockDisplay();
     updateButtonHighlights();
+    renderCustomPresets();
 }

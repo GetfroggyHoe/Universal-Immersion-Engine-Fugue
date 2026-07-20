@@ -27,7 +27,7 @@ function saveCurrentSettingsAsPersona(name) {
 
     const personas = getPersonas();
     const s = getSettings();
-    const activePersonaId = s.character?.activePersonaId || '';
+    const activePersonaId = s.activePersonaId || s.character?.activePersonaId || '';
 
     // Create a deep copy of the settings, excluding the personas array itself
     const settingsToSave = JSON.parse(JSON.stringify(s, (key, value) => {
@@ -73,6 +73,7 @@ function saveCurrentSettingsAsPersona(name) {
         };
         personas.push(newPersona);
         s.character = s.character || {};
+        s.activePersonaId = id;
         s.character.activePersonaId = id;
         showPopup(`Persona "${name}" saved.`, 'success');
     }
@@ -170,6 +171,7 @@ function clearPersonaFields() {
     // Clear active persona selection key
     const s = getSettings();
     s.character = s.character || {};
+    s.activePersonaId = '';
     s.character.activePersonaId = '';
     saveSettings();
     renderPersonaCardsGrid();
@@ -194,7 +196,8 @@ function renderPersonaCardsGrid() {
     const grid = document.getElementById('uie-personas-grid');
     if (!grid) return;
     const personas = getPersonas();
-    const activePersonaId = getSettings().character?.activePersonaId || '';
+    const settings = getSettings();
+    const activePersonaId = settings.activePersonaId || settings.character?.activePersonaId || '';
 
     let html = '';
     // "New Card" trigger element
@@ -279,7 +282,7 @@ function initPersonaManager() {
     if (deleteActiveBtn) {
         deleteActiveBtn.addEventListener('click', () => {
             const s = getSettings();
-            const id = s.character?.activePersonaId || '';
+            const id = s.activePersonaId || s.character?.activePersonaId || '';
             if (id) {
                 deletePersona(id);
             } else {
@@ -331,7 +334,8 @@ function initPersonaManager() {
     renderPersonaCardsGrid();
     
     // Auto populate editor form with currently active persona if exists
-    const activePersonaId = getSettings().character?.activePersonaId || '';
+    const currentSettings = getSettings();
+    const activePersonaId = currentSettings.activePersonaId || currentSettings.character?.activePersonaId || '';
     if (activePersonaId) {
         loadPersonaFields(activePersonaId);
     }
@@ -363,7 +367,7 @@ function getGameSpecificSaveKey() {
 function saveCharacterToPersona(customName = null) {
     const s = getSettings();
     const personas = getPersonas();
-    const activePersonaId = s.character?.activePersonaId || '';
+    const activePersonaId = s.activePersonaId || s.character?.activePersonaId || '';
     
     if (!activePersonaId) {
         showPopup('No active persona. Create or select a persona first.', 'error');
@@ -392,10 +396,12 @@ function saveCharacterToPersona(customName = null) {
             bio: s.character?.bio || '',
         },
         stats: {
-            hp: s.character?.hp || s.rpg?.hp || 100,
-            maxHp: s.character?.maxHp || s.rpg?.maxHp || 100,
-            mp: s.character?.mp || s.rpg?.mp || 50,
-            maxMp: s.character?.maxMp || s.rpg?.maxMp || 50,
+            hp: s.hp ?? s.character?.hp ?? s.rpg?.hp ?? 100,
+            maxHp: s.maxHp ?? s.character?.maxHp ?? s.rpg?.maxHp ?? 100,
+            mp: s.mp ?? s.character?.mp ?? s.rpg?.mp ?? 50,
+            maxMp: s.maxMp ?? s.character?.maxMp ?? s.rpg?.maxMp ?? 50,
+            ap: s.ap ?? s.character?.ap ?? s.rpg?.ap ?? 100,
+            maxAp: s.maxAp ?? s.character?.maxAp ?? s.rpg?.maxAp ?? 100,
             strength: s.character?.strength || s.rpg?.strength || 10,
             dexterity: s.character?.dexterity || s.rpg?.dexterity || 10,
             intelligence: s.character?.intelligence || s.rpg?.intelligence || 10,
@@ -430,7 +436,7 @@ function saveCharacterToPersona(customName = null) {
 function loadCharacterFromPersona(saveIndex = -1, gameKey = null) {
     const s = getSettings();
     const personas = getPersonas();
-    const activePersonaId = s.character?.activePersonaId || '';
+    const activePersonaId = s.activePersonaId || s.character?.activePersonaId || '';
     
     if (!activePersonaId) {
         showPopup('No active persona selected.', 'error');
@@ -464,16 +470,22 @@ function loadCharacterFromPersona(saveIndex = -1, gameKey = null) {
     s.character.avatar = saveData.character?.avatar || s.character.avatar;
     s.character.bio = saveData.character?.bio || s.character.bio;
     
-    s.character.hp = saveData.stats?.hp || s.character.hp;
-    s.character.maxHp = saveData.stats?.maxHp || s.character.maxHp;
-    s.character.mp = saveData.stats?.mp || s.character.mp;
-    s.character.maxMp = saveData.stats?.maxMp || s.character.maxMp;
+    s.hp = saveData.stats?.hp ?? s.hp;
+    s.maxHp = saveData.stats?.maxHp ?? s.maxHp;
+    s.mp = saveData.stats?.mp ?? s.mp;
+    s.maxMp = saveData.stats?.maxMp ?? s.maxMp;
+    s.ap = saveData.stats?.ap ?? s.ap;
+    s.maxAp = saveData.stats?.maxAp ?? s.maxAp;
+    Object.assign(s.character, { hp:s.hp, maxHp:s.maxHp, mp:s.mp, maxMp:s.maxMp, ap:s.ap, maxAp:s.maxAp });
     s.character.strength = saveData.stats?.strength || s.character.strength;
     s.character.dexterity = saveData.stats?.dexterity || s.character.dexterity;
     s.character.intelligence = saveData.stats?.intelligence || s.character.intelligence;
     s.character.charisma = saveData.stats?.charisma || s.character.charisma;
     
-    s.inventory = JSON.parse(JSON.stringify(saveData.inventory || []));
+    const restoredInventory = JSON.parse(JSON.stringify(saveData.inventory || {}));
+    s.inventory = Array.isArray(restoredInventory)
+        ? { ...(s.inventory && !Array.isArray(s.inventory) ? s.inventory : {}), items:restoredInventory }
+        : restoredInventory;
     s.equipment = JSON.parse(JSON.stringify(saveData.equipment || {}));
     s.quests = JSON.parse(JSON.stringify(saveData.quests || []));
     s.lifeTrackers = JSON.parse(JSON.stringify(saveData.lifeTrackers || {}));
@@ -491,7 +503,7 @@ function loadCharacterFromPersona(saveIndex = -1, gameKey = null) {
 function listCharacterSaves(gameKey = null) {
     const s = getSettings();
     const personas = getPersonas();
-    const activePersonaId = s.character?.activePersonaId || '';
+    const activePersonaId = s.activePersonaId || s.character?.activePersonaId || '';
     
     if (!activePersonaId) return [];
     
@@ -505,7 +517,7 @@ function listCharacterSaves(gameKey = null) {
 function deleteCharacterSave(saveIndex, gameKey = null) {
     const s = getSettings();
     const personas = getPersonas();
-    const activePersonaId = s.character?.activePersonaId || '';
+    const activePersonaId = s.activePersonaId || s.character?.activePersonaId || '';
     
     if (!activePersonaId) {
         showPopup('No active persona selected.', 'error');

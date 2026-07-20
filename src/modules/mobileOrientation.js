@@ -1,10 +1,39 @@
 const TEXT_ENTRY_CLASS = "uie-text-entry-active";
 const LANDSCAPE_REQUIRED_CLASS = "uie-landscape-required";
 const PORTRAIT_CLASS = "uie-portrait";
+const GAME_DESIGN_WIDTH = 1536;
+const GAME_DESIGN_HEIGHT = 864;
 
 let initialized = false;
 let zoomGuardsInstalled = false;
 let tapGuardsInstalled = false;
+let safeAreaProbe = null;
+let hudCapacityObserver = null;
+let hudCapacityFrame = 0;
+
+function safeAreaInsets() {
+    if (!safeAreaProbe) {
+        safeAreaProbe = document.createElement("div");
+        safeAreaProbe.setAttribute("aria-hidden", "true");
+        Object.assign(safeAreaProbe.style, {
+            position: "fixed",
+            visibility: "hidden",
+            pointerEvents: "none",
+            paddingTop: "env(safe-area-inset-top, 0px)",
+            paddingRight: "env(safe-area-inset-right, 0px)",
+            paddingBottom: "env(safe-area-inset-bottom, 0px)",
+            paddingLeft: "env(safe-area-inset-left, 0px)",
+        });
+        document.body.appendChild(safeAreaProbe);
+    }
+    const style = getComputedStyle(safeAreaProbe);
+    return {
+        top: parseFloat(style.paddingTop) || 0,
+        right: parseFloat(style.paddingRight) || 0,
+        bottom: parseFloat(style.paddingBottom) || 0,
+        left: parseFloat(style.paddingLeft) || 0,
+    };
+}
 function isMobileDevice() {
     try {
         const coarse = window.matchMedia?.("(pointer: coarse)")?.matches === true;
@@ -49,11 +78,118 @@ export function updateAppViewport() {
     const root = document.documentElement;
     root.style.setProperty("--app-width", `${width}px`);
     root.style.setProperty("--app-height", `${height}px`);
+    root.style.setProperty("--app-left", `${Math.round(viewport?.offsetLeft || 0)}px`);
+    root.style.setProperty("--app-top", `${Math.round(viewport?.offsetTop || 0)}px`);
+    root.style.setProperty("--game-design-width", String(GAME_DESIGN_WIDTH));
+    root.style.setProperty("--game-design-height", String(GAME_DESIGN_HEIGHT));
     const portrait = isMobileDevice() && height > width;
     root.classList.toggle(PORTRAIT_CLASS, portrait);
     document.getElementById("game-root")?.toggleAttribute("aria-hidden", portrait);
+
+    const isMobileLandscape =
+        window.matchMedia("(pointer: coarse)").matches &&
+        window.matchMedia("(orientation: landscape)").matches;
+
+    root.classList.toggle("uie-mobile-landscape", isMobileLandscape);
+
+    if (!isMobileLandscape) {
+        root.style.setProperty("--uie-ui-scale", "1");
+        root.style.setProperty("--uie-hud-scale", "1");
+        root.style.setProperty("--uie-bottom-clear-width", "1180px");
+    } else {
+        const bottomScale = 0.9 * Math.max(0.65, Math.min(0.81, width / 1310, height / 578));
+        const hudScale = 0.578;
+        root.style.setProperty("--uie-ui-scale", String(bottomScale));
+        root.style.setProperty("--uie-hud-scale", String(hudScale));
+        root.style.setProperty("--uie-bottom-clear-width", `${Math.max(320, (width - 165) / bottomScale)}px`);
+    }
+
+    resizeDesktopMirrorMode();
+    scheduleMobileHudCapacity();
     updateViewportDiagnostic(width, height);
     runLandscapeLayoutDiagnostics();
+}
+
+export function isMobileLandscapeMirror() {
+    return false;
+}
+
+export function resizeDesktopMirrorMode() {
+    const root = document.getElementById("game-root");
+    if (!root) return;
+    document.documentElement.classList.remove("uie-mobile-mirror");
+    document.documentElement.classList.remove("uie-mobile-legacy-disabled");
+}
+
+function updateMobileHudCapacity() {
+    hudCapacityFrame = 0;
+    const scroller = document.getElementById("hud-secondary-scroll");
+    const trackers = document.getElementById("hud-custom-trackers");
+    const hud = document.getElementById("hud");
+    if (!scroller || !trackers || !hud) return;
+
+    const mobileLandscape =
+        window.matchMedia("(pointer: coarse)").matches &&
+        window.matchMedia("(orientation: landscape)").matches;
+    if (!mobileLandscape) {
+        scroller.style.removeProperty("--uie-hud-secondary-max");
+        scroller.style.removeProperty("--uie-hud-secondary-overflow");
+        scroller.removeAttribute("data-overflowing");
+        return;
+    }
+
+    const rows = Array.from(trackers.children).filter((row) => getComputedStyle(row).display !== "none");
+    if (!rows.length) {
+        scroller.style.setProperty("--uie-hud-secondary-max", "0px");
+        scroller.style.setProperty("--uie-hud-secondary-overflow", "hidden");
+        scroller.removeAttribute("data-overflowing");
+        return;
+    }
+
+    const viewportHeight = window.visualViewport?.height || window.innerHeight;
+    const deck = document.getElementById("input-row") || document.getElementById("vn-ui");
+    const deckRect = deck?.getBoundingClientRect();
+    const hudRect = hud.getBoundingClientRect();
+    const overlapsHudHorizontally = deckRect &&
+        Math.min(hudRect.right, deckRect.right) > Math.max(hudRect.left, deckRect.left);
+    const lowerBoundary = deckRect && overlapsHudHorizontally && getComputedStyle(deck).display !== "none" && deckRect.top > 0
+        ? Math.min(viewportHeight - 6, deckRect.top - 6)
+        : viewportHeight - 8;
+    const scrollerTop = scroller.getBoundingClientRect().top;
+    const available = Math.max(0, lowerBoundary - scrollerTop);
+    const scale = Number.parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--uie-hud-scale")) || 1;
+    const rowGap = (Number.parseFloat(getComputedStyle(trackers).rowGap || getComputedStyle(trackers).gap) || 0) * scale;
+
+    let used = 0;
+    let capacity = 0;
+    for (const row of rows) {
+        const next = row.getBoundingClientRect().height + (capacity ? rowGap : 0);
+        if (used + next > available + 0.5) break;
+        used += next;
+        capacity += 1;
+    }
+    if (!capacity && available > 18) {
+        capacity = 1;
+        used = Math.min(available, rows[0].getBoundingClientRect().height);
+    }
+
+    const overflowing = rows.length > capacity;
+    scroller.style.setProperty("--uie-hud-secondary-max", overflowing ? `${Math.max(0, used / scale)}px` : "none");
+    scroller.style.setProperty("--uie-hud-secondary-overflow", overflowing ? "auto" : "visible");
+    scroller.toggleAttribute("data-overflowing", overflowing);
+}
+
+function scheduleMobileHudCapacity() {
+    cancelAnimationFrame(hudCapacityFrame);
+    hudCapacityFrame = requestAnimationFrame(() => requestAnimationFrame(updateMobileHudCapacity));
+}
+
+function installHudCapacityObserver() {
+    if (hudCapacityObserver) return;
+    const hud = document.getElementById("hud");
+    if (!hud) return;
+    hudCapacityObserver = new MutationObserver(scheduleMobileHudCapacity);
+    hudCapacityObserver.observe(hud, { childList: true, subtree: true });
 }
 
 function runLandscapeLayoutDiagnostics() {
@@ -158,6 +294,7 @@ export function initMobileOrientation() {
         }, { capture: true, passive: true });
     }
     updateAppViewport();
+    installHudCapacityObserver();
 
     document.addEventListener("focusin", (event) => {
         if (!isTextEntry(event.target)) return;
@@ -189,6 +326,7 @@ function installMobileTapGuards() {
     if (tapGuardsInstalled) return;
     tapGuardsInstalled = true;
     document.documentElement.style.touchAction = "manipulation";
+    installPressInfo();
     document.addEventListener("touchend", (event) => {
         if (event.defaultPrevented || event.changedTouches?.length !== 1) return;
         const target = isTapTarget(event.target);
@@ -215,6 +353,72 @@ function installMobileTapGuards() {
         } catch (_) {}
         target.click?.();
     }, { capture: true, passive: false });
+}
+
+function installPressInfo() {
+    let timer = 0;
+    let origin = null;
+    let pressedTarget = null;
+    let suppressClickFor = null;
+    let hideTimer = 0;
+
+    const ensureTooltip = () => {
+        let tooltip = document.getElementById("uie-press-info");
+        if (tooltip) return tooltip;
+        tooltip = document.createElement("div");
+        tooltip.id = "uie-press-info";
+        tooltip.setAttribute("role", "tooltip");
+        tooltip.hidden = true;
+        document.body.appendChild(tooltip);
+        return tooltip;
+    };
+
+    const clearPress = () => {
+        window.clearTimeout(timer);
+        timer = 0;
+        origin = null;
+        pressedTarget = null;
+    };
+
+    const showPressInfo = (target) => {
+        const text = String(target.getAttribute("data-press-info") || target.getAttribute("title") || target.getAttribute("aria-label") || "").trim();
+        if (!text) return;
+        const tooltip = ensureTooltip();
+        tooltip.textContent = text;
+        tooltip.hidden = false;
+        const rect = target.getBoundingClientRect();
+        const tipRect = tooltip.getBoundingClientRect();
+        const left = Math.max(8, Math.min(window.innerWidth - tipRect.width - 8, rect.left + (rect.width - tipRect.width) / 2));
+        const above = rect.top - tipRect.height - 10;
+        tooltip.style.left = `${left}px`;
+        tooltip.style.top = `${above >= 8 ? above : Math.min(window.innerHeight - tipRect.height - 8, rect.bottom + 10)}px`;
+        window.clearTimeout(hideTimer);
+        hideTimer = window.setTimeout(() => { tooltip.hidden = true; }, 2600);
+        suppressClickFor = target;
+    };
+
+    document.addEventListener("pointerdown", (event) => {
+        if (event.pointerType !== "touch" || !isMobileDevice()) return;
+        const target = event.target?.closest?.("[data-press-info], [title], [aria-label]");
+        if (!target) return;
+        clearPress();
+        pressedTarget = target;
+        origin = { x: event.clientX, y: event.clientY };
+        timer = window.setTimeout(() => showPressInfo(target), 480);
+    }, { capture: true, passive: true });
+
+    document.addEventListener("pointermove", (event) => {
+        if (!origin || Math.hypot(event.clientX - origin.x, event.clientY - origin.y) <= 8) return;
+        clearPress();
+    }, { capture: true, passive: true });
+    document.addEventListener("pointerup", clearPress, { capture: true, passive: true });
+    document.addEventListener("pointercancel", clearPress, { capture: true, passive: true });
+    document.addEventListener("click", (event) => {
+        if (!suppressClickFor || !event.target?.closest?.("[data-press-info], [title], [aria-label]")?.isSameNode(suppressClickFor)) return;
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        suppressClickFor = null;
+    }, true);
 }
 
 function installMobileZoomGuards() {

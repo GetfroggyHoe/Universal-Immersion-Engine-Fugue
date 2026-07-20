@@ -19,7 +19,7 @@ import { generateImageAPI } from "./imageGen.js";
 // ---------------------------------------------------------------------------
 // Configuration
 // ---------------------------------------------------------------------------
-const IMAGE_SERVICE_URL = "http://127.0.0.1:28094";
+const IMAGE_SERVICE_URL = "./api/image-service";
 const GENERATE_ENDPOINT = `${IMAGE_SERVICE_URL}/generate_location`;
 const HEALTH_ENDPOINT   = `${IMAGE_SERVICE_URL}/health`;
 const TIMEOUT_MS        = 8000;   // generous timeout; typical is <1.5s on GPU

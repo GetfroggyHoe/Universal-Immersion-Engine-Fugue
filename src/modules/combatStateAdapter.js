@@ -163,6 +163,8 @@ function fallbackPlayer(settings) {
 }
 
 function autoAssignThreatTier(enemy) {
+  const explicit = Number(enemy?.threatTier ?? enemy?.tier);
+  if (Number.isFinite(explicit) && explicit >= 1) return Math.max(1, Math.min(5, Math.round(explicit)));
   const name = String(enemy?.name || "").toLowerCase();
   const className = String(enemy?.className || enemy?.class || enemy?.type || "").toLowerCase();
   const text = name + " " + className;
@@ -204,19 +206,26 @@ export function normalizeEnemyCombatant(enemy, index = 0) {
     scaledStats[k] = Math.max(1, Math.round(baseVal * mult));
   });
 
+  const equipment = normalizeEquipment(enemy?.equipment);
+  const statuses = normalizeStatusList(enemy?.statusEffects);
+  const passiveSkills = (Array.isArray(enemy?.skills) ? enemy.skills : []).filter((skill) => String(skill?.skillType || skill?.type || "").toLowerCase() === "passive");
+  const modifierTotals = collectModifierTotals([...equipment, ...statuses, ...passiveSkills]);
   const stats = normalizeStats(scaledStats);
   const rawVitals = normalizeVitals(enemy);
+  const scaledMaxHp = Math.max(1, Math.round(finiteNumber(rawVitals.maxHp || (lvl * 15 + 30), 100) * mult + finiteNumber(modifierTotals.maxHp, 0)));
+  const scaledMaxMp = Math.max(0, Math.round(finiteNumber(rawVitals.maxMp || (lvl * 5 + 10), 50) * mult + finiteNumber(modifierTotals.maxMp, 0)));
+  const scaledMaxAp = Math.max(0, Math.round(finiteNumber(rawVitals.maxAp, 10) * mult + finiteNumber(modifierTotals.maxAp, 0)));
   const vitals = {
-    hp: Math.max(1, Math.round(finiteNumber(rawVitals.hp || (lvl * 15 + 30), 100) * mult)),
-    maxHp: Math.max(1, Math.round(finiteNumber(rawVitals.maxHp || (lvl * 15 + 30), 100) * mult)),
-    mp: Math.max(0, Math.round(finiteNumber(rawVitals.mp || (lvl * 5 + 10), 50) * mult)),
-    maxMp: Math.max(0, Math.round(finiteNumber(rawVitals.maxMp || (lvl * 5 + 10), 50) * mult)),
-    ap: Math.max(0, Math.round(finiteNumber(rawVitals.ap, 10) * mult)),
-    maxAp: Math.max(0, Math.round(finiteNumber(rawVitals.maxAp, 10) * mult)),
+    hp: Math.min(scaledMaxHp, Math.max(1, Math.round(finiteNumber(rawVitals.hp || (lvl * 15 + 30), 100) * mult + finiteNumber(modifierTotals.maxHp, 0)))),
+    maxHp: scaledMaxHp,
+    mp: Math.min(scaledMaxMp, Math.max(0, Math.round(finiteNumber(rawVitals.mp || (lvl * 5 + 10), 50) * mult + finiteNumber(modifierTotals.maxMp, 0)))),
+    maxMp: scaledMaxMp,
+    ap: Math.min(scaledMaxAp, Math.max(0, Math.round(finiteNumber(rawVitals.ap, 10) * mult + finiteNumber(modifierTotals.maxAp, 0)))),
+    maxAp: scaledMaxAp,
   };
 
   const lane = normalizeLane(enemy?.lane || "front", "front");
-  const derived = calculateDerivedStats(stats, collectModifierTotals(normalizeStatusList(enemy?.statusEffects)), lane, enemy?.role || "Enemy");
+  const derived = calculateDerivedStats(stats, modifierTotals, lane, enemy?.role || "Enemy");
   
   return withLegacyCombatAliases({
     ...enemy,
@@ -232,8 +241,10 @@ export function normalizeEnemyCombatant(enemy, index = 0) {
     stats,
     derived,
     vitals,
+    equipment,
+    items: (Array.isArray(enemy?.items) ? enemy.items : []).filter(Boolean).map((item) => typeof item === "string" ? { name: item } : { ...item }),
     threatTier,
-    statuses: normalizeStatusList(enemy?.statusEffects),
+    statuses,
     actions: (Array.isArray(enemy?.attacks) ? enemy.attacks : []).map((action) => normalizeCombatAction(action, "Enemy")).filter(Boolean),
     presentation: {
       portrait: String(enemy?.imageUrl || enemy?.sprite || enemy?.portrait || ""),

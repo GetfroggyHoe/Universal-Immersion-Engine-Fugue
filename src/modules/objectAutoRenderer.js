@@ -1,7 +1,7 @@
 import { getSettings, saveSettings } from "./core.js";
 import { notify } from "./notifications.js";
 
-const AUTO_RENDERER_VERSION = "1.0.0";
+const AUTO_RENDERER_VERSION = "1.1.0";
 
 function esc(v) {
     return String(v ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
@@ -18,6 +18,10 @@ function normKey(v) {
 
 function nowMs() {
     return Date.now();
+}
+
+function slug(v, fallback = "object") {
+    return String(v || "").trim().toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 72) || fallback;
 }
 
 const OBJECT_TYPES = Object.freeze({
@@ -720,6 +724,151 @@ function renderObjectToRoom(obj, coordinates) {
     return placement;
 }
 
+function environmentObjects(environmentState) {
+    if (!environmentState || typeof environmentState !== "object") return [];
+    return [
+        environmentState.objects,
+        environmentState.interactables,
+        environmentState.fixtures,
+        environmentState.props,
+        environmentState.contents,
+        environmentState?.layout?.objects,
+        environmentState?.layout?.fixtures,
+    ].flatMap((value) => Array.isArray(value) ? value : []).slice(0, 12);
+}
+
+function contextualBlueprints(location, context = {}) {
+    const text = [location, context.type, context.theme, context.description, context.desc, context.district, context.weather]
+        .map((value) => String(value || "")).join(" ").toLowerCase();
+    const profiles = [
+        [/library|archive|school|academy|classroom|study|university|book/, [
+            { name: "Local Reference Volume", type: "book", pages: [`Notes and local knowledge about ${location}.`] },
+            { name: "Study Terminal", type: "computer", description: `A catalog terminal configured for ${location}.` },
+            { name: "Notice Board", type: "note", content: `Current notices and schedules for ${location}.` },
+        ]],
+        [/temple|shrine|chapel|sanctuary|magic|arcane|occult|ritual|mystic/, [
+            { name: "Local Altar", type: "altar", description: `An altar shaped by the beliefs of ${location}.` },
+            { name: "Inscribed Scroll", type: "scroll", pages: [`Symbols record a fragment of ${location}'s history.`] },
+            { name: "Scrying Mirror", type: "mirror", reflection: `The light of ${location} gathers in the glass.` },
+        ]],
+        [/workshop|factory|forge|industrial|laboratory|lab|garage|engine|machine/, [
+            { name: "Work Station", type: "workstation", description: `Tools and materials suited to ${location}.` },
+            { name: "Control Terminal", type: "terminal", description: `A local systems terminal for ${location}.` },
+            { name: "Safety Lever", type: "lever", label: "Standby" },
+        ]],
+        [/station|airport|harbor|harbour|dock|port|terminal|transit|subway|metro|train/, [
+            { name: "Route Map", type: "map_object", description: `Routes and exits around ${location}.` },
+            { name: "Travel Kiosk", type: "terminal", description: `A public information terminal for ${location}.` },
+            { name: "Cargo Crate", type: "container", description: "A marked container waiting near the travel lanes." },
+        ]],
+        [/tavern|inn|bar|cafe|restaurant|club|casino|lounge|venue/, [
+            { name: "House Menu", type: "note", content: `Food, drink, services, and local prices at ${location}.` },
+            { name: "Music Player", type: "music_player", tracks: [{ name: `${location} ambience` }] },
+            { name: "Game Table", type: "dice", sides: 20 },
+        ]],
+        [/forest|woods|jungle|swamp|marsh|mountain|cave|desert|wilderness|trail|field|river|coast|ruins/, [
+            { name: "Trail Marker", type: "map_object", description: `A weathered marker for paths around ${location}.` },
+            { name: "Weathered Cache", type: "container", description: "A sheltered container for local supplies." },
+            { name: "Field Notes", type: "note", content: `Observations about terrain and hazards around ${location}.` },
+        ]],
+        [/ship|space|orbital|star|cyber|futur|neon|android|holog|reactor/, [
+            { name: "Systems Console", type: "computer", description: `A networked console keyed to ${location}.` },
+            { name: "Access Panel", type: "button", label: "ACCESS", color: "#38bdf8" },
+            { name: "Equipment Locker", type: "safe", locked: true },
+        ]],
+        [/home|house|apartment|bedroom|room|suite|hotel|office/, [
+            { name: "Room Mirror", type: "mirror", reflection: `The current light of ${location} rests in the glass.` },
+            { name: "Local Desk", type: "workstation", description: `A practical surface arranged for ${location}.` },
+            { name: "Storage Chest", type: "container", description: "A container sized for this room." },
+        ]],
+        [/market|shop|store|mall|street|city|town|village|plaza|district/, [
+            { name: "Local Notice Board", type: "note", content: `Public notices, prices, and rumors from ${location}.` },
+            { name: "Information Kiosk", type: "terminal", description: `A public terminal for ${location}.` },
+            { name: "Supply Crate", type: "container", description: "A sturdy crate marked for local delivery." },
+        ]],
+    ];
+    return profiles.find(([pattern]) => pattern.test(text))?.[1] || [
+        { name: "Location Marker", type: "map_object", description: `A physical marker tied to ${location}.` },
+        { name: "Local Container", type: "container", description: `A useful container that fits ${location}.` },
+        { name: "Context Note", type: "note", content: `A small piece of readable context from ${location}.` },
+    ];
+}
+
+function normalizeQueuedObject(raw, location, index) {
+    const source = typeof raw === "string" ? { name: raw } : raw;
+    if (!source || typeof source !== "object") return null;
+    const name = String(source.name || source.label || source.title || "").trim().slice(0, 100);
+    if (!name) return null;
+    const type = detectObjectType(source);
+    const objectData = {
+        ...source,
+        id: String(source.id || `ctx_${slug(location, "location")}_${slug(name)}_${index}`),
+        name,
+        type,
+        objectType: type,
+        description: String(source.description || source.desc || `A ${name.toLowerCase()} that belongs in ${location}.`).slice(0, 500),
+        location,
+        contextGenerated: true,
+    };
+    return {
+        id: objectData.id,
+        name,
+        type,
+        objectType: type,
+        description: objectData.description,
+        location,
+        status: "unplaced",
+        source: "location_context",
+        objectData,
+        html: generateObjectHtml(objectData),
+        css: generateObjectCss({ ...objectData, _detectedType: type }),
+        contextGenerated: true,
+        _key: `${slug(location, "location")}::${slug(name)}`,
+        updatedAt: nowMs(),
+    };
+}
+
+/** Prepare contextual HTML/CSS objects, but let the player choose placement. */
+function queueContextualObjectsForLocation(locationName, context = {}) {
+    const location = String(locationName || context.name || "").trim();
+    if (!location) return [];
+    const s = getSettings();
+    if (!s.roomEditor || typeof s.roomEditor !== "object") s.roomEditor = {};
+    if (!Array.isArray(s.roomEditor.unplacedItems)) s.roomEditor.unplacedItems = [];
+    const candidates = [...environmentObjects(context.environmentState || context), ...contextualBlueprints(location, context)].slice(0, 8);
+    const added = [];
+    candidates.forEach((raw, index) => {
+        const entry = normalizeQueuedObject(raw, location, index);
+        if (!entry) return;
+        const existing = s.roomEditor.unplacedItems.find((item) => String(item?._key || "") === entry._key);
+        if (existing) Object.assign(existing, entry, { id: existing.id });
+        else {
+            s.roomEditor.unplacedItems.push(entry);
+            added.push(entry);
+        }
+    });
+    s.roomEditor.unplacedItems = s.roomEditor.unplacedItems.slice(-120);
+    saveSettings();
+    try { window.dispatchEvent(new CustomEvent("uie:objects_updated", { detail: { location, added } })); } catch (_) {}
+    if (added.length && context.notify !== false) notify("info", `${added.length} contextual objects are ready to place.`, "Objects");
+    return added;
+}
+
+function placeQueuedObjectInRoom(objectId, coordinates) {
+    const s = getSettings();
+    const items = Array.isArray(s?.roomEditor?.unplacedItems) ? s.roomEditor.unplacedItems : [];
+    const index = items.findIndex((item) => String(item?.id || "") === String(objectId || ""));
+    if (index < 0) return null;
+    const queued = items[index];
+    const currentLocation = String(s?.worldState?.location || s?.worldState?.currentLocation || "").trim();
+    if (queued.location && currentLocation && String(queued.location).toLowerCase() !== currentLocation.toLowerCase()) return null;
+    const placement = renderObjectToRoom(queued.objectData || queued, coordinates);
+    items.splice(index, 1);
+    saveSettings();
+    try { window.dispatchEvent(new CustomEvent("uie:objects_updated", { detail: { location: currentLocation, placed: placement } })); } catch (_) {}
+    return placement;
+}
+
 function initObjectAutoRenderer() {
     try {
         window.UIE = window.UIE || {};
@@ -727,6 +876,8 @@ function initObjectAutoRenderer() {
             render: generateObjectHtml,
             renderCss: generateObjectCss,
             placeInRoom: renderObjectToRoom,
+            queueForLocation: queueContextualObjectsForLocation,
+            placeQueued: placeQueuedObjectInRoom,
             detectType: detectObjectType,
             OBJECT_TYPES,
             version: AUTO_RENDERER_VERSION,
@@ -742,5 +893,7 @@ export {
     generateObjectHtml,
     generateObjectCss,
     renderObjectToRoom,
+    queueContextualObjectsForLocation,
+    placeQueuedObjectInRoom,
     initObjectAutoRenderer,
 };

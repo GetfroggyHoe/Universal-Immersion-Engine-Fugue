@@ -1,0 +1,6 @@
+# Optional local AI models are user downloads, never repository content.
+models/koji/
+.venv/
+venv/
+koji_download.log
+

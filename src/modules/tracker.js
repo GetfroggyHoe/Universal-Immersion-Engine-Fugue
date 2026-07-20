@@ -1,4 +1,5 @@
 import { getSettings } from './core.js';
+import { getTrackedCharacters } from './trackedCharacters.js';
 
 export function initTracker() {
     try {
@@ -7,10 +8,11 @@ export function initTracker() {
         if (!$body.length) return;
         $body.empty();
 
-        const currentLoc = s.worldState?.location || s.location || "Unknown Location";
-        const trackedList = [];
-        const seenNames = new Set();
+        const trackedList = getTrackedCharacters(s);
 
+        /* Shared tracking rules are defined in trackedCharacters.js. Party is
+           automatic; social contacts are included only when mapTracked is on. */
+        /*
         // Identify current protagonist name to filter out active player and other characters
         const activeCharName = String(s.character?.name || s.name || "").toLowerCase().trim();
 
@@ -85,6 +87,7 @@ export function initTracker() {
             }
         }
 
+        */
         if (trackedList.length === 0) {
             $body.html(`
                 <div class="tracker-empty-state">
@@ -132,7 +135,7 @@ export function initTracker() {
                             </div>
                             <div class="tracker-location">
                                 <i class="fa-solid fa-location-dot"></i>
-                                <span>${esc(char.location)}</span>
+                                <span>${esc(char.withPlayer ? `${char.location} · with you` : char.location)}</span>
                             </div>
                         </div>
                         <div class="tracker-affinity-meter">
@@ -140,6 +143,9 @@ export function initTracker() {
                             <span class="tracker-affinity-pct">${char.affinity}% Affinity</span>
                         </div>
                         <div class="tracker-actions">
+                            <button class="tracker-map-btn tracker-nav-btn" data-location="${esc(char.location)}" data-character="${esc(char.name)}">
+                                <i class="fa-solid fa-location-crosshairs"></i> Show on Map
+                            </button>
                             <button class="tracker-nav-btn" data-name="${esc(char.name)}">
                                 <i class="fa-solid fa-address-card"></i> Profile Details
                             </button>
@@ -154,7 +160,7 @@ export function initTracker() {
         }
 
         // Bind 'View Profile' click listeners
-        $body.find(".tracker-nav-btn").off("click").on("click", function(e) {
+        $body.find(".tracker-nav-btn").not(".tracker-map-btn").off("click").on("click", function(e) {
             e.preventDefault();
             e.stopPropagation();
             const char = $(this).data("char-details");
@@ -203,6 +209,16 @@ export function initTracker() {
             });
             
             detailsOverlay.fadeIn(200);
+        });
+
+        $body.find(".tracker-map-btn").off("click").on("click", async function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            const location = String($(this).attr("data-location") || "").trim();
+            const characterName = String($(this).attr("data-character") || "").trim();
+            const map = window.importUieModule ? await window.importUieModule("map.js") : await import("./map.js");
+            const ok = await map.focusTrackedLocation?.(location, { characterName });
+            if (!ok) window.showToast?.(`${characterName}'s location is not on the map yet.`, 4200);
         });
 
     } catch (err) {

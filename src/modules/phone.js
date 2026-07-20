@@ -9,6 +9,18 @@ import { ensureEconomyState, formatCurrency, payTransitFare, LOAN_TIERS, openLoa
 import { getGameMode } from "./gameModeManager.js";
 import { receiveMessage as receiveCourierMessage, sendMessage as sendCourierMessage, sendEmail, registerApplication } from "./CommunicationsManager.js";
 import { openHelpManualWindow } from "./helpManual.js";
+import {
+    TRANSIT_MODES,
+    availableModesForNode,
+    buildTransitRoutes,
+    collectTransitNodes,
+    ensureTravelState,
+    evaluateTransitRoute,
+    transitId,
+} from "./travelRules.js";
+import { inferTravelCategory } from "./travelAssets.js";
+import { initCredentialForgeUI } from "./credentialForgeUI.js";
+import { getDefaultCredential, syncAutomaticCredentials, useCredential } from "./credentialSystem.js";
 
 export function parseMarkdown(text) {
     if (!text) return "";
@@ -34,9 +46,186 @@ let activeContact = null; // Tracks who we are texting
 let dialBuf = "";
 let chatClock = null;
 let phoneClockInt = null;
+let phonePowerInt = null;
 let arrivalObserver = null;
 let arrivalLastMesId = null;
 let callChatContext = "";
+let phoneTravelRoutes = new Map();
+let credentialForgeUI = null;
+
+function ensurePhonePowerState(s = getSettings()) {
+    if (!s.phone || typeof s.phone !== "object") s.phone = {};
+    if (!s.phone.power || typeof s.phone.power !== "object") {
+        s.phone.power = {};
+    }
+    const p = s.phone.power;
+    if (typeof p.batterySimulationEnabled !== "boolean") p.batterySimulationEnabled = true;
+    if (typeof p.networkSimulationEnabled !== "boolean") p.networkSimulationEnabled = true;
+    if (!Number.isFinite(Number(p.batteryLevel))) p.batteryLevel = 100;
+    p.batteryLevel = Math.max(0, Math.min(100, Number(p.batteryLevel)));
+    if (typeof p.charging !== "boolean") p.charging = false;
+    if (!["wall", "usb", "wireless", "vehicle", "solar"].includes(String(p.charger || ""))) p.charger = "wall";
+    if (!Number.isFinite(Number(p.lastTickAt))) p.lastTickAt = Date.now();
+    if (!Number.isFinite(Number(p.lastWarnLevel))) p.lastWarnLevel = 101;
+    if (!Number.isFinite(Number(p.signal))) p.signal = 4;
+    if (typeof p.serviceSuspended !== "boolean") p.serviceSuspended = false;
+    if (typeof p.shutDown !== "boolean") p.shutDown = p.batteryLevel <= 0;
+    if (!Number.isFinite(Number(p.monthlyPlanCost))) p.monthlyPlanCost = 35;
+    return p;
+}
+
+function phoneAvailability(s = getSettings()) {
+    const p = ensurePhonePowerState(s);
+    const dead = p.batterySimulationEnabled && (p.shutDown || p.batteryLevel <= 0);
+    const offline = p.networkSimulationEnabled && (p.serviceSuspended || Number(p.signal || 0) <= 0);
+    return { p, dead, offline, ok: !dead && !offline };
+}
+
+function renderPhonePowerStatus() {
+    const s = getSettings();
+    const { p, dead, offline } = phoneAvailability(s);
+    const level = Math.round(p.batteryLevel);
+    const batteryIcon = p.charging ? "fa-bolt" : level <= 10 ? "fa-battery-empty" : level <= 35 ? "fa-battery-quarter" : level <= 65 ? "fa-battery-half" : level <= 90 ? "fa-battery-three-quarters" : "fa-battery-full";
+    try {
+        $("#uie-phone-battery").html(`<i class="fa-solid ${batteryIcon}"></i> ${p.batterySimulationEnabled ? `${level}%` : "∞"}`);
+        $("#uie-phone-network").html(`<i class="fa-solid ${offline ? "fa-signal-slash" : "fa-signal"}"></i> ${p.networkSimulationEnabled ? (p.serviceSuspended ? "Suspended" : `${Math.max(0, Math.min(4, Math.round(p.signal)))}/4`) : "Always on"}`);
+        $("#uie-phone-power-level").text(`${level}%`);
+        $("#uie-phone-power-charger").val(String(p.charger || "wall"));
+        $("#uie-phone-charge-toggle").html(p.charging ? '<i class="fa-solid fa-plug-circle-xmark"></i> Disconnect charger' : '<i class="fa-solid fa-plug-circle-bolt"></i> Connect charger');
+        $("#p-battery-sim").prop("checked", p.batterySimulationEnabled);
+        $("#p-network-sim").prop("checked", p.networkSimulationEnabled);
+        $("#p-phone-plan-cost").val(String(p.monthlyPlanCost));
+        $("#p-charger-type").val(String(p.charger || "wall"));
+        if (dead) {
+            $("#uie-phone-power-screen").css("display", "flex");
+            $("#uie-phone-lockscreen, #uie-phone-homescreen, .phone-app-window").hide();
+        } else if ($("#uie-phone-power-screen").is(":visible")) {
+            $("#uie-phone-power-screen").hide();
+            $("#uie-phone-lockscreen").css("display", "flex");
+        }
+    } catch (_) {}
+}
+
+function setPhoneCharging(charging, charger = "") {
+    const s = getSettings();
+    const p = ensurePhonePowerState(s);
+    if (charger) p.charger = String(charger);
+    p.charging = charging === true;
+    p.lastTickAt = Date.now();
+    if (p.charging && p.batteryLevel <= 0) p.shutDown = true;
+    saveSettings();
+    renderPhonePowerStatus();
+    notify(p.charging ? "success" : "info", p.charging ? `Phone connected to the ${p.charger} charger.` : "Phone disconnected from its charger.", "Phone Power", "phoneBattery");
+    return p;
+}
+
+function tickPhonePower() {
+    const s = getSettings();
+    const p = ensurePhonePowerState(s);
+    const now = Date.now();
+    const elapsedMinutes = Math.max(0, Math.min(60, (now - Number(p.lastTickAt || now)) / 60000));
+    p.lastTickAt = now;
+    if (p.batterySimulationEnabled && elapsedMinutes > 0) {
+        const before = p.batteryLevel;
+        p.batteryLevel += p.charging ? elapsedMinutes * 5 : -elapsedMinutes * 0.35;
+        p.batteryLevel = Math.max(0, Math.min(100, p.batteryLevel));
+        if (p.batteryLevel <= 0) {
+            p.shutDown = true;
+            p.charging = false;
+        } else if (p.shutDown && p.charging && p.batteryLevel >= 2) {
+            p.shutDown = false;
+        }
+        if (p.batteryLevel >= 100) p.charging = false;
+        for (const threshold of [20, 10, 5]) {
+            if (before > threshold && p.batteryLevel <= threshold && p.lastWarnLevel > threshold) {
+                p.lastWarnLevel = threshold;
+                notify("warning", `Phone battery is down to ${threshold}%.`, "Phone Power", "phoneBattery");
+                break;
+            }
+        }
+        if (p.batteryLevel > 25) p.lastWarnLevel = 101;
+    } else if (!p.batterySimulationEnabled) {
+        p.shutDown = false;
+    }
+    saveSettings();
+    renderPhonePowerStatus();
+}
+
+async function renderBillsApp() {
+    const body = document.getElementById("phone-bills-list");
+    if (!body) return;
+    try {
+        const mod = await import("./taxJailManager.js");
+        const s = getSettings();
+        const bills = mod.listBills?.(s) || [];
+        const symbol = String(s.currencySymbol || "G");
+        const unpaid = bills.filter((bill) => bill.status === "unpaid");
+        $("#phone-bills-summary").text(`${unpaid.length} unpaid · ${unpaid.reduce((sum, bill) => sum + Number(bill.amount || 0), 0)} ${symbol} due`);
+        body.innerHTML = bills.length ? bills.map((bill) => `
+            <article style="padding:12px; border:1px solid rgba(255,255,255,.1); border-radius:14px; background:rgba(255,255,255,.05); display:grid; gap:6px;">
+                <div style="display:flex; justify-content:space-between; gap:10px;"><strong>${parseMarkdown(String(bill.name || "Bill"))}</strong><span>${Math.round(Number(bill.amount || 0))} ${symbol}</span></div>
+                <div style="font-size:11px; opacity:.72;">${parseMarkdown(String(bill.source || bill.category || "General"))} · due Day ${Number(bill.dueDay || 0)}</div>
+                ${bill.status === "unpaid" ? `<button class="phone-pay-bill" data-bill-id="${String(bill.id || "")}" style="height:36px; border:0; border-radius:10px; background:#2dd4bf; color:#00110a; font-weight:900;">Pay bill</button>` : '<div style="color:#86efac; font-weight:800;">Paid</div>'}
+            </article>`).join("") : '<div style="padding:20px; text-align:center; opacity:.72;">No bills have been issued yet. Home, phone-plan, vehicle, property, and business costs appear here as the calendar advances.</div>';
+    } catch (_) {
+        body.innerHTML = '<div style="padding:20px; text-align:center;">Bills could not be loaded.</div>';
+    }
+}
+
+async function renderHomesteadApp() {
+    const $view = $("#uie-app-homestead-view");
+    if (!$view.length) return;
+    
+    const s = getSettings();
+    const home = s.primaryHome;
+    const currency = s.currencySymbol || "G";
+    
+    if (!home || !home.name) {
+        $view.find("#homestead-name").text("No Primary Home");
+        $view.find("#homestead-desc").text("Pick a residence on the map and register it as your home anchor to unlock manager tools.");
+        $view.find("#homestead-stats").html("");
+        $view.find("#homestead-upgrades-section").hide();
+        return;
+    }
+    
+    $view.find("#homestead-name").text(home.name);
+    $view.find("#homestead-desc").text(home.description || "Your registered primary residence.");
+    
+    const unpaidBills = Array.isArray(home.bills) ? home.bills.filter((bill) => bill?.status === "unpaid") : [];
+    const currentDay = Math.max(1, Number(s.playerRoom?.day || 1));
+    const establishedDay = Math.max(1, Number(home.establishedDay || home.lastBilledDay || currentDay));
+    
+    $view.find("#homestead-stats").html(`
+        <div style="display:flex; justify-content:space-between; margin-bottom:4px;"><span>Established:</span><strong>Day ${establishedDay}</strong></div>
+        <div style="display:flex; justify-content:space-between; margin-bottom:4px;"><span>Bills Pending:</span><strong style="color:${unpaidBills.length ? '#f87171' : '#4ade80'}">${unpaidBills.length} unpaid</strong></div>
+        <div style="display:flex; justify-content:space-between; margin-bottom:4px;"><span>Current Funds:</span><strong style="color:#fbbf24;">${Number(s.gold || s.currency || 0)}${currency}</strong></div>
+    `);
+    
+    const upgrades = home.upgrades || {};
+    const securityActive = upgrades.securityBoundary === true;
+    const hearthActive = upgrades.cozyHearth === true;
+    const teleportActive = upgrades.teleportAnchor === true;
+    
+    const upgradesHtml = `
+        <div style="display:flex; flex-direction:column; gap:10px;">
+            <button type="button" class="homestead-upgrade-btn ${securityActive ? 'is-active' : ''}" data-upgrade="securityBoundary" data-cost="120" style="display:flex; justify-content:space-between; align-items:center; width:100%; padding:10px 14px; border-radius:10px; border:1px solid ${securityActive ? '#cba35c' : 'rgba(255,255,255,0.15)'}; background:${securityActive ? 'rgba(203,163,92,0.15)' : 'rgba(0,0,0,0.2)'}; color:${securityActive ? '#cba35c' : '#ddd'}; font-size:12px; cursor:pointer;">
+                <span><i class="fa-solid fa-shield" style="margin-right:6px;"></i> Security Boundary</span>
+                <strong>${securityActive ? 'Active' : '120G'}</strong>
+            </button>
+            <button type="button" class="homestead-upgrade-btn ${hearthActive ? 'is-active' : ''}" data-upgrade="cozyHearth" data-cost="80" style="display:flex; justify-content:space-between; align-items:center; width:100%; padding:10px 14px; border-radius:10px; border:1px solid ${hearthActive ? '#cba35c' : 'rgba(255,255,255,0.15)'}; background:${hearthActive ? 'rgba(203,163,92,0.15)' : 'rgba(0,0,0,0.2)'}; color:${hearthActive ? '#cba35c' : '#ddd'}; font-size:12px; cursor:pointer;">
+                <span><i class="fa-solid fa-fire" style="margin-right:6px;"></i> Cozy Rest Hearth</span>
+                <strong>${hearthActive ? 'Active' : '80G'}</strong>
+            </button>
+            <button type="button" class="homestead-upgrade-btn ${teleportActive ? 'is-active' : ''}" data-upgrade="teleportAnchor" data-cost="150" style="display:flex; justify-content:space-between; align-items:center; width:100%; padding:10px 14px; border-radius:10px; border:1px solid ${teleportActive ? '#cba35c' : 'rgba(255,255,255,0.15)'}; background:${teleportActive ? 'rgba(203,163,92,0.15)' : 'rgba(0,0,0,0.2)'}; color:${teleportActive ? '#cba35c' : '#ddd'}; font-size:12px; cursor:pointer;">
+                <span><i class="fa-solid fa-circle-nodes" style="margin-right:6px;"></i> Teleport Anchor</span>
+                <strong>${teleportActive ? 'Active' : '150G'}</strong>
+            </button>
+        </div>
+    `;
+    
+    $view.find("#homestead-upgrades-list").html(upgradesHtml);
+    $view.find("#homestead-upgrades-section").show();
+}
 
 function isPhoneMobileViewport() {
     try {
@@ -242,20 +431,111 @@ function getPhoneSocialContacts(s) {
     return out;
 }
 
-function renderTravelApp() {
-    const s = ensurePhoneEconomyState(getSettings());
-    $("#travel-wallet-line").text(`Wallet: ${formatPhoneCurrency(s.currency, s)}`);
-    const $list = $("#travel-recent").empty();
-    const recent = (s.phone.travel.history || []).slice(0, 6);
-    if (!recent.length) {
-        $list.html('<div style="opacity:0.7; text-align:center; padding:12px; border:1px dashed rgba(255,255,255,0.2); border-radius:14px;">No trips yet.</div>');
+function phoneTransitContext(s) {
+    const nodes = collectTransitNodes(s?.simpleMap || {}, s);
+    const location = String(s?.worldState?.currentLocation || s?.worldState?.location || "Current Location").trim();
+    const origin = nodes.find((node) => transitId(node?.name, "") === transitId(location, ""))
+        || { id: transitId(location), name: location, type: "exterior", accessModes: ["road", "foot"] };
+    const assets = [...(s?.inventory?.assets || []), ...(s?.assets || [])].map((asset) => ({
+        ...asset,
+        travelCategory: asset?.travelCategory || inferTravelCategory(asset),
+    }));
+    return { origin, assets, modes: availableModesForNode(origin, assets) };
+}
+
+function selectedPhoneTravelRoute() {
+    return phoneTravelRoutes.get(String($("#travel-destination").val() || "")) || null;
+}
+
+function phoneTransitCredential(settings, locationId = "") {
+    const credential = getDefaultCredential(settings, "transit", { locationId });
+    if (!credential || credential.status !== "active") return null;
+    if (credential.expiresAt !== null && credential.expiresAt <= Date.now()) return null;
+    return credential;
+}
+
+function renderPhoneRouteSelection(s, context, preferredMode = "") {
+    const $mode = $("#travel-mode");
+    const previousMode = String(preferredMode || $mode.val() || "rideshare");
+    const modes = context.modes.length ? context.modes : ["rideshare", "bus"];
+    $mode.empty();
+    modes.forEach((mode) => {
+        const config = TRANSIT_MODES[mode];
+        if (config) $mode.append(`<option value="${esc(mode)}">${esc(config.label)}</option>`);
+    });
+    $mode.val(modes.includes(previousMode) ? previousMode : modes[0]);
+    const mode = String($mode.val() || modes[0]);
+    const transitPass = phoneTransitCredential(s, context.origin.id || context.origin.name);
+    const passApplies = Boolean(transitPass && ["train", "bus", "boat"].includes(mode));
+    const routes = buildTransitRoutes({ settings: s, mapState: s.simpleMap || {}, origin: context.origin, mode });
+    phoneTravelRoutes = new Map(routes.map((route) => [route.id, { ...route, phoneFare: passApplies ? 0 : route.fare, passApplies, passCredentialId: passApplies ? transitPass.id : null }]));
+    const $dest = $("#travel-destination").empty();
+    if (!routes.length) {
+        $dest.append('<option value="">No compatible routes from here</option>').prop("disabled", true);
+    } else {
+        $dest.prop("disabled", false);
+        routes.forEach((route) => {
+            const visibleName = route.discovered || ensureTravelState(s).discoveredDocks[route.toId] ? route.to : "Undiscovered arrival point";
+            $dest.append(`<option value="${esc(route.id)}">${esc(visibleName)} · ${route.duration}m</option>`);
+        });
+    }
+    $("#travel-rideshare-panel").toggle(mode === "rideshare");
+}
+
+function updatePhoneTravelQuote(s) {
+    const route = selectedPhoneTravelRoute();
+    if (!route) {
+        $("#travel-fare").val("No route selected");
+        $("#travel-route-summary").text("Reach a mapped departure point or discover a compatible destination.");
+        $("#travel-pay-go, #travel-rideshare-dispatch").prop("disabled", true).css("opacity", .45);
         return;
     }
-    recent.forEach(t => {
+    const serviceOption = document.querySelector("#travel-rideshare-class option:checked");
+    const serviceMultiplier = route.mode === "rideshare" ? Math.max(1, Number(serviceOption?.dataset?.multiplier || 1)) : 1;
+    const quoted = {
+        ...route,
+        fare: route.passApplies ? 0 : Math.round(Number(route.phoneFare ?? route.fare) * serviceMultiplier),
+        capacity: route.mode === "rideshare" && serviceOption?.value === "cargo" ? Math.max(8, Number(route.capacity || 0)) : route.capacity,
+    };
+    const evaluation = evaluateTransitRoute(s, quoted);
+    const pass = route.passCredentialId ? (s.phone.credentials || []).find((credential) => credential.id === route.passCredentialId) : null;
+    $("#travel-fare").val(route.passApplies ? `Covered by ${pass?.typeName || "Transit Pass"}` : formatPhoneCurrency(quoted.fare, s));
+    const schedule = route.schedule?.length ? ` · ${route.schedule.join(", ")}` : "";
+    const warning = evaluation.missing.length ? ` · ${evaluation.missing[0]}` : "";
+    $("#travel-route-summary").text(`${route.distance} route units · ${route.duration} min · ${Math.round(route.risk * 100)}% event risk · ${route.controllingFaction}${schedule}${warning}`);
+    $("#travel-pay-go, #travel-rideshare-dispatch").prop("disabled", !evaluation.ok).css("opacity", evaluation.ok ? 1 : .45);
+    if (route.mode === "rideshare") {
+        const service = String($("#travel-rideshare-class").val() || "standard");
+        const pickup = 2 + (parseInt(transitId(route.id).slice(-2), 36) || 0) % 7;
+        $("#travel-rideshare-status").text(`${service[0].toUpperCase()}${service.slice(1)} pickup estimated in ${pickup} min. Driver and vehicle are assigned when requested.`);
+    }
+}
+
+function renderTravelApp(preferredMode = "") {
+    const s = ensurePhoneEconomyState(getSettings());
+    const travel = ensureTravelState(s);
+    const context = phoneTransitContext(s);
+    $("#travel-wallet-line").text(`Wallet: ${formatPhoneCurrency(s.currency, s)}`);
+    $("#travel-current-dock").text(`Current departure: ${travel.currentDockName || context.origin.name}${travel.activeTrip ? " · journey in progress" : ""}`);
+    renderPhoneRouteSelection(s, context, preferredMode);
+    updatePhoneTravelQuote(s);
+
+    const $list = $("#travel-recent").empty();
+    const recent = [...(travel.history || []), ...(s.phone.travel.history || [])]
+        .sort((a, b) => Number(b.at || b.t || 0) - Number(a.at || a.t || 0))
+        .slice(0, 8);
+    if (!recent.length) {
+        $list.html('<div style="opacity:0.7; text-align:center; padding:12px; border:1px dashed rgba(255,255,255,0.2); border-radius:14px;">No completed journeys yet.</div>');
+        return;
+    }
+    recent.forEach((trip) => {
+        const destination = trip.to || trip.destination || "Unknown destination";
+        const mode = TRANSIT_MODES[trip.mode]?.label || trip.mode || "Transit";
+        const detail = trip.aborted ? `Aborted · lost ${formatPhoneCurrency(trip.fareLost || 0, s)}` : `${formatPhoneCurrency(trip.fare || 0, s)} · ${trip.duration || "?"} min${trip.event ? ` · ${trip.event}` : ""}`;
         $list.append(`
             <div style="border-radius:14px; padding:10px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.08);">
-                <div style="font-weight:900;">${esc(t.destination || "Unknown destination")}</div>
-                <div style="font-size:12px; opacity:0.72;">${esc(t.mode || "Transit")} · ${formatPhoneCurrency(t.fare || 0, s)}</div>
+                <div style="font-weight:900;">${esc(destination)}</div>
+                <div style="font-size:12px; opacity:0.72;">${esc(mode)} · ${esc(detail)}</div>
             </div>
         `);
     });
@@ -263,20 +543,20 @@ function renderTravelApp() {
 
 function renderBankApp() {
     const s = ensurePhoneEconomyState(getSettings());
+    syncAutomaticCredentials(s);
     const bank = s.phone.bank;
     const loggedIn = Boolean(bank.loggedIn || bank.username);
     $("#bank-login-screen").toggle(!loggedIn);
     $("#bank-dashboard").css("display", loggedIn ? "flex" : "none");
     if (!loggedIn) return;
     
-    const cards = Array.isArray(s.phone?.cards) ? s.phone.cards : [];
-    const bankCard = cards.find(c => c.type === "bank_card");
+    const bankCard = getDefaultCredential(s, "payment");
     const $container = $("#bank-card-visual-container");
     if ($container.length) {
         if (bankCard) {
-            $container.html(`<img src="${bankCard.image}" style="width:100%; border-radius:12px; box-shadow:0 6px 14px rgba(0,0,0,0.4); margin-bottom:12px; border:1px solid rgba(255,255,255,0.08);">`);
+            $container.html(`<img src="${bankCard.appearance?.frontImage || bankCard.image || ""}" alt="${esc(bankCard.typeName)}" style="width:100%; border-radius:8px; box-shadow:0 6px 14px rgba(0,0,0,0.4); margin-bottom:12px; border:1px solid rgba(255,255,255,0.08);">`);
         } else {
-            $container.html('<div style="padding:10px; text-align:center; border:1px dashed rgba(255,255,255,0.15); border-radius:12px; font-size:11px; opacity:0.75; margin-bottom:12px;"><i class="fa-solid fa-id-card"></i> No Bank Card forged in Card Forge yet.</div>');
+            $container.html('<div style="padding:10px; text-align:center; border:1px dashed rgba(255,255,255,0.15); border-radius:8px; font-size:11px; opacity:0.75; margin-bottom:12px;"><i class="fa-solid fa-id-card"></i> No active payment credential.</div>');
         }
     }
     
@@ -494,6 +774,29 @@ function _ivSaveFollowed() {
     } catch (_) {}
 }
 
+function _ivProfile() {
+    const s = getSettings();
+    const iv = ensureInstavibePhoneSettings(s);
+    if (!iv.profile || typeof iv.profile !== "object") iv.profile = {};
+    return iv.profile;
+}
+
+function _ivExtractMentions(content) {
+    const known = new Map();
+    _ivAllPosts.forEach((post) => {
+        const name = String(post?.username || post?.author || "").trim();
+        if (name) known.set(name.toLowerCase().replace(/\s+/g, "_"), name);
+    });
+    return [...new Set((String(content || "").match(/@([a-zA-Z][\w-]{1,63})/g) || [])
+        .map((token) => known.get(token.slice(1).toLowerCase()) || token.slice(1).replace(/[_-]+/g, " ")))].slice(0, 16);
+}
+
+function _ivRenderContent(content) {
+    return parseMarkdown(String(content || "")).replace(/(^|\s)@([a-zA-Z][\w-]{1,63})/g, (_all, prefix, handle) =>
+        `${prefix}<button type="button" class="iv-mention" data-npc-profile="${esc(handle.replace(/[_-]+/g, " "))}">@${esc(handle)}</button>`
+    );
+}
+
 function _ivAvatarHtml(name, url, size) {
     const sz = size || 38;
     const initial = String(name || "?").charAt(0).toUpperCase();
@@ -618,7 +921,7 @@ function _ivRenderFilteredFeed() {
                         <div class="iv-post-time">${esc(dateStr)}</div>
                     </div>
                 </div>
-                <div class="iv-post-content">${parseMarkdown(post.content)}</div>
+                <div class="iv-post-content">${_ivRenderContent(post.content)}</div>
                 ${imageHtml}
                 <div class="iv-post-tags">
                     <span class="iv-tag-pill">#${esc(post.tag || "Cozy")}</span>
@@ -790,7 +1093,8 @@ async function _ivRenderMyProfile() {
         } catch (_) {}
     }
     const $view = $("#iv-profile-view").empty();
-    const persona = getPersonaName() || "Player";
+    const profile = _ivProfile();
+    const persona = String(profile.username || getPersonaName() || "Player").trim() || "Player";
     const personaPosts = _ivAllPosts.filter(p => String(p.username || p.author || "").toLowerCase() === persona.toLowerCase());
     const followed = _ivLoadFollowed();
     $view.html(`
@@ -801,16 +1105,25 @@ async function _ivRenderMyProfile() {
                 <div class="iv-profile-name">${esc(persona)}</div>
                 <div class="iv-profile-handle">@${esc(persona.toLowerCase().replace(/\s+/g, "_"))}</div>
             </div>
+            <button type="button" id="iv-profile-edit" class="iv-follow-btn" style="margin-left:auto;">Edit profile</button>
         </div>
         <div class="iv-profile-stats">
             <div class="iv-profile-stat"><b>${personaPosts.length}</b> posts</div>
             <div class="iv-profile-stat"><b>${followed.size}</b> following</div>
         </div>
-        <div class="iv-profile-bio">Your in-world social presence.</div>
+        <div class="iv-profile-bio">${esc(String(profile.bio || "Your in-world social presence."))}</div>
         <div class="iv-section-label">Your Posts</div>
         <div class="iv-profile-posts" id="iv-my-posts"></div>
     `);
     const $myPosts = $("#iv-my-posts");
+    $view.find("#iv-profile-edit").off("click").on("click", () => {
+        const username = String(prompt("Instavibe username", profile.username || persona) || "").trim().replace(/^@/, "").slice(0, 40);
+        if (!username) return;
+        profile.username = username;
+        profile.bio = String(prompt("Profile bio", profile.bio || "Your in-world social presence.") || "").trim().slice(0, 160);
+        saveSettings();
+        _ivRenderMyProfile();
+    });
     if (!personaPosts.length) {
         $myPosts.html('<div class="iv-empty">You haven\'t posted yet.</div>');
         return;
@@ -1151,12 +1464,34 @@ export function tryHandleUserPhoneIntentLine(rawText) {
     const raw = String(rawText || "").trim();
     if (!raw) return { handled: false, toast: "" };
 
+    const chargeIntent = /\b(?:put|place|plug|connect|set)\b[\s\S]{0,40}\b(?:phone|cell|mobile)\b[\s\S]{0,40}\b(?:charger|charging pad|cable|dock|power)\b/i.test(raw)
+        || /^\/?(?:charge|plug in)\s+(?:my\s+|the\s+)?phone\b/i.test(raw);
+    if (chargeIntent) {
+        const charger =
+            /\b(?:car|vehicle)\b/i.test(raw) ? "vehicle" :
+            /\bsolar\b/i.test(raw) ? "solar" :
+            /\bwireless|pad|dock\b/i.test(raw) ? "wireless" :
+            /\busb|cable\b/i.test(raw) ? "usb" :
+            "wall";
+        setPhoneCharging(true, charger);
+        const explicitCommand = /^\/?(?:charge|plug in)\s+(?:my\s+|the\s+)?phone\b/i.test(raw);
+        return { handled: explicitCommand, toast: `Phone charging from the ${charger} charger.` };
+    }
+    if (/\b(?:unplug|disconnect|take|remove)\b[\s\S]{0,35}\b(?:phone|charger|charging pad|cable|dock)\b/i.test(raw)) {
+        setPhoneCharging(false);
+        return { handled: /^\/?(?:unplug|disconnect)\b/i.test(raw), toast: "Phone disconnected from the charger." };
+    }
+
     const callM = raw.match(
         /^\/?(?:call|phone|dial|ring)\s+([A-Za-z\u00C0-\u024F][A-Za-z0-9\u00C0-\u024F _.'-]{0,78})\s*\.?!?$/i,
     );
     if (callM) {
         const who = callM[1].trim().replace(/\s{2,}/g, " ");
-        if (isCodiceMode(getSettings())) {
+        const s = getSettings();
+        const availability = phoneAvailability(s);
+        if (availability.dead) return { handled: true, toast: "The phone battery is dead. Connect a charger first." };
+        if (availability.offline) return { handled: true, toast: availability.p.serviceSuspended ? "Phone service is suspended until the overdue plan bill is paid." : "The phone has no network signal." };
+        if (isCodiceMode(s)) {
             return { handled: true, toast: "The Codice carries letters, not calls." };
         }
         if (who && typeof window.UIE_phone_startOutboundCall === "function") {
@@ -1173,6 +1508,9 @@ export function tryHandleUserPhoneIntentLine(rawText) {
         const body = String(txtM[2] || "").trim();
         if (who && body) {
             const s = getSettings();
+            const availability = phoneAvailability(s);
+            if (!isCodiceMode(s) && availability.dead) return { handled: true, toast: "The phone battery is dead. Connect a charger first." };
+            if (!isCodiceMode(s) && availability.offline) return { handled: true, toast: availability.p.serviceSuspended ? "Phone service is suspended until the overdue plan bill is paid." : "The phone has no network signal." };
             if (isCodiceMode(s)) {
                 const socialHit = getPhoneSocialContacts(s).find((c) => String(c?.name || "").trim().toLowerCase() === who.toLowerCase());
                 const targetLocation = socialHit?.person?.homeLocation || socialHit?.person?.home || socialHit?.person?.location || socialHit?.person?.locId || null;
@@ -1322,6 +1660,14 @@ export function initPhone() {
     }
     $win.off("click.phone change.phone input.phone keypress.phone");
     $(document).off("click.phone change.phone input.phone keypress.phone");
+    credentialForgeUI = initCredentialForgeUI({
+        root: $win[0],
+        getSettings,
+        saveSettings,
+        notify,
+        onRpEvent: syncToMainChat,
+        confirmAction: (message) => Promise.resolve(window.confirm(message)),
+    });
 
     // Fallback launcher only: game.html is authoritative when it provides the managed opener.
     $(document).off("click.phoneLauncher", "#btn-phn");
@@ -2010,6 +2356,8 @@ ${recent}`.slice(0, 6200);
                     id === "#uie-app-cookies-view" ? "Cookies" :
                     id === "#uie-app-travel-view" ? "Transit" :
                     id === "#uie-app-bank-view" ? "Universal Bank" :
+                    id === "#uie-app-bills-view" ? "Bills" :
+                    id === "#uie-app-homestead-view" ? "Homestead" :
                     id === "#uie-app-cardforge-view" ? "Card Forge" :
                     id === "#uie-app-social-view" ? "Instavibe" :
                     id === "#uie-call-screen" ? "Call" :
@@ -2042,8 +2390,10 @@ ${recent}`.slice(0, 6200);
         if(id === "#uie-app-cookies-view") renderCookies();
         if(id === "#uie-app-travel-view") renderTravelApp();
         if(id === "#uie-app-bank-view") renderBankApp();
+        if(id === "#uie-app-bills-view") void renderBillsApp();
+        if(id === "#uie-app-homestead-view") void renderHomesteadApp();
         if(id === "#uie-app-cardforge-view") {
-            try { renderCardForgeWallet(); } catch (_) {}
+            try { credentialForgeUI?.open(); } catch (_) {}
         }
         if(id === "#uie-app-social-view") {
             maybeShowInstavibeGate();
@@ -2057,6 +2407,11 @@ ${recent}`.slice(0, 6200);
             $("#p-wallpaper-name").text(s2.phone.wallpaper ? "Custom wallpaper selected" : "No custom wallpaper");
             $("#p-allow-calls").prop("checked", !isCodiceMode(s2) && s2.phone.allowCalls !== false);
             $("#p-allow-texts").prop("checked", s2.phone.allowTexts !== false);
+            const power = ensurePhonePowerState(s2);
+            $("#p-battery-sim").prop("checked", power.batterySimulationEnabled);
+            $("#p-network-sim").prop("checked", power.networkSimulationEnabled);
+            $("#p-phone-plan-cost").val(String(power.monthlyPlanCost));
+            $("#p-charger-type").val(String(power.charger || "wall"));
             ensureInstavibePhoneSettings(s2);
             if (!$("#p-instavibe-enabled").length) {
                 const $ivRow = $(`
@@ -3151,16 +3506,19 @@ ${chat}`.slice(0, 6000);
                     : `${String(p.name || "?").charAt(0)}`;
 
                 l.append(`
-                    <div class="contact-row" data-name="${esc(p.name)}" style="display:flex; align-items:center; padding:15px; border-bottom:1px solid #eee; cursor:pointer;">
-                        <div class="contact-avatar" style="width:40px; height:40px; background:#ddd; border-radius:50%; display:flex; align-items:center; justify-content:center; margin-right:15px; font-weight:bold; color:#555; overflow:hidden;">${avatarHtml}</div>
-                        <div style="flex:1; min-width:0;">
-                            <div style="font-weight:bold; color:#333; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${p.name}</div>
-                            <div style="font-size:0.78em; opacity:0.65; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${esc(num)}</div>
+                    <div class="contact-row" data-name="${esc(p.name)}" style="display:flex; flex-direction:column; padding:15px; border-bottom:1px solid #eee; cursor:pointer;">
+                        <div style="display:flex; align-items:center; width:100%;">
+                            <div class="contact-avatar" style="width:40px; height:40px; background:#ddd; border-radius:50%; display:flex; align-items:center; justify-content:center; margin-right:15px; font-weight:bold; color:#555; overflow:hidden;">${avatarHtml}</div>
+                            <div style="flex:1; min-width:0;">
+                                <div style="font-weight:bold; color:#333; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${p.name}</div>
+                                <div style="font-size:0.78em; opacity:0.65; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${esc(num)}</div>
+                            </div>
+
+                            <i class="fa-solid ${codice ? "fa-feather-pointed" : "fa-comment"} phone-msg-trigger" data-name="${p.name}" style="color:${codice ? "#7a2618" : "#3498db"}; padding:10px; cursor:pointer; font-size:1.2em; margin-right:10px;" title="${codice ? "Write Letter" : "Message"}"></i>
+
+                            ${codice ? "" : `<i class="fa-solid fa-phone phone-call-trigger" data-name="${p.name}" style="color:#2ecc71; padding:10px; cursor:pointer; font-size:1.2em;" title="Call"></i>`}
                         </div>
-
-                        <i class="fa-solid ${codice ? "fa-feather-pointed" : "fa-comment"} phone-msg-trigger" data-name="${p.name}" style="color:${codice ? "#7a2618" : "#3498db"}; padding:10px; cursor:pointer; font-size:1.2em; margin-right:10px;" title="${codice ? "Write Letter" : "Message"}"></i>
-
-                        ${codice ? "" : `<i class="fa-solid fa-phone phone-call-trigger" data-name="${p.name}" style="color:#2ecc71; padding:10px; cursor:pointer; font-size:1.2em;" title="Call"></i>`}
+                        <div class="contact-details-expansion" style="display:none; margin-top:10px; padding:10px; border-top:1px solid rgba(0,0,0,0.05); font-size:12px; color:#555; width:100%;"></div>
                     </div>
                 `);
             });
@@ -3227,6 +3585,131 @@ ${chat}`.slice(0, 6000);
         e.stopPropagation();
         activeContact = $(this).data("name");
         startCall(activeContact, { dir: "out" });
+    });
+
+    // Homestead Manager App Upgrades
+    $win.off("click.phoneHomesteadUpgrade", ".homestead-upgrade-btn").on("click.phoneHomesteadUpgrade", ".homestead-upgrade-btn", async function (e) {
+        e.preventDefault();
+        const upgradeId = $(this).data("upgrade");
+        const cost = Number($(this).data("cost") || 0);
+        const s = getSettings();
+        if (!s.primaryHome) return;
+        s.primaryHome.upgrades = s.primaryHome.upgrades || {};
+        if (s.primaryHome.upgrades[upgradeId]) {
+            notify?.("info", "Upgrade already active.", "Homestead Manager");
+            return;
+        }
+        const { spendCurrency } = await import("./economy.js");
+        if (!spendCurrency(s, cost)) {
+            notify?.("warning", `Insufficient gold. Upgrading costs ${cost}G.`, "Homestead Manager");
+            return;
+        }
+        s.primaryHome.upgrades[upgradeId] = true;
+        saveSettings();
+        notify?.("success", "Purchased homestead upgrade!", "Homestead Manager");
+        renderHomesteadApp();
+        
+        // Re-render map details if it exists
+        try {
+            const mapMod = window.UIE_MapEngine || window.UIE?.map;
+            if (mapMod && typeof mapMod.renderDetails === "function") mapMod.renderDetails();
+        } catch (_) {}
+    });
+
+    // Contact Details Expansion Toggle
+    $win.off("click.phoneContactRow", ".contact-row").on("click.phoneContactRow", ".contact-row", function(e) {
+        if ($(e.target).closest(".phone-msg-trigger, .phone-call-trigger, button").length) return;
+        
+        const $this = $(this);
+        const $exp = $this.find(".contact-details-expansion");
+        const npcName = $this.data("name");
+        
+        if ($exp.is(":visible")) {
+            $exp.slideUp(150);
+            $this.removeClass("is-expanded");
+        } else {
+            $(".contact-details-expansion").slideUp(150);
+            $(".contact-row").removeClass("is-expanded");
+            
+            const s = getSettings();
+            const social = s.social || {};
+            const buckets = ["friends", "associates", "romance", "family", "rivals"];
+            let person = null;
+            for (const b of buckets) {
+                const arr = social[b] || [];
+                person = arr.find(p => p && String(p.name).toLowerCase() === npcName.toLowerCase());
+                if (person) break;
+            }
+            
+            const affinity = person ? Number(person.affinity ?? 50) : 50;
+            const mood = person ? String(person.mood || "neutral") : "neutral";
+            const role = person ? String(person.role || "Contact") : "Contact";
+            
+            const isAtHome = s.primaryHome && s.primaryHome.name && (s.worldState?.currentLocation === s.primaryHome.name);
+            
+            let inviteButtonHtml = "";
+            if (isAtHome) {
+                if (affinity >= 30) {
+                    inviteButtonHtml = `
+                        <button type="button" class="phone-invite-hangout-btn" data-name="${esc(npcName)}" style="margin-top:8px; width:100%; height:30px; border-radius:6px; background:linear-gradient(135deg, #cba35c, #b58d43); border:none; color:#000; font-weight:bold; cursor:pointer; font-size:11px;">
+                            <i class="fa-solid fa-house-user"></i> Invite to Hangout
+                        </button>
+                    `;
+                } else {
+                    inviteButtonHtml = `
+                        <div style="margin-top:8px; font-size:11px; color:#888; text-align:center; padding:4px; background:rgba(0,0,0,0.03); border-radius:4px;">
+                            <i class="fa-solid fa-lock"></i> Needs 30% affinity to invite (Current: ${affinity}%)
+                        </div>
+                    `;
+                }
+            } else if (s.primaryHome && s.primaryHome.name) {
+                inviteButtonHtml = `
+                    <div style="margin-top:8px; font-size:11px; color:#888; text-align:center; padding:4px; background:rgba(0,0,0,0.03); border-radius:4px;">
+                        Must be at home (${s.primaryHome.name}) to invite them over.
+                    </div>
+                `;
+            }
+            
+            $exp.html(`
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-bottom:6px;">
+                    <div><strong>Affinity:</strong> ${affinity}%</div>
+                    <div><strong>Mood:</strong> ${mood}</div>
+                    <div><strong>Role:</strong> ${role}</div>
+                </div>
+                ${inviteButtonHtml}
+            `);
+            
+            $exp.slideDown(150);
+            $this.addClass("is-expanded");
+        }
+    });
+
+    // NPC Hangout Click Handler
+    $win.off("click.phoneInviteHangout", ".phone-invite-hangout-btn").on("click.phoneInviteHangout", ".phone-invite-hangout-btn", async function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        const npcName = $(this).data("name");
+        const s = getSettings();
+        
+        const social = s.social || {};
+        const buckets = ["friends", "associates", "romance", "family", "rivals"];
+        let foundPerson = null;
+        for (const b of buckets) {
+            const arr = social[b] || [];
+            foundPerson = arr.find(p => p && String(p.name).toLowerCase() === npcName.toLowerCase());
+            if (foundPerson) break;
+        }
+        if (foundPerson) {
+            foundPerson.affinity = Math.min(100, (Number(foundPerson.affinity) || 50) + 10);
+        }
+        saveSettings();
+        
+        await injectRpEvent(`[System: You invited ${npcName} over to your home at ${s.primaryHome.name}. They arrived a short while later to hangout, sharing a pleasant time with you. Affinity with ${npcName} increased by +10!]`);
+        
+        notify?.("success", `Invited ${npcName} over to hangout!`, "Hangout");
+        
+        // Re-render contacts
+        renderContacts();
     });
 
     const setCallUiState = (state) => {
@@ -3401,6 +3884,13 @@ ${chat}`.slice(0, 6000), "System Check");
             $("#call-timer-disp").text(new Date(callSeconds * 1000).toISOString().substr(14, 5));
         }, 1000);
         const n = $("#call-name-disp").text();
+        const lowerGreeting = String(greetingLine || "").toLowerCase();
+        const hasInvite = /\b(come over|invite|my place|my home|my residence|my apartment|my house|meet at my)\b/.test(lowerGreeting);
+        if (hasInvite) {
+            setTimeout(() => {
+                ensureNpcResidencePlaced(n).catch(e => console.warn("[Phone] Residence placement from call failed:", e));
+            }, 100);
+        }
         try {
             if (window.__uieCallMaxTimer) {
                 clearTimeout(window.__uieCallMaxTimer);
@@ -3515,6 +4005,40 @@ ${chat}`.slice(0, 6000), "System Check");
         } catch (e) { console.warn("[UIE] Incoming call handler failed:", e); }
     };
 
+async function ensureNpcResidencePlaced(npcName) {
+    if (!npcName) return;
+    const cleanName = String(npcName).trim();
+    if (cleanName.toLowerCase() === "unknown" || cleanName.toLowerCase() === "someone") return;
+    const residenceName = `${cleanName}'s Residence`;
+    
+    let mapModule;
+    try {
+        mapModule = await import("./map.js");
+    } catch (e) {
+        console.warn("[Phone] Could not import map.js:", e);
+        return;
+    }
+    
+    const existing = mapModule.getNodeByName(residenceName);
+    if (existing) return;
+    
+    const ping = {
+        newLocation: residenceName,
+        type: "interior",
+        scope: "vicinity",
+        relationship: "adjacent",
+        direction: "unknown",
+        faction: "Civilians",
+        theme: "Residential Home",
+        description: `Cozy private residence belonging to ${cleanName}. They invited you over.`
+    };
+    
+    const node = await mapModule.addOrganicLocation(ping);
+    if (node) {
+        notify("success", `New address received: ${residenceName} placed on your map!`, "Map", "phoneMessages");
+    }
+}
+
     window.UIE_phone_incomingText = (from, body) => {
         try {
             const s = getSettings();
@@ -3522,6 +4046,15 @@ ${chat}`.slice(0, 6000), "System Check");
             const name = ensureInboundContact(s, cleanIncomingWho(from) || "Unknown") || "Unknown";
             const msg = sanitizePhoneLine(String(body || ""), 1200);
             if (!msg) return;
+
+            const lowerMsg = msg.toLowerCase();
+            const hasInvite = /\b(come over|invite|my place|my home|my residence|my apartment|my house|meet at my)\b/.test(lowerMsg);
+            if (hasInvite) {
+                setTimeout(() => {
+                    ensureNpcResidencePlaced(name).catch(e => console.warn("[Phone] Residence placement failed:", e));
+                }, 100);
+            }
+
             if (isCodiceMode(s)) {
                 if (!s.relationships || typeof s.relationships !== "object") s.relationships = {};
                 if (!Array.isArray(s.relationships.messages)) s.relationships.messages = [];
@@ -3719,9 +4252,11 @@ ${chat}`.slice(0, 6000), "System Check");
     $win.on("click.phone", "#app-cookies", () => openApp("#uie-app-cookies-view"));
     $win.on("click.phone", "#app-travel", () => openApp("#uie-app-travel-view"));
     $win.on("click.phone", "#app-bank", () => openApp("#uie-app-bank-view"));
+    $win.on("click.phone", "#app-bills", () => openApp("#uie-app-bills-view"));
+    $win.on("click.phone", "#app-homestead", () => openApp("#uie-app-homestead-view"));
     $win.on("click.phone", "#app-cardforge", () => {
         openApp("#uie-app-cardforge-view");
-        try { renderCardForgeWallet(); } catch (_) {}
+        try { credentialForgeUI?.open(); } catch (_) {}
     });
     $win.on("click.phone", "#app-memories", () => {
         try { renderPhoneMemories(); } catch (_) {}
@@ -3794,9 +4329,9 @@ ${chat}`.slice(0, 6000), "System Check");
         const $input = $("#social-post-input");
         const val = $input.val();
         if (!val.trim()) return;
-        const persona = getPersonaName() || "Player";
+        const persona = String(_ivProfile().username || getPersonaName() || "Player").trim() || "Player";
         try {
-            await window.UIE_BACKEND_BRIDGE.createSocialPost(persona, val, _ivComposerTag, _ivComposerTone);
+            await window.UIE_BACKEND_BRIDGE.createSocialPost(persona, val, _ivComposerTag, _ivComposerTone, _ivExtractMentions(val));
             $input.val("");
             _ivComposerTag = "Cozy";
             _ivComposerTone = "Neutral";
@@ -3805,6 +4340,9 @@ ${chat}`.slice(0, 6000), "System Check");
         } catch (_) {
             notify("error", "Could not publish post.");
         }
+    });
+    $win.off("click.ivImageHelp", "#iv-post-image-help").on("click.ivImageHelp", "#iv-post-image-help", () => {
+        notify("info", "Post the caption first. Instavibe queues an image from its caption and current world context.", "Instavibe");
     });
     $win.off("click.phoneMemDb", "#phone-open-databank").on("click.phoneMemDb", "#phone-open-databank", async () => {
         try {
@@ -3888,43 +4426,83 @@ ${chat}`.slice(0, 6000), "System Check");
             smartBack(this);
         });
 
-    $win.off("click.phoneTravelPay", "#travel-pay-go").on("click.phoneTravelPay", "#travel-pay-go", function(e) {
+    $win.off("change.phoneTravelQuote", "#travel-mode, #travel-destination, #travel-rideshare-class")
+        .on("change.phoneTravelQuote", "#travel-mode", function() {
+            renderTravelApp(String($(this).val() || ""));
+        })
+        .on("change.phoneTravelQuote", "#travel-destination, #travel-rideshare-class", function() {
+            updatePhoneTravelQuote(ensurePhoneEconomyState(getSettings()));
+        });
+
+    const bookSelectedPhoneRoute = async ({ rideshare = false } = {}) => {
+        const s = ensurePhoneEconomyState(getSettings());
+        const route = selectedPhoneTravelRoute();
+        if (!route) {
+            notify("warning", "Choose an available mapped route first.", "Transit");
+            return false;
+        }
+        const travelModule = await import("./travelBridge.js");
+        let multiplier = 1;
+        let serviceClass = "";
+        if (rideshare || route.mode === "rideshare") {
+            const option = document.querySelector("#travel-rideshare-class option:checked");
+            multiplier = Math.max(1, Number(option?.dataset?.multiplier || 1));
+            serviceClass = String(option?.value || "standard");
+        }
+        let passResult = null;
+        if (route.passApplies && route.passCredentialId) {
+            passResult = useCredential(s, route.passCredentialId, {
+                id: route.id,
+                action: "transit_boarding",
+                locationId: route.fromId || route.from,
+                currentHolderId: "player",
+                scannerStrength: 55,
+            });
+            if (!passResult.accepted) {
+                notify("warning", `Transit credential ${String(passResult.reason || "rejected").replace(/_/g, " ")}; fare will be charged.`, "Transit");
+            }
+        }
+        const fareOverride = route.passApplies && passResult?.accepted ? 0 : undefined;
+        const ok = await travelModule.bookTransitRoute(route.mode, route.id, { fareOverride, fareMultiplier: multiplier, serviceClass });
+        if (!ok) {
+            renderTravelApp(route.mode);
+            return false;
+        }
+        const fare = fareOverride === 0 ? 0 : Math.round(Number(route.fare || 0) * multiplier);
+        const label = TRANSIT_MODES[route.mode]?.label || route.mode;
+        pushPhoneMemory(s, { kind: "travel", text: `Booked ${serviceClass ? `${serviceClass} ` : ""}${label} from ${route.from} to ${route.to} for ${fare} ${s.currencySymbol || "G"}.` });
+        s.phone.travel.history.unshift({ destination: route.to, mode: route.mode, fare, status: "departed", t: Date.now() });
+        s.phone.travel.history = s.phone.travel.history.slice(0, 50);
+        saveSettings();
+        try { injectRpEvent(`(Travel) Boarded ${label} from ${route.from} to ${route.to}.`, { uie: { type: "travel_departure", destination: route.to, mode: route.mode } }); } catch (_) {}
+        $("#uie-phone-window").hide();
+        return true;
+    };
+
+    $win.off("click.phoneTravelPay", "#travel-pay-go").on("click.phoneTravelPay", "#travel-pay-go", async function(e) {
         e.preventDefault();
         e.stopPropagation();
-        const s = ensurePhoneEconomyState(getSettings());
-        const cards = Array.isArray(s.phone?.cards) ? s.phone.cards : [];
-        const transitPass = cards.find(c => c.type === "transit_pass");
-        const hasPass = !!transitPass;
-        const fare = hasPass ? 0 : Math.max(0, Math.round(Number($("#travel-fare").val() || 0)));
-        const mode = String($("#travel-mode option:selected").text() || $("#travel-mode").val() || "Transit");
-        const destination = String($("#travel-destination").val() || "").trim() || "a new destination";
-        
-        let trip;
-        if (hasPass) {
-            trip = { ok: true };
-        } else {
-            if (!fare) return;
-            trip = payTransitFare(s, { mode, destination, fare });
-        }
-        
-        if (!trip.ok) {
-            notify("warning", "Not enough currency for this fare.", "Transit", "currency");
-            renderTravelApp();
-            return;
-        }
-        
-        if (hasPass) {
-            pushPhoneMemory(s, { kind: "travel", text: `Used Travel Pass '${transitPass.name}' (#${transitPass.cardNumber}) for ${mode} to ${destination}.` });
-            saveSettings();
-            try { injectRpEvent(`(Travel) Used Transit Pass '${transitPass.name}' (#${transitPass.cardNumber}) for ${mode} to ${destination}.`, { uie: { type: "travel", destination, mode } }); } catch (_) {}
-            notify("success", `Travel Pass validated. Enjoy your ride to ${destination}!`, "Transit", "currency");
-        } else {
-            pushPhoneMemory(s, { kind: "travel", text: `Paid ${fare} ${s.currencySymbol || "G"} for ${mode} to ${destination}.` });
-            saveSettings();
-            try { injectRpEvent(`(Travel) Paid ${fare} ${s.currencySymbol || "G"} for ${mode} to ${destination}.`, { uie: { type: "travel", destination, mode } }); } catch (_) {}
-            notify("success", `Traveling to ${destination}.`, "Transit", "currency");
-        }
-        renderTravelApp();
+        await bookSelectedPhoneRoute();
+    });
+
+    $win.off("click.phoneRideshare", "#travel-rideshare-dispatch").on("click.phoneRideshare", "#travel-rideshare-dispatch", async function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        const route = selectedPhoneTravelRoute();
+        if (!route) return;
+        const serviceClass = String($("#travel-rideshare-class").val() || "standard");
+        const drivers = ["Mara", "Jules", "Ren", "Sora", "Avery", "Niko"];
+        const driver = drivers[(parseInt(transitId(route.id).slice(-2), 36) || 0) % drivers.length];
+        $("#travel-rideshare-status").text(`${driver} accepted your ${serviceClass} pickup. Confirming route…`);
+        $(this).prop("disabled", true);
+        setTimeout(() => void bookSelectedPhoneRoute({ rideshare: true }), 650);
+    });
+
+    $win.off("click.phoneTravelHub", "#travel-open-hub").on("click.phoneTravelHub", "#travel-open-hub", async function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        const mod = await import("./travelBridge.js");
+        await mod.openTransitHub();
     });
 
     $win.off("click.phoneBankLogin", "#bank-login").on("click.phoneBankLogin", "#bank-login", function(e) {
@@ -3935,6 +4513,7 @@ ${chat}`.slice(0, 6000), "System Check");
         s.phone.bank.username = name;
         s.phone.bank.loggedIn = true;
         if (!s.phone.bank.createdAt) s.phone.bank.createdAt = Date.now();
+        syncAutomaticCredentials(s);
         saveSettings();
         renderBankApp();
     });
@@ -4393,11 +4972,17 @@ ${chat}`.slice(0, 6000), "System Check");
     $win.on("click.phone", "#p-save-btn", () => {
         const s = getSettings();
         if(!s.phone) s.phone = {};
+        const power = ensurePhonePowerState(s);
         s.phone.pin = $("#p-set-pin").val();
         s.phone.deviceSkin = String($("#p-device-style").val() || "modern");
         s.phone.allowCalls = isCodiceMode(s) ? false : $("#p-allow-calls").is(":checked");
         s.phone.allowTexts = $("#p-allow-texts").is(":checked");
         s.phone.npcPhonePromptInjection = $("#p-npc-phone-prompt-injection").is(":checked");
+        power.batterySimulationEnabled = $("#p-battery-sim").is(":checked");
+        power.networkSimulationEnabled = $("#p-network-sim").is(":checked");
+        power.monthlyPlanCost = Math.max(0, Number($("#p-phone-plan-cost").val() || 0));
+        power.charger = String($("#p-charger-type").val() || power.charger || "wall");
+        if (!power.batterySimulationEnabled) power.shutDown = false;
         s.phone.bubbleColors = {
             sent: String($("#p-bubble-sent").val() || "").trim() || (s.phone.bubbleColors?.sent || ""),
             received: String($("#p-bubble-recv").val() || "").trim() || (s.phone.bubbleColors?.received || "")
@@ -4406,6 +4991,30 @@ ${chat}`.slice(0, 6000), "System Check");
         loadPhoneVisuals();
         alert("Settings Saved");
         goHome();
+    });
+
+    $win.on("click.phone", "#uie-phone-charge-toggle, #p-charge-now", () => {
+        const s = getSettings();
+        const power = ensurePhonePowerState(s);
+        const charger = String($("#uie-phone-power-charger:visible, #p-charger-type:visible").first().val() || power.charger || "wall");
+        setPhoneCharging(!power.charging, charger);
+    });
+
+    $win.on("change.phone", "#uie-phone-power-charger, #p-charger-type", function() {
+        const s = getSettings();
+        ensurePhonePowerState(s).charger = String($(this).val() || "wall");
+        saveSettings();
+        renderPhonePowerStatus();
+    });
+
+    $win.on("click.phone", ".phone-pay-bill", async function() {
+        const id = String($(this).attr("data-bill-id") || "");
+        if (!id) return;
+        const mod = await import("./taxJailManager.js");
+        const result = mod.payBill?.(id);
+        if (!result?.ok) notify("warning", String(result?.reason || "Bill payment failed."), "Bills", "bills");
+        await renderBillsApp();
+        renderPhonePowerStatus();
     });
 
     $win.on("click.phone", "#p-wallpaper-pick", () => $("#p-wallpaper-file").trigger("click"));
@@ -4798,6 +5407,10 @@ Rules for logic:
     });
 
     loadPhoneVisuals();
+    ensurePhonePowerState(getSettings());
+    renderPhonePowerStatus();
+    if (phonePowerInt) clearInterval(phonePowerInt);
+    phonePowerInt = setInterval(tickPhonePower, 15000);
     startArrivalWatcher();
     window.removeEventListener("uie:game_mode_changed", window.__uiePhoneModeRefresh || (() => {}));
     window.__uiePhoneModeRefresh = () => {
@@ -4903,7 +5516,7 @@ function inferBookDocumentCategory(prompt = "") {
 
 function bookTemplateStyles() {
     return `<style>
-        .uie-book-doc{box-sizing:border-box;max-width:760px;margin:0 auto;color:#2f1d12;font-family:Georgia,'Times New Roman',serif;line-height:1.65}
+        .uie-book-doc{box-sizing:border-box;max-width:760px;margin:0 auto;color:#2f1d12;font-family:Georgia,'Times New Roman',serif;line-height:1.65;transform-origin:center left;animation:uiePhoneBookOpen .42s cubic-bezier(.2,.8,.2,1) both}
         .uie-book-doc *{box-sizing:border-box}.uie-book-doc h1,.uie-book-doc h2,.uie-book-doc h3{font-family:Georgia,'Times New Roman',serif;letter-spacing:0;margin:0 0 10px}
         .uie-book-normal,.uie-book-novel{padding:22px;background:#f7ecd0;border:10px solid #6b3f22;box-shadow:inset 0 0 30px rgba(83,48,24,.22)}
         .book-cover,.book-title-page{text-align:center;padding:28px 18px;border:2px solid rgba(80,45,20,.35);background:#efe0bd}.book-title{font-size:28px;font-weight:900}.book-rule{height:3px;background:#8a5a2b;margin:14px auto;width:50%}
@@ -4912,8 +5525,10 @@ function bookTemplateStyles() {
         .uie-book-grimoire{padding:24px;background:#211829;color:#f2e5ff;border:12px double #9a6cff;box-shadow:inset 0 0 35px rgba(154,108,255,.22)}.uie-book-grimoire.violet{background:#2f193d}.spell-circle{width:120px;height:120px;border:3px double #d8b4fe;border-radius:50%;margin:12px auto}
         .uie-book-textbook{padding:22px;background:#eef5ff;border:8px solid #2d5d8a;color:#17283a;font-family:Arial,system-ui,sans-serif}.uie-book-textbook h1,.uie-book-textbook h2{font-family:Arial,system-ui,sans-serif}.unit,.chapter-band{display:inline-block;background:#2d5d8a;color:#fff;padding:4px 10px;border-radius:4px;font-weight:900}.check{margin-top:12px;padding:10px;background:#d8e9fb;border-left:5px solid #2d5d8a}.uie-book-textbook table{width:100%;border-collapse:collapse}.uie-book-textbook th,.uie-book-textbook td{border:1px solid #8ab0d3;padding:8px;text-align:left}
         .uie-note{max-width:520px;padding:26px;background:#fff7b8;border:1px solid #d8bf62;box-shadow:0 10px 25px rgba(0,0,0,.25);font-family:'Comic Sans MS','Segoe Print',cursive;transform:rotate(-1deg)}.uie-note.lined{background:repeating-linear-gradient(#fffbd1 0 28px,#d9c879 29px 30px)}.uie-note .tape{width:90px;height:24px;background:rgba(240,220,160,.75);margin:-38px auto 12px}.signed{text-align:right}
-        .uie-scroll{padding:18px 28px;background:#ead2a0;border-left:18px solid #8a5a2b;border-right:18px solid #8a5a2b;color:#3a2414;box-shadow:inset 0 0 28px rgba(82,45,18,.26)}.uie-scroll .rod{height:14px;background:#5d351b;border-radius:999px;margin:0 -38px 12px}.uie-scroll .rod.bottom{margin:12px -38px 0}.uie-scroll.decree{border-color:#5d351b;text-align:center}
-        @media(min-width:99999px){.book-spread{grid-template-columns:1fr}.uie-book-doc{max-width:100%}}
+        .uie-scroll{padding:18px 28px;background:#ead2a0;border-left:18px solid #8a5a2b;border-right:18px solid #8a5a2b;color:#3a2414;box-shadow:inset 0 0 28px rgba(82,45,18,.26);transform-origin:center;animation:uiePhoneScrollOpen .42s cubic-bezier(.2,.8,.2,1) both}.uie-scroll .rod{height:14px;background:#5d351b;border-radius:999px;margin:0 -38px 12px}.uie-scroll .rod.bottom{margin:12px -38px 0}.uie-scroll.decree{border-color:#5d351b;text-align:center}
+        @keyframes uiePhoneBookOpen{from{opacity:.25;transform:perspective(1100px) rotateY(-70deg) scale(.95)}to{opacity:1;transform:perspective(1100px) rotateY(0) scale(1)}}
+        @keyframes uiePhoneScrollOpen{from{opacity:.25;transform:scaleY(.06);clip-path:inset(47% 0)}to{opacity:1;transform:scaleY(1);clip-path:inset(0)}}
+        @media not all{.book-spread{grid-template-columns:1fr}.uie-book-doc{max-width:100%}}
     </style>`;
 }
 
@@ -5036,418 +5651,7 @@ User request: "${prompt}"`, "Webpage");
         $("#books-reader").hide();
     });
 
-    // --- CARD FORGE UTILITY INTEGRATION ---
-    const drawImageProp = (ctx, img, x, y, w, h, offsetX = 0.5, offsetY = 0.5) => {
-        const iw = img.width, ih = img.height;
-        const r = Math.min(w / iw, h / ih);
-        let nw = iw * r, nh = ih * r, cx, cy, cw, ch;
-        if (Math.abs(nw - w) < 0.01) {
-            ch = ih * (h / nh); cw = iw; cx = 0; cy = (ih - ch) * offsetY;
-        } else {
-            cw = iw * (w / nw); ch = ih; cx = (iw - cw) * offsetX; cy = 0;
-        }
-        ctx.drawImage(img, cx, cy, cw, ch, x, y, w, h);
-    };
 
-    const addCardToInventory = (card) => {
-        try {
-            const s = getSettings();
-            s.inventory = s.inventory || {};
-            s.inventory.items = s.inventory.items || [];
-            const cardItem = {
-                id: `card_${card.id}`,
-                name: `${card.name}'s ${card.typeName}`,
-                description: `A forged physical card.\n- Type: ${card.typeName}\n- ID/Card #: ${card.cardNumber}\n- Expiry: ${card.expiry}\n- Title/Info: ${card.title || "None"}`,
-                quantity: 1,
-                category: "Key",
-                imageUrl: card.image,
-                rarity: "Unique",
-                customAttributes: {
-                    cardType: card.type,
-                    cardName: card.name,
-                    cardNumber: card.cardNumber,
-                    cardExpiry: card.expiry,
-                    cardTitle: card.title
-                }
-            };
-            const idx = s.inventory.items.findIndex(item => item.id === cardItem.id);
-            if (idx >= 0) s.inventory.items[idx] = cardItem;
-            else s.inventory.items.push(cardItem);
-            saveSettings();
-            try { if (typeof window.renderInventory === "function") window.renderInventory(); } catch (_) {}
-        } catch (e) {
-            console.error("[UIE/CardForge] Inventory sync failed", e);
-        }
-    };
-
-    const removeCardFromInventory = (cardId) => {
-        try {
-            const s = getSettings();
-            if (s.inventory && Array.isArray(s.inventory.items)) {
-                const idx = s.inventory.items.findIndex(item => item.id === `card_${cardId}`);
-                if (idx >= 0) {
-                    s.inventory.items.splice(idx, 1);
-                    saveSettings();
-                    try { if (typeof window.renderInventory === "function") window.renderInventory(); } catch (_) {}
-                }
-            }
-        } catch (e) {
-            console.error("[UIE/CardForge] Inventory delete failed", e);
-        }
-    };
-
-    let uploadedPhotoSrc = null;
-
-    function renderCardForgeCanvas(callback) {
-        const canvas = document.getElementById("forge-canvas");
-        if (!canvas) return;
-        const ctx = canvas.getContext("2d");
-        if (!ctx) return;
-
-        const type = $("#forge-card-type").val() || "id_license";
-        const name = ($("#forge-card-name").val() || "").trim() || "John Doe";
-        const num = ($("#forge-card-number").val() || "").trim() || "DL-89732-X";
-        const exp = ($("#forge-card-expiry").val() || "").trim() || "12/29";
-        const title = ($("#forge-card-title").val() || "").trim() || "Special Agent";
-
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-        if (type === "id_license") {
-            const grad = ctx.createLinearGradient(0, 0, canvas.width, 0);
-            grad.addColorStop(0, "#2980b9"); grad.addColorStop(1, "#3498db");
-            ctx.fillStyle = grad; ctx.fillRect(0, 0, canvas.width, 40);
-            ctx.fillStyle = "#f5f6fa"; ctx.fillRect(0, 40, canvas.width, canvas.height - 40);
-            ctx.fillStyle = "#ffffff"; ctx.font = "bold 14px sans-serif"; ctx.fillText("DRIVER'S LICENSE", 15, 24);
-            ctx.fillStyle = "#cba35c"; ctx.font = "bold 12px sans-serif"; ctx.fillText("★", canvas.width - 25, 24);
-            ctx.fillStyle = "#2c3e50"; ctx.font = "9px sans-serif"; ctx.fillText("NAME", 115, 60);
-            ctx.font = "bold 12px sans-serif"; ctx.fillText(name.toUpperCase(), 115, 74);
-            ctx.font = "9px sans-serif"; ctx.fillText("LIC #", 115, 96);
-            ctx.font = "bold 12px sans-serif"; ctx.fillStyle = "#c0392b"; ctx.fillText(num.toUpperCase(), 115, 110);
-            ctx.fillStyle = "#2c3e50"; ctx.font = "9px sans-serif"; ctx.fillText("EXPIRY", 115, 132);
-            ctx.font = "bold 11px sans-serif"; ctx.fillText(exp.toUpperCase(), 115, 144);
-            ctx.font = "9px sans-serif"; ctx.fillText("CLASS / TITLE", 115, 168);
-            ctx.font = "bold 11px sans-serif"; ctx.fillText(title.toUpperCase(), 115, 180);
-        } else if (type === "id_work") {
-            ctx.fillStyle = "#2c3e50"; ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.fillStyle = "#e74c3c"; ctx.fillRect(0, 0, 10, canvas.height);
-            ctx.fillStyle = "rgba(0,0,0,0.3)"; ctx.fillRect(10, 0, canvas.width - 10, 35);
-            ctx.fillStyle = "#ffffff"; ctx.font = "bold 12px sans-serif"; ctx.fillText("SECURITY CLEARANCE ID", 25, 22);
-            ctx.fillStyle = "#bdc3c7"; ctx.font = "8px sans-serif"; ctx.fillText("AUTHORIZED HOLDER", 115, 58);
-            ctx.fillStyle = "#ffffff"; ctx.font = "bold 13px sans-serif"; ctx.fillText(name.toUpperCase(), 115, 72);
-            ctx.fillStyle = "#bdc3c7"; ctx.font = "8px sans-serif"; ctx.fillText("BADGE NUMBER", 115, 94);
-            ctx.fillStyle = "#e74c3c"; ctx.font = "bold 13px sans-serif"; ctx.fillText(num.toUpperCase(), 115, 108);
-            ctx.fillStyle = "#bdc3c7"; ctx.font = "8px sans-serif"; ctx.fillText("ROLE / TITLE", 115, 130);
-            ctx.fillStyle = "#ffffff"; ctx.font = "bold 11px sans-serif"; ctx.fillText(title.toUpperCase(), 115, 142);
-            ctx.fillStyle = "#bdc3c7"; ctx.font = "8px sans-serif"; ctx.fillText("EXPIRES", 115, 164);
-            ctx.fillStyle = "#ffffff"; ctx.font = "bold 11px sans-serif"; ctx.fillText(exp.toUpperCase(), 115, 176);
-            ctx.fillStyle = "#ffffff";
-            for (let i = 0; i < 18; i++) {
-                const w = (i % 3 === 0 || i % 5 === 0) ? 3 : 1;
-                ctx.fillRect(canvas.width - 90 + (i * 4), 185, w, 15);
-            }
-        } else if (type === "id_business") {
-            ctx.fillStyle = "#fdfefe"; ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.strokeStyle = "#d4af37"; ctx.lineWidth = 4; ctx.strokeRect(6, 6, canvas.width - 12, canvas.height - 12);
-            ctx.fillStyle = "#2c3e50"; ctx.font = "bold 16px serif"; ctx.fillText(name, 115, 70);
-            ctx.fillStyle = "#7f8c8d"; ctx.font = "italic 11px serif"; ctx.fillText(title, 115, 88);
-            ctx.strokeStyle = "#95a5a6"; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(115, 100); ctx.lineTo(canvas.width - 25, 100); ctx.stroke();
-            ctx.fillStyle = "#2c3e50"; ctx.font = "9px sans-serif"; ctx.fillText("ID: " + num, 115, 120); ctx.fillText("EXP: " + exp, 115, 138); ctx.fillText("Reality Engine Immersion Corp", 115, 156);
-        } else if (type === "bank_card") {
-            const grad = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
-            grad.addColorStop(0, "#1e272e"); grad.addColorStop(0.5, "#2f3542"); grad.addColorStop(1, "#11171a");
-            ctx.fillStyle = grad; ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.strokeStyle = "rgba(212,175,55,0.08)"; ctx.lineWidth = 2; ctx.beginPath();
-            for (let i = -100; i < canvas.width; i += 30) { ctx.moveTo(i, 0); ctx.lineTo(i + 150, canvas.height); }
-            ctx.stroke();
-            ctx.fillStyle = "#e5c158"; ctx.fillRect(25, 55, 36, 28);
-            ctx.strokeStyle = "#5f27cd"; ctx.lineWidth = 1; ctx.strokeRect(25, 55, 36, 28);
-            ctx.beginPath(); ctx.moveTo(37, 55); ctx.lineTo(37, 83); ctx.moveTo(49, 55); ctx.lineTo(49, 83); ctx.moveTo(25, 69); ctx.lineTo(61, 69); ctx.stroke();
-            ctx.fillStyle = "#e5c158"; ctx.font = "bold 13px sans-serif"; ctx.fillText("UNIVERSAL BANK", 25, 32);
-            ctx.font = "italic bold 10px sans-serif"; ctx.fillText("VIP PLATINUM", canvas.width - 100, 32);
-            ctx.fillStyle = "#ffffff"; ctx.font = "bold 15px monospace";
-            let formattedNum = num;
-            if (/^\d{12,19}$/.test(num.replace(/\s/g, ""))) { formattedNum = num.replace(/\s/g, "").replace(/(\d{4})/g, "$1 ").trim(); }
-            ctx.fillText(formattedNum, 25, 115);
-            ctx.fillStyle = "#bdc3c7"; ctx.font = "7px sans-serif"; ctx.fillText("GOOD THRU", 130, 140);
-            ctx.fillStyle = "#ffffff"; ctx.font = "bold 11px monospace"; ctx.fillText(exp, 130, 154);
-            ctx.fillStyle = "#ffffff"; ctx.font = "bold 11px monospace"; ctx.fillText(name.toUpperCase(), 25, 175);
-            ctx.fillStyle = "rgba(229,193,88,0.85)"; ctx.beginPath(); ctx.arc(canvas.width - 45, 165, 15, 0, Math.PI * 2); ctx.fill();
-            ctx.fillStyle = "rgba(203, 163, 92,0.6)"; ctx.beginPath(); ctx.arc(canvas.width - 30, 165, 15, 0, Math.PI * 2); ctx.fill();
-        } else if (type === "transit_pass") {
-            const grad = ctx.createLinearGradient(0, 0, canvas.width, 0);
-            grad.addColorStop(0, "#009432"); grad.addColorStop(1, "#0652DD");
-            ctx.fillStyle = grad; ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.fillStyle = "rgba(255,255,255,0.12)"; ctx.fillRect(0, 80, canvas.width, 50);
-            ctx.fillStyle = "#ffffff"; ctx.font = "bold 15px sans-serif"; ctx.fillText("METROLINK PASS", 20, 35);
-            ctx.font = "8px sans-serif"; ctx.fillText("TAP ON / TAP OFF SYSTEM", 20, 48);
-            ctx.fillStyle = "#ffffff"; ctx.font = "bold 11px sans-serif"; ctx.fillText("PASS HOLDER:", 20, 95);
-            ctx.font = "bold 13px sans-serif"; ctx.fillText(name.toUpperCase(), 20, 112);
-            ctx.font = "bold 11px sans-serif"; ctx.fillText("PASS ID:", 180, 95);
-            ctx.font = "bold 13px sans-serif"; ctx.fillText(num.toUpperCase(), 180, 112);
-            ctx.font = "9px sans-serif"; ctx.fillText("EXPIRES: " + exp.toUpperCase(), 20, 150);
-            ctx.font = "bold 12px sans-serif"; ctx.fillStyle = "#cba35c"; ctx.fillText(title.toUpperCase(), 20, 180);
-            ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 2; ctx.strokeRect(canvas.width - 65, 25, 45, 30);
-            ctx.beginPath(); ctx.arc(canvas.width - 52, 60, 4, 0, Math.PI * 2); ctx.arc(canvas.width - 32, 60, 4, 0, Math.PI * 2); ctx.stroke();
-        } else if (type === "hotel_key") {
-            ctx.fillStyle = "#4a0e17"; ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.fillStyle = "#1e1e1e"; ctx.fillRect(0, 12, canvas.width, 24);
-            ctx.fillStyle = "#d4af37"; ctx.font = "bold 14px serif"; ctx.fillText("THE GRAND PLAZA HOTEL", 20, 65);
-            ctx.fillStyle = "#f5f6fa"; ctx.font = "10px sans-serif"; ctx.fillText("ROOM KEYCARD", 20, 95);
-            ctx.font = "bold 28px sans-serif"; ctx.fillStyle = "#d4af37"; ctx.fillText(title.toUpperCase(), 20, 130);
-            ctx.fillStyle = "#bdc3c7"; ctx.font = "9px sans-serif"; ctx.fillText("GUEST: " + name, 20, 160); ctx.fillText("CHECK-OUT: " + exp, 20, 178);
-            ctx.strokeStyle = "#d4af37"; ctx.lineWidth = 2; ctx.beginPath();
-            ctx.arc(canvas.width - 45, 110, 10, 0, Math.PI * 2); ctx.moveTo(canvas.width - 45, 120); ctx.lineTo(canvas.width - 45, 160); ctx.lineTo(canvas.width - 55, 160); ctx.moveTo(canvas.width - 45, 150); ctx.lineTo(canvas.width - 52, 150); ctx.stroke();
-        }
-
-        if (type.startsWith("id_") && uploadedPhotoSrc) {
-            const img = new Image();
-            img.src = uploadedPhotoSrc;
-            img.onload = function() {
-                ctx.fillStyle = "#ffffff"; ctx.fillRect(13, 53, 89, 114);
-                ctx.strokeStyle = "#bdc3c7"; ctx.lineWidth = 1; ctx.strokeRect(13, 53, 89, 114);
-                drawImageProp(ctx, img, 15, 55, 85, 110);
-                if (typeof callback === "function") callback();
-            };
-        } else {
-            if (type.startsWith("id_")) {
-                ctx.fillStyle = "#e2e8f0"; ctx.fillRect(15, 55, 85, 110);
-                ctx.strokeStyle = "#cbd5e1"; ctx.lineWidth = 1.5; ctx.strokeRect(15, 55, 85, 110);
-                ctx.fillStyle = "#94a3b8"; ctx.font = "10px sans-serif"; ctx.textAlign = "center";
-                ctx.fillText("PHOTO ID", 57, 110); ctx.fillText("REQUIRED", 57, 122); ctx.textAlign = "left";
-            }
-            if (typeof callback === "function") callback();
-        }
-    }
-
-    function saveForgedCard() {
-        const type = $("#forge-card-type").val() || "id_license";
-        const name = ($("#forge-card-name").val() || "").trim();
-        const num = ($("#forge-card-number").val() || "").trim();
-        const exp = ($("#forge-card-expiry").val() || "").trim();
-        const title = ($("#forge-card-title").val() || "").trim();
-        const editId = $("#forge-edit-id").val();
-
-        if (!name || !num) {
-            notify("warning", "Name and ID Number are required.", "Card Forge");
-            return;
-        }
-
-        renderCardForgeCanvas(function() {
-            const canvas = document.getElementById("forge-canvas");
-            if (!canvas) return;
-
-            const imageUrl = canvas.toDataURL("image/png");
-            const s = getSettings();
-            s.phone = s.phone || {};
-            s.phone.cards = Array.isArray(s.phone.cards) ? s.phone.cards : [];
-
-            const typeNames = {
-                id_license: "Driver's License",
-                id_work: "Security Identification Pass",
-                id_business: "Business Card",
-                bank_card: "Debit/Credit Card",
-                transit_pass: "Subway & Transit Pass",
-                hotel_key: "Hotel Room Keycard"
-            };
-            const typeName = typeNames[type] || "Card";
-
-            const cardId = editId || `card_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
-            const cardObj = {
-                id: cardId,
-                type,
-                typeName,
-                name,
-                cardNumber: num,
-                expiry: exp || "Never",
-                title,
-                image: imageUrl,
-                t: Date.now()
-            };
-
-            const idx = s.phone.cards.findIndex(c => c.id === cardId);
-            if (idx >= 0) {
-                s.phone.cards[idx] = cardObj;
-                notify("success", `Card '${name}' updated successfully!`, "Card Forge");
-            } else {
-                s.phone.cards.push(cardObj);
-                notify("success", `Card '${name}' forged successfully!`, "Card Forge");
-            }
-            saveSettings();
-
-            addCardToInventory(cardObj);
-            syncToMainChat(`forges and registers a new ${typeName} for '${name}' (Card/ID #: ${num}, Expiry: ${exp || "Never"}).`);
-            clearCardForgeInputs();
-            $("#forge-tab-wallet").trigger("click");
-        });
-    }
-
-    function clearCardForgeInputs() {
-        $("#forge-card-name").val("");
-        $("#forge-card-number").val("");
-        $("#forge-card-expiry").val("");
-        $("#forge-card-title").val("");
-        $("#forge-edit-id").val("");
-        $("#forge-card-photo").val("");
-        $("#forge-photo-preview-name").text("No photo uploaded");
-        uploadedPhotoSrc = null;
-        renderCardForgeCanvas();
-    }
-
-    function renderCardForgeWallet() {
-        const s = getSettings();
-        const cards = Array.isArray(s?.phone?.cards) ? s.phone.cards : [];
-        const $list = $("#forge-wallet-list").empty();
-
-        if (!cards.length) {
-            $list.html('<div style="opacity:0.7; text-align:center; padding:20px; border:1px dashed rgba(255,255,255,0.16); border-radius:14px;">Your Wallet is empty.<br/>Forge a card to get started!</div>');
-            return;
-        }
-
-        cards.forEach(card => {
-            const cardEl = $(`
-                <div style="border-radius:16px; padding:12px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.08); display:flex; flex-direction:column; gap:8px; cursor:pointer; margin-bottom:10px;">
-                    <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <span style="font-weight:900; color:#cba35c;">${esc(card.typeName)}</span>
-                        <div style="display:flex; gap:6px;">
-                            <button type="button" class="forge-edit-btn" data-id="${card.id}" style="height:26px; font-size:11px; padding:0 8px; border-radius:8px; border:1px solid rgba(255,255,255,0.15); background:rgba(255,255,255,0.06); color:#fff; cursor:pointer;"><i class="fa-solid fa-pencil"></i> Edit</button>
-                            <button type="button" class="forge-delete-btn" data-id="${card.id}" style="height:26px; font-size:11px; padding:0 8px; border-radius:8px; border:none; background:#e74c3c; color:#000; cursor:pointer;"><i class="fa-solid fa-trash"></i> Del</button>
-                        </div>
-                    </div>
-                    <div style="display:flex; gap:10px; align-items:center;">
-                        <img src="${card.image}" style="width:110px; border-radius:6px; box-shadow:0 3px 8px rgba(0,0,0,0.35);">
-                        <div style="font-size:12px; opacity:0.85; line-height:1.45;">
-                            <div><strong>Name:</strong> ${esc(card.name)}</div>
-                            <div><strong>No:</strong> ${esc(card.cardNumber)}</div>
-                            <div><strong>Expiry:</strong> ${esc(card.expiry)}</div>
-                            ${card.title ? `<div><strong>Title:</strong> ${esc(card.title)}</div>` : ""}
-                        </div>
-                    </div>
-                    <button type="button" class="forge-produce-btn" data-id="${card.id}" style="width:100%; height:32px; border-radius:10px; border:none; background:#2ecc71; color:#000; font-weight:900; cursor:pointer; margin-top:4px;"><i class="fa-solid fa-id-badge"></i> Produce Card</button>
-                </div>
-            `);
-
-            cardEl.find(".forge-edit-btn").on("click", function(e) {
-                e.preventDefault(); e.stopPropagation();
-                const id = $(this).data("id");
-                const target = cards.find(c => c.id === id);
-                if (target) {
-                    $("#forge-card-type").val(target.type).trigger("change");
-                    $("#forge-card-name").val(target.name);
-                    $("#forge-card-number").val(target.cardNumber);
-                    $("#forge-card-expiry").val(target.expiry);
-                    $("#forge-card-title").val(target.title || "");
-                    $("#forge-edit-id").val(target.id);
-                    if (target.image && target.type.startsWith("id_")) { uploadedPhotoSrc = target.image; }
-                    $("#forge-photo-preview-name").text("Linked photo ID");
-                    renderCardForgeCanvas();
-                    $("#forge-tab-create").trigger("click");
-                }
-            });
-
-            cardEl.find(".forge-delete-btn").on("click", async function(e) {
-                e.preventDefault(); e.stopPropagation();
-                if (await customConfirm("Are you sure you want to delete this card?")) {
-                    const id = $(this).data("id");
-                    const s2 = getSettings();
-                    s2.phone.cards = (s2.phone.cards || []).filter(c => c.id !== id);
-                    saveSettings();
-                    removeCardFromInventory(id);
-                    syncToMainChat(`destroys and deletes their forged ${card.typeName} card.`);
-                    renderCardForgeWallet();
-                }
-            });
-
-            cardEl.find(".forge-produce-btn").on("click", function(e) {
-                e.preventDefault(); e.stopPropagation();
-                produceCard(card);
-            });
-
-            cardEl.on("click", function() {
-                produceCard(card);
-            });
-
-            $list.append(cardEl);
-        });
-    }
-
-    function produceCard(card) {
-        notify("success", `Showed '${card.name}'s ${card.typeName}'`, "Card Forge");
-        syncToMainChat(`produces and shows their forged ${card.typeName} [${card.name}] (Card/ID: ${card.cardNumber}, Exp: ${card.expiry}).`);
-    }
-
-    function initCardForge() {
-        let lastForgeActivation = { key: "", at: 0 };
-        const forgeActivate = (e, key, fn) => {
-            if (e) {
-                e.preventDefault();
-                e.stopPropagation();
-            }
-            const now = Date.now();
-            if (lastForgeActivation.key === key && now - lastForgeActivation.at < 450) return;
-            lastForgeActivation = { key, at: now };
-            fn();
-        };
-        $win.off("click.forgeTab pointerup.forgeTab", "#forge-tab-create").on("click.forgeTab pointerup.forgeTab", "#forge-tab-create", function(e) {
-            forgeActivate(e, "tab-create", () => {
-            $("#forge-tab-create").css({ background: "#cba35c", color: "#000" });
-            $("#forge-tab-wallet").css({ background: "transparent", color: "#fff" });
-            $("#forge-create-panel").show();
-            $("#forge-wallet-panel").hide();
-            });
-        });
-        
-        $win.off("click.forgeTabWallet pointerup.forgeTabWallet", "#forge-tab-wallet").on("click.forgeTabWallet pointerup.forgeTabWallet", "#forge-tab-wallet", function(e) {
-            forgeActivate(e, "tab-wallet", () => {
-            $("#forge-tab-wallet").css({ background: "#cba35c", color: "#000" });
-            $("#forge-tab-create").css({ background: "transparent", color: "#fff" });
-            $("#forge-wallet-panel").show().css("display", "flex");
-            $("#forge-create-panel").hide();
-            renderCardForgeWallet();
-            });
-        });
-        
-        $win.off("click.forgePhotoSel pointerup.forgePhotoSel", "#forge-photo-select-btn").on("click.forgePhotoSel pointerup.forgePhotoSel", "#forge-photo-select-btn", function(e) {
-            forgeActivate(e, "photo-select", () => $("#forge-card-photo").trigger("click"));
-        });
-        
-        $win.off("change.forgePhotoFile", "#forge-card-photo").on("change.forgePhotoFile", "#forge-card-photo", function(e) {
-            const file = e.target.files[0];
-            if (file) {
-                $("#forge-photo-preview-name").text(file.name);
-                const reader = new FileReader();
-                reader.onload = function(evt) {
-                    uploadedPhotoSrc = evt.target.result;
-                    renderCardForgeCanvas();
-                };
-                reader.readAsDataURL(file);
-            } else {
-                $("#forge-photo-preview-name").text("No photo uploaded");
-                uploadedPhotoSrc = null;
-                renderCardForgeCanvas();
-            }
-        });
-        
-        $win.off("change.forgeCardType", "#forge-card-type").on("change.forgeCardType", "#forge-card-type", function() {
-            const type = $(this).val();
-            const isID = type.startsWith("id_");
-            $("#forge-photo-group").toggle(isID);
-            renderCardForgeCanvas();
-        });
-        
-        $win.off("click.forgeRender pointerup.forgeRender", "#forge-render-btn").on("click.forgeRender pointerup.forgeRender", "#forge-render-btn", function(e) {
-            forgeActivate(e, "render", () => renderCardForgeCanvas());
-        });
-        
-        $win.off("click.forgeSave pointerup.forgeSave", "#forge-save-btn").on("click.forgeSave pointerup.forgeSave", "#forge-save-btn", function(e) {
-            forgeActivate(e, "save", () => saveForgedCard());
-        });
-        
-        setTimeout(() => { renderCardForgeCanvas(); }, 500);
-    }
-
-    try { initCardForge(); } catch (_) {}
-    window.renderCardForgeWallet = renderCardForgeWallet;
-    // --- END CARD FORGE UTILITY INTEGRATION ---
 
     try {
         window.removeEventListener("uie:backend_asset_image_ready", window.__uieIvAssetReady);

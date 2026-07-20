@@ -22,7 +22,9 @@ const INIT_DEADLINE = Date.now() + INIT_GRACE_MS;
 
 let mirrorIdbCache = null;
 let mirrorIdbLoadPromise = null;
+let mirrorIdbLoadComplete = false;
 let mirrorRestoreChecked = false;
+let deferredSanitizeScheduled = false;
 
 function applyMirrorToCurrent(data) {
     try {
@@ -125,10 +127,14 @@ function kickMirrorIdbLoad() {
                     mirrorIdbCache = { at: Number(rec?.at || 0) || 0, data };
                     try { localStorage.setItem(MIRROR_IDB_FLAG_KEY, String(mirrorIdbCache.at || Date.now())); } catch (_) {}
                     try { applyMirrorToCurrent(mirrorIdbCache.data); } catch (_) {}
+                } else {
+                    try { localStorage.removeItem(MIRROR_IDB_FLAG_KEY); } catch (_) {}
                 }
             } catch (_) {}
             return mirrorIdbCache;
-        })();
+        })().finally(() => {
+            mirrorIdbLoadComplete = true;
+        });
         return mirrorIdbLoadPromise;
     } catch (_) {
         return null;
@@ -137,6 +143,35 @@ function kickMirrorIdbLoad() {
 
 // Kick off IndexedDB mirror load early so bootstrap mode can hydrate quickly even when localStorage is full.
 try { kickMirrorIdbLoad(); } catch (_) {}
+
+export async function waitForSettingsHydration(timeoutMs = 2500) {
+    const pending = kickMirrorIdbLoad();
+    if (pending && !mirrorIdbLoadComplete) {
+        const timeout = Math.max(250, Number(timeoutMs) || 2500);
+        await Promise.race([
+            pending.catch(() => null),
+            new Promise((resolve) => setTimeout(resolve, timeout)),
+        ]);
+    }
+    try { restoreFromMirrorIfEmpty(); } catch (_) {}
+    return getSettings();
+}
+
+function deferSanitizeUntilSettingsHydrate() {
+    if (deferredSanitizeScheduled || mirrorIdbLoadComplete || !mirrorIdbLoadPromise) return;
+    deferredSanitizeScheduled = true;
+    mirrorIdbLoadPromise.finally(() => {
+        deferredSanitizeScheduled = false;
+        try { restoreFromMirrorIfEmpty(); } catch (_) {}
+        try { sanitizeSettings(); } catch (_) {}
+        try {
+            window.dispatchEvent(new CustomEvent("uie:state_updated", {
+                detail: { settingsHydrated: true },
+            }));
+        } catch (_) {}
+        try { updateLayout(); } catch (_) {}
+    });
+}
 
 function isPersistentSettingsReady() {
     try {
@@ -260,7 +295,7 @@ function looksEmptySettings(s) {
                 if (mirrorIdbCache && isNonEmptyObject(mirrorIdbCache.data)) return true;
             } catch (_) {}
             try { kickMirrorIdbLoad(); } catch (_) {}
-            try { if (mirrorIdbLoadPromise) return true; } catch (_) {}
+            try { if (mirrorIdbLoadPromise && !mirrorIdbLoadComplete) return true; } catch (_) {}
             try {
                 const flag = localStorage.getItem(MIRROR_IDB_FLAG_KEY);
                 if (flag) return true;
@@ -310,29 +345,27 @@ function writeMirror() {
 }
 
 function writeMirrorFrom(data) {
+    if (!isNonEmptyObject(data)) return;
+    const at = Date.now();
+    const copy = JSON.parse(safeJson(data) || "{}") || {};
     try {
-        if (!isNonEmptyObject(data)) return;
-        const payload = { at: Date.now(), data: JSON.parse(safeJson(data) || "{}") };
+        const payload = { at, data: copy };
         localStorage.setItem(MIRROR_KEY, safeJson(payload) || "");
     } catch (e) {
         try {
             // Silently handle localStorage quota errors
             window.UIE_mirrorWriteErrorShown = true;
         } catch (_) {}
+    }
 
-        try {
-            if (!isNonEmptyObject(data)) return;
-            const at = Date.now();
-            const copy = JSON.parse(safeJson(data) || "{}") || {};
-            void mirrorDbPut({ id: MIRROR_IDB_ID, at, data: copy }).then(() => {
-                mirrorIdbCache = { at, data: copy };
-                try { localStorage.setItem(MIRROR_IDB_FLAG_KEY, String(at)); } catch (_) {}
-                try { applyMirrorToCurrent(mirrorIdbCache.data); } catch (_) {}
-            }).catch((err) => {
-                // Silently log real DB failures to console without toastr pollution
-                try { console.warn("[UIE] IndexedDB mirror write failed", err); } catch (_) {}
-            });
-        } catch (_) {}
+    // Keep a second, repository-independent copy even when localStorage succeeds.
+    if (typeof indexedDB !== "undefined") {
+        void mirrorDbPut({ id: MIRROR_IDB_ID, at, data: copy }).then(() => {
+            mirrorIdbCache = { at, data: copy };
+            try { localStorage.setItem(MIRROR_IDB_FLAG_KEY, String(at)); } catch (_) {}
+        }).catch((err) => {
+            try { console.warn("[UIE] IndexedDB mirror write failed", err); } catch (_) {}
+        });
     }
 }
 
@@ -368,6 +401,11 @@ function flushMirrorWrite() {
 try {
     window.addEventListener("pagehide", () => {
         try { flushMirrorWrite(); } catch (_) {}
+    });
+    document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "hidden") {
+            try { flushMirrorWrite(); } catch (_) {}
+        }
     });
 } catch (_) {}
 
@@ -866,17 +904,17 @@ export function sanitizeSettings() {
     // If settings are still an empty shell, don't stamp defaults over real data that hasn't hydrated yet.
     // Give ST a moment to populate extension_settings from disk; if it doesn't, then proceed.
     if (persistent && looksEmptySettings(s) && Date.now() < INIT_DEADLINE) {
-        try {
-            // If there may be a mirror (localStorage or IndexedDB), give it a chance to hydrate before stamping defaults.
-            try { kickMirrorIdbLoad(); } catch (_) {}
-            const maybeMirror = hasNonEmptyMirror();
-            if (maybeMirror) throw new Error("extension_settings not hydrated yet");
-
-            // Even if we can't detect a mirror synchronously (e.g. IDB-only), wait briefly during init.
-            if (mirrorIdbLoadPromise) throw new Error("extension_settings not hydrated yet");
-        } catch (_) {
-            throw new Error("extension_settings not hydrated yet");
+        // Continue boot with the empty shell while IndexedDB is still hydrating,
+        // then sanitize after the persisted snapshot has had a chance to arrive.
+        try { kickMirrorIdbLoad(); } catch (_) {}
+        if (mirrorIdbLoadPromise && !mirrorIdbLoadComplete) {
+            deferSanitizeUntilSettingsHydrate();
+            return s;
         }
+
+        // A completed mirror restore mutates this same settings object in place.
+        // If it remains empty, there is no persisted snapshot to protect.
+        try { restoreFromMirrorIfEmpty(); } catch (_) {}
     }
 
     // 1. Basic Structure
@@ -884,6 +922,26 @@ export function sanitizeSettings() {
     if (!Array.isArray(s.inventory.items)) s.inventory.items = [];
     if (!s.inventory.equipment) s.inventory.equipment = {};
     if (!s.inventory.vitals) s.inventory.vitals = {};
+    if (!s.worldState || typeof s.worldState !== "object") s.worldState = {};
+    if (!s.worldState.travel || typeof s.worldState.travel !== "object") s.worldState.travel = {};
+    const travel = s.worldState.travel;
+    if (!Number.isFinite(Number(travel.version))) travel.version = 1;
+    if (typeof travel.currentDockId !== "string") travel.currentDockId = "";
+    if (typeof travel.currentDockName !== "string") travel.currentDockName = "";
+    if (!travel.discoveredDocks || typeof travel.discoveredDocks !== "object" || Array.isArray(travel.discoveredDocks)) travel.discoveredDocks = {};
+    if (!Array.isArray(travel.favoriteDocks)) travel.favoriteDocks = [];
+    if (!travel.tickets || typeof travel.tickets !== "object" || Array.isArray(travel.tickets)) travel.tickets = {};
+    if (!travel.routeDisruptions || typeof travel.routeDisruptions !== "object" || Array.isArray(travel.routeDisruptions)) travel.routeDisruptions = {};
+    if (!Array.isArray(travel.history)) travel.history = [];
+    if (!Number.isFinite(Number(travel.tripCounter))) travel.tripCounter = 0;
+    if (!s.worldState.accessLocks || typeof s.worldState.accessLocks !== "object" || Array.isArray(s.worldState.accessLocks)) s.worldState.accessLocks = {};
+    if (!s.worldState.accessPermissions || typeof s.worldState.accessPermissions !== "object" || Array.isArray(s.worldState.accessPermissions)) s.worldState.accessPermissions = {};
+    if (!s.worldState.objectStates || typeof s.worldState.objectStates !== "object" || Array.isArray(s.worldState.objectStates)) s.worldState.objectStates = {};
+    if (!s.worldState.minigameResults || typeof s.worldState.minigameResults !== "object" || Array.isArray(s.worldState.minigameResults)) s.worldState.minigameResults = {};
+    if (!Array.isArray(s.worldState.toolActionLog)) s.worldState.toolActionLog = [];
+    if (!Array.isArray(s.worldState.evidence)) s.worldState.evidence = [];
+    if (!Array.isArray(s.worldState.photographs)) s.worldState.photographs = [];
+    if (!Number.isFinite(Number(s.worldState.suspicion))) s.worldState.suspicion = 0;
 
     // Vitals Defaults
     const v = s.inventory.vitals;
@@ -915,6 +973,32 @@ export function sanitizeSettings() {
     if (f.party === undefined) f.party = true;
     if (f.items === undefined) f.items = true;
 
+    // UI defaults now open 10% closer while preserving the existing per-area
+    // scale controls. Mobile applies the same values to the desktop composition
+    // before its landscape density fit.
+    if (!s.ui || typeof s.ui !== "object") s.ui = {};
+    if (!s.ui.scales || typeof s.ui.scales !== "object") {
+        s.ui.scales = { sidebar: 110, menu: 110, chatbox: 110, uibutton: 110, toast: 110 };
+    }
+    for (const key of ["sidebar", "menu", "chatbox", "uibutton", "toast"]) {
+        if (!Number.isFinite(Number(s.ui.scales[key]))) s.ui.scales[key] = 110;
+    }
+
+    // Audio is enabled independently from assignment. Turning voices off must
+    // not erase the user's previous character-routing choice.
+    if (!s.audio || typeof s.audio !== "object") s.audio = {};
+    if (typeof s.audio.enabled !== "boolean") s.audio.enabled = true;
+    if (typeof s.audio.ttsEnabled !== "boolean") s.audio.ttsEnabled = s.audio.enabled;
+    if (!String(s.audio.provider || "").trim()) s.audio.provider = "pocket";
+    if (!String(s.audio.assignment || "").trim()) s.audio.assignment = "all";
+    if (typeof s.audio.autoplay !== "boolean") s.audio.autoplay = true;
+    if (!s.audio.pocket || typeof s.audio.pocket !== "object") {
+        s.audio.pocket = { url: "./api/backend", voice: "alba", language: "english", reference: "", referenceText: "", refSeconds: 6, useReference: true };
+    }
+    if (!s.audio.kokoro || typeof s.audio.kokoro !== "object") {
+        s.audio.kokoro = { voice: "af_heart", language: "english", speed: 1, genderBlend: 0.5, vibeBlend: 0.5 };
+    }
+
     // 4. Token Budget Defaults
     if (!s.generation || typeof s.generation !== "object") s.generation = {};
     if (!s.generation.contextBudget || typeof s.generation.contextBudget !== "object") s.generation.contextBudget = {};
@@ -924,6 +1008,17 @@ export function sanitizeSettings() {
     if (!Number.isFinite(Number(s.generation.contextBudget.archiveItems))) s.generation.contextBudget.archiveItems = 3;
     if (!Number.isFinite(Number(s.generation.outputTokenLimit))) s.generation.outputTokenLimit = 2048;
     if (!Number.isFinite(Number(s.generation.contextTokenLimit))) s.generation.contextTokenLimit = 24000;
+    if (!s.network || typeof s.network !== "object") s.network = {};
+    if (!["auto", "custom"].includes(String(s.network.proxyMode || ""))) s.network.proxyMode = "auto";
+    if (!["auto", "proxy-first", "direct-first"].includes(String(s.network.proxyPreference || ""))) s.network.proxyPreference = "auto";
+    if (typeof s.network.proxyOrigin !== "string") s.network.proxyOrigin = "";
+    if (!s.atmosphere || typeof s.atmosphere !== "object") s.atmosphere = {};
+    if (!["auto", "clock", "manual"].includes(String(s.atmosphere.mode || ""))) s.atmosphere.mode = "auto";
+    if (typeof s.atmosphere.enabled !== "boolean") s.atmosphere.enabled = true;
+    if (typeof s.atmosphere.visualsEnabled !== "boolean") s.atmosphere.visualsEnabled = true;
+    if (typeof s.atmosphere.motionEnabled !== "boolean") s.atmosphere.motionEnabled = true;
+    if (typeof s.atmosphere.audioEnabled !== "boolean") s.atmosphere.audioEnabled = true;
+    if (!Array.isArray(s.atmosphere.customWeatherPresets)) s.atmosphere.customWeatherPresets = [];
 
     // 5. Windows State
     if (!s.windows) s.windows = {};
@@ -1160,7 +1255,7 @@ export function updateLayout() {
     const s = getSettings();
 
     try {
-        document.documentElement.style.setProperty("--uie-scale", "1");
+        document.documentElement.style.setProperty("--uie-scale", "1.1");
     } catch (_) {}
 
     // Always keep the launcher visible (unless explicitly hidden) and on-screen.
@@ -1435,6 +1530,7 @@ function ensureRpgSettingsState(s) {
     if (typeof s.rpgSettings.detailedBattleLog !== "boolean") s.rpgSettings.detailedBattleLog = true;
     if (typeof s.rpgSettings.debuffDecay !== "boolean") s.rpgSettings.debuffDecay = true;
     if (typeof s.rpgSettings.readableHtmlEnabled !== "boolean") s.rpgSettings.readableHtmlEnabled = true;
+    if (typeof s.rpgSettings.dynamicResponseBoxesEnabled !== "boolean") s.rpgSettings.dynamicResponseBoxesEnabled = false;
     if (!s.rpgSettings.uiStyle || typeof s.rpgSettings.uiStyle !== "object") s.rpgSettings.uiStyle = {};
     if (!String(s.rpgSettings.uiStyle.preset || "").trim()) s.rpgSettings.uiStyle.preset = "dark";
     if (!s.rpgSettings.uiStyle.targets || typeof s.rpgSettings.uiStyle.targets !== "object") s.rpgSettings.uiStyle.targets = {};
@@ -1444,7 +1540,7 @@ function rpgUiSelector(target) {
     const idTargets = new Set([
         "reply-menu-panel", "q-menu-hamburger", "q-visibility-menu", "q-img-gen", "q-chatlog-bar",
         "input-row", "user-input", "next-beat-input", "send-btn", "target-select", "nav-row",
-        "nav-north", "nav-south", "nav-east", "nav-west", "nav-map", "nav-music", "nav-edit-room",
+        "nav-map", "nav-music", "nav-edit-room",
         "nav-settings", "message-box", "uie-settings-window", "battle-screen"
     ]);
     if (target === "entire-ui") return "body";
@@ -1476,7 +1572,7 @@ function applyRpgUiCustomization(s = getSettings()) {
             presetCss = `
 #reply-menu-panel{background:#f4edd0!important;border:3px solid #8b5a2b!important;color:#4a2c11!important;font-family:'Cinzel','Georgia',serif!important;}
 #reply-menu-panel .reply-menu-item,#reply-menu-panel .reply-menu-title,#reply-menu-panel .reply-menu-tab-btn{color:#4a2c11!important;font-family:'Cinzel','Georgia',serif!important;}
-#nav-row .nav-btn,#send-btn,#next-beat-delete{border-color:rgba(203,163,92,.55)!important;}
+#nav-row .nav-btn,#send-btn{border-color:rgba(203,163,92,.55)!important;}
 `;
         } else if (preset === "dark") {
             presetCss = `
@@ -1497,7 +1593,6 @@ function applyRpgUiCustomization(s = getSettings()) {
 #q-menu-hamburger,
 #reply-tools > .reply-tool-btn,
 #send-btn,
-#next-beat-delete,
 .nav-btn,
 .direction-btn {
 background:linear-gradient(180deg,rgba(15,30,60,.94),rgba(8,16,36,.98))!important;
@@ -1508,7 +1603,6 @@ box-shadow:0 10px 24px rgba(16,25,37,.24),inset 0 1px rgba(255,255,255,.14)!impo
 #q-menu-hamburger:hover,
 #reply-tools > .reply-tool-btn:hover,
 #send-btn:hover,
-#next-beat-delete:hover,
 .nav-btn:hover,
 .direction-btn:hover {
 background:linear-gradient(180deg,rgba(25,50,90,.96),rgba(12,24,52,.98))!important;
@@ -1697,6 +1791,7 @@ function syncRpgSettingsInputs() {
         $("#uie-rpg-detailed-log").prop("checked", r.detailedBattleLog !== false);
         $("#uie-rpg-debuff-decay").prop("checked", r.debuffDecay !== false);
         $("#uie-rpg-readable-html-enabled").prop("checked", r.readableHtmlEnabled !== false);
+        $("#uie-rpg-dynamic-response-boxes").prop("checked", r.dynamicResponseBoxesEnabled === true);
         $("#uie-rpg-style-preset").val(String(r.uiStyle?.preset || "parchment"));
         const styleTarget = String($("#uie-rpg-style-target").val() || "entire-ui");
         const styleData = r.uiStyle?.targets?.[styleTarget] || {};
@@ -1791,12 +1886,14 @@ $("body")
 
 $("body")
     .off("input.uieRpgOptions change.uieRpgOptions")
-    .on("input.uieRpgOptions change.uieRpgOptions", "#uie-rpg-permadeath, #uie-rpg-plot-armor, #uie-rpg-difficulty, #uie-rpg-auto-damage, #uie-rpg-battle-enabled, #uie-rpg-battle-auto-open, #uie-rpg-auto-battle, #uie-rpg-battle-action-style, #uie-rpg-aging-enabled, #uie-rpg-aging-speed, #uie-rpg-lifespan-mult, #uie-rpg-xp-mult, #uie-rpg-gold-mult, #uie-rpg-detailed-log, #uie-rpg-debuff-decay, #uie-rpg-readable-html-enabled, #uie-rpg-style-preset", function(e) {
+    .on("input.uieRpgOptions change.uieRpgOptions", "#uie-rpg-permadeath, #uie-rpg-plot-armor, #uie-rpg-difficulty, #uie-rpg-auto-damage, #uie-rpg-battle-enabled, #uie-rpg-battle-auto-open, #uie-rpg-auto-battle, #uie-rpg-battle-action-style, #uie-rpg-aging-enabled, #uie-rpg-aging-speed, #uie-rpg-lifespan-mult, #uie-rpg-xp-mult, #uie-rpg-gold-mult, #uie-rpg-detailed-log, #uie-rpg-debuff-decay, #uie-rpg-readable-html-enabled, #uie-rpg-dynamic-response-boxes, #uie-rpg-style-preset", function(e) {
         try { e.preventDefault(); e.stopPropagation(); } catch (_) {}
         const s = getSettings();
         ensureRpgSettingsState(s);
         const r = s.rpgSettings;
         r.permadeath = $("#uie-rpg-permadeath").is(":checked");
+        if (!s.world || typeof s.world !== "object") s.world = {};
+        s.world.permadeath = r.permadeath;
         r.plotArmor = Math.max(0, Math.min(10, Number($("#uie-rpg-plot-armor").val()) || 0));
         r.difficulty = String($("#uie-rpg-difficulty").val() || "normal");
         r.autoDamage = $("#uie-rpg-auto-damage").is(":checked");
@@ -1812,11 +1909,14 @@ $("body")
         r.detailedBattleLog = $("#uie-rpg-detailed-log").is(":checked");
         r.debuffDecay = $("#uie-rpg-debuff-decay").is(":checked");
         r.readableHtmlEnabled = $("#uie-rpg-readable-html-enabled").is(":checked");
+        r.dynamicResponseBoxesEnabled = $("#uie-rpg-dynamic-response-boxes").is(":checked");
         r.uiStyle.preset = String($("#uie-rpg-style-preset").val() || "parchment");
         $("#uie-rpg-xp-mult-val").text(`${Number(r.xpMultiplier || 1).toFixed(1)}x`);
         $("#uie-rpg-gold-mult-val").text(`${Number(r.goldMultiplier || 1).toFixed(1)}x`);
         saveSettings();
         applyRpgUiCustomization(s);
+        try { window.dispatchEvent(new CustomEvent("uie:rpg_settings_changed", { detail: { dynamicResponseBoxesEnabled: r.dynamicResponseBoxesEnabled } })); } catch (_) {}
+        try { window.UIE_dynamicResponseBox?.refresh?.(); } catch (_) {}
     })
     .off("change.uieRpgStyleTarget")
     .on("change.uieRpgStyleTarget", "#uie-rpg-style-target", function() {

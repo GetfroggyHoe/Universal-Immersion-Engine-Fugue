@@ -1,32 +1,117 @@
-# Python
+# Optional local AI models are user downloads, never repository content.
+models/koji/
+.venv/
+venv/
+koji_download.log
+
+
+# Virtual environments
+.venv/
+venv/
+env/
+*-venv/
+fugue-venv/
+
+# Python cache/build files
 __pycache__/
 *.py[cod]
-*.pyo
-python/__pycache__/
-python/visuals/**/__pycache__/
-scripts/__pycache__/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+build/
+dist/
+*.egg-info/
 
-# Node
+# Node/frontend dependencies and caches
 node_modules/
-npm-debug.log*
+.npm/
+.pnpm-store/
+.yarn/
+.vite/
+.parcel-cache/
 
-# Local settings / secrets (chat/image/TTS provider keys live here once Settings is saved)
-data/uie_game_state.json
-data/uie_browser_pages.json
+# Environment variables and API keys
+.env
+.env.*
+!.env.example
+!.env.sample
+*.pem
+*.key
+*.p12
+*.pfx
+credentials*.json
+secrets*.json
+secret*.json
+api_keys*.json
+api-keys*.json
+tokens*.json
+cookies*.json
+auth*.json
 
-# Runtime save/campaign state (changes on every play session)
-data/uie_living_world.sqlite3
-data/uie_instavibe_feed.json
-data/uie_instavibe_state.json
-data/voice_refs/
+# Local configuration
+*.local.json
+*.local.yml
+*.local.yaml
+settings.local.*
+config.local.*
 
-# Runtime-generated art (produced during play, not shipped source)
-data/generated_assets/generated/
-assets/generated/
+# User and personal runtime data
+user_data/
+userdata/
+local_data/
+profiles/
+sessions/
+saves/
+savegames/
+uploads/
+downloads/
+private/
+runtime/
 
-# Editor / OS cruft
+# Logs and temporary files
+logs/
+*.log
+*.pid
+tmp/
+temp/
+.cache/
+
+# Databases
+*.db
+*.sqlite
+*.sqlite3
+*.db-journal
+
+# Local AI models and generated voice data
+models/
+model_cache/
+checkpoints/
+weights/
+hf_cache/
+huggingface/
+voice_clones/
+cloned_voices/
+
+# Local backups and patch scripts
+.uie-*-backup-*/
+uie_*_fix.py
+uie_*_patch.py
+uie_*_cleanup.py
+uie_*_tweak.py
+uie_*_upgrade.py
+uie_*_fix.sh
+uie_*_patch.sh
+
+# Archives
+*.zip
+*.7z
+*.rar
+*.tar
+*.tar.gz
+
+# Editor and operating-system files
 .vscode/
 .idea/
 .DS_Store
 Thumbs.db
-*.log
+desktop.ini

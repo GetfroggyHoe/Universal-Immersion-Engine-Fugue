@@ -69,8 +69,15 @@ const forward = async (url, method = "GET", body = null) => {
 };
 
 await listen(mock, mockPort);
-const app = spawn(process.execPath, ["dev-server.mjs", "--host", "127.0.0.1", "--port", String(appPort)], {
+const app = spawn(process.execPath, [
+  "dev-server.mjs",
+  "--host", "127.0.0.1",
+  "--port", String(appPort),
+  "--no-backend",
+  "--no-image-service",
+], {
   cwd: new URL("..", import.meta.url),
+  env: { ...process.env, UIE_AUTO_START_BACKEND: "0", UIE_AUTO_IMAGE_SERVICE: "0" },
   stdio: "ignore"
 });
 

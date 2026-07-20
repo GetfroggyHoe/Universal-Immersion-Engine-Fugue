@@ -325,10 +325,14 @@ function initReplyKeyboard() {
             if (willOpen && panel.parentElement !== document.body) document.body.appendChild(panel);
             if (willOpen) {
                 panel.style.position = "fixed";
-                panel.style.right = "12px";
-                panel.style.bottom = "96px";
-                panel.style.left = "auto";
+                // Center the keyboard above the composer instead of pinning it to
+                // the right edge. It stays fully on-screen and can be dragged.
+                panel.style.left = "50%";
+                panel.style.right = "auto";
                 panel.style.top = "auto";
+                panel.style.bottom = "120px";
+                panel.style.transform = "translateX(-50%)";
+                panel.style.margin = "0";
             }
             panel.classList.toggle("active", willOpen);
             $(this).toggleClass("active", willOpen).attr("aria-expanded", String(willOpen));
@@ -368,11 +372,14 @@ function initReplyKeyboard() {
 
     const panel = document.getElementById("reply-keyboard-panel");
     const grip = panel?.querySelector(".reply-keyboard-grip");
+    const topbar = panel?.querySelector(".reply-keyboard-topbar");
     if (panel && grip) {
         let dragging = false;
         let startX = 0, startY = 0, origLeft = 0, origTop = 0;
         const onPointerDown = (e) => {
+            // Never start a drag from the resize handle or the action buttons.
             if (e.target.closest(".reply-keyboard-resize")) return;
+            if (e.target.closest(".reply-keyboard-mini")) return;
             dragging = true;
             startX = e.clientX;
             startY = e.clientY;
@@ -380,6 +387,8 @@ function initReplyKeyboard() {
             origLeft = rect.left;
             origTop = rect.top;
             panel.style.position = "fixed";
+            // Clear any centering transform so left/top become the true origin.
+            panel.style.transform = "none";
             panel.style.left = origLeft + "px";
             panel.style.top = origTop + "px";
             panel.style.right = "auto";
@@ -392,14 +401,21 @@ function initReplyKeyboard() {
             if (!dragging) return;
             const dx = e.clientX - startX;
             const dy = e.clientY - startY;
-            panel.style.left = (origLeft + dx) + "px";
-            panel.style.top = (origTop + dy) + "px";
+            const rect = panel.getBoundingClientRect();
+            const maxLeft = Math.max(0, window.innerWidth - rect.width);
+            const maxTop = Math.max(0, window.innerHeight - rect.height);
+            const nextLeft = Math.min(Math.max(0, origLeft + dx), maxLeft);
+            const nextTop = Math.min(Math.max(0, origTop + dy), maxTop);
+            panel.style.left = nextLeft + "px";
+            panel.style.top = nextTop + "px";
         };
         const onPointerUp = () => {
             dragging = false;
             grip.style.cursor = "grab";
         };
+        // Drag from the grip or anywhere on the top bar (except its buttons).
         grip.addEventListener("pointerdown", onPointerDown);
+        topbar?.addEventListener("pointerdown", onPointerDown);
         document.addEventListener("pointermove", onPointerMove);
         document.addEventListener("pointerup", onPointerUp);
     }
@@ -1288,6 +1304,9 @@ function initGenericHandlers() {
         "button[id$='-close-btn']",
     ].join(", ");
     $("body").off("click.uieSemanticClose", semanticCloseSelectors).on("click.uieSemanticClose", semanticCloseSelectors, function(e) {
+        // The map module owns this close path so it can restore focus and any
+        // windows hidden while the map was open.
+        if (this.id === "uie-map-close") return;
         if ($(this).is(selectors)) return;
         e.preventDefault();
         e.stopPropagation();
@@ -2287,11 +2306,15 @@ function initMenuTabs() {
     const ensureAudioSettings = (s) => {
         if (!s.audio || typeof s.audio !== "object") s.audio = {};
         s.audio.provider = normalizeAudioProvider(s.audio.provider);
+        if (typeof s.audio.enabled !== "boolean") s.audio.enabled = true;
+        if (typeof s.audio.ttsEnabled !== "boolean") s.audio.ttsEnabled = s.audio.enabled;
+        if (!String(s.audio.assignment || "").trim()) s.audio.assignment = "all";
+        if (typeof s.audio.autoplay !== "boolean") s.audio.autoplay = true;
         if (!s.audio.providers || typeof s.audio.providers !== "object") s.audio.providers = {};
         
         if (!s.audio.pocket || typeof s.audio.pocket !== "object") {
             s.audio.pocket = {
-                url: "http://127.0.0.1:8101",
+                url: "./api/backend",
                 voice: "alba",
                 language: "english",
                 reference: "",
@@ -2325,15 +2348,15 @@ function initMenuTabs() {
             const audio = ensureAudioSettings(s);
             const provider = normalizeAudioProvider(audio.provider);
             const providerData = audio.providers?.[provider] && typeof audio.providers[provider] === "object" ? audio.providers[provider] : {};
-            $("#cfg-audio-enabled").prop("checked", audio.enabled !== false && audio.ttsEnabled !== false && String(audio.assignment || "").toLowerCase() !== "none");
+            $("#cfg-audio-enabled").prop("checked", audio.enabled !== false && audio.ttsEnabled !== false);
             $("#cfg-audio-provider").val(provider);
-            $("#cfg-audio-assignment").val(String(audio.assignment || "active"));
+            $("#cfg-audio-assignment").val(String(audio.assignment || "all"));
             $("#cfg-audio-url").val(String(audio.url || providerData.url || ""));
             $("#cfg-audio-key").val(String(audio.key || providerData.key || ""));
             $("#cfg-audio-model").val(String(audio.model || providerData.model || ""));
             $("#cfg-audio-voice").val(String(audio.voice || providerData.voice || ""));
             $("#cfg-audio-format").val(String(audio.format || providerData.format || "wav"));
-            $("#cfg-audio-autoplay").prop("checked", audio.autoplay === true);
+            $("#cfg-audio-autoplay").prop("checked", audio.autoplay !== false);
 
             // Pocket parameters
             $("#cfg-audio-pocket-url").val(String(audio.pocket?.url || providerData.url || ""));
@@ -2427,8 +2450,7 @@ function initMenuTabs() {
             audio.provider = provider;
             audio.enabled = $("#cfg-audio-enabled").prop("checked") === true;
             audio.ttsEnabled = audio.enabled;
-            audio.assignment = String($("#cfg-audio-assignment").val() || "active");
-            if (!audio.enabled) audio.assignment = "none";
+            audio.assignment = String($("#cfg-audio-assignment").val() || audio.assignment || "all");
             audio.url = String($("#cfg-audio-url").val() || "").trim();
             audio.key = String($("#cfg-audio-key").val() || "").trim();
             audio.model = String($("#cfg-audio-model").val() || "").trim();
@@ -2561,7 +2583,7 @@ function initMenuTabs() {
             $("#uie-ai-journal-quests").prop("checked", s.ai.journalQuestGen !== false);
             $("#uie-ai-databank").prop("checked", s.ai.databankScan !== false);
             $("#uie-ai-map").prop("checked", s.ai.map !== false);
-            if ($("#uie-ai-shop").length) $("#uie-ai-shop").prop("checked", false);
+            if ($("#uie-ai-shop").length) $("#uie-ai-shop").prop("checked", s.ai.shop !== false);
             $("#uie-ai-loot").prop("checked", s.ai.loot !== false);
             $("#uie-sw-ai-phone-browser").prop("checked", s.ai.phoneBrowser !== false);
             $("#uie-sw-ai-phone-messages").prop("checked", s.ai.phoneMessages !== false);
@@ -2571,7 +2593,7 @@ function initMenuTabs() {
             $("#uie-sw-ai-journal-quests").prop("checked", s.ai.journalQuestGen !== false);
             $("#uie-sw-ai-databank").prop("checked", s.ai.databankScan !== false);
             $("#uie-sw-ai-map").prop("checked", s.ai.map !== false);
-            if ($("#uie-sw-ai-shop").length) $("#uie-sw-ai-shop").prop("checked", false);
+            if ($("#uie-sw-ai-shop").length) $("#uie-sw-ai-shop").prop("checked", s.ai.shop !== false);
             $("#uie-sw-ai-loot").prop("checked", s.ai.loot !== false);
             $("#uie-ai-journal-gen").prop("checked", s.ai.journalQuestGen !== false);
             $("#uie-ai-map-gen").prop("checked", s.ai.map !== false);
@@ -2684,15 +2706,21 @@ function initMenuTabs() {
             $("#cfg-ui-panel-color").val(String(ap.panelColor || "#050a13"));
             $("#cfg-ui-input-color").val(String(ap.inputColor || "#050a13"));
             $("#cfg-ui-accent-color").val(String(ap.accentColor || "#cc7a2e"));
-            $("#cfg-ui-custom-css").val(String(ap.customCss || ""));
+            $("#cfg-ui-custom-css").val(String(ap.customCss || `/* Global UI CSS template — edit or remove any rule. */
+:root { --uie-ui-accent: #cc7a2e; }
+.uie-window { border-radius: 12px; box-shadow: 0 18px 50px rgba(0,0,0,.35); }`));
             const cssTarget = String($("#uie-css-target").val() || "global");
             if (document.getElementById("uie-style-css")) {
                 const cssByTarget = ui.css.byTarget && typeof ui.css.byTarget === "object" ? ui.css.byTarget : {};
-                $("#uie-style-css").val(String(cssByTarget[cssTarget] || ""));
+                $("#uie-style-css").val(String(cssByTarget[cssTarget] || `/* ${cssTarget} style template */
+.uie-window { border-color: var(--uie-ui-accent, #cc7a2e); }`));
             }
-            $("#uie-custom-css").val(String(ui.css.global || ""));
-            $("#uie-custom-css-stats").val(String(ui.css.stats || ""));
-            $("#uie-custom-css-activities").val(String(ui.css.activities || ""));
+            $("#uie-custom-css").val(String(ui.css.global || `/* Global custom CSS */
+#game-root { color: var(--uie-ui-text, #e5e7eb); }`));
+            $("#uie-custom-css-stats").val(String(ui.css.stats || `/* Stats custom CSS */
+#hud .hud-tracker { border-radius: 8px; }`));
+            $("#uie-custom-css-activities").val(String(ui.css.activities || `/* Activities custom CSS */
+.activity-card { border-color: var(--uie-ui-accent, #cc7a2e); }`));
             const bgTarget = String($("#uie-bg-target").val() || "menu");
             if (document.getElementById("uie-bg-url")) {
                 $("#uie-bg-url").val(String(ui.backgrounds?.[bgTarget] || ""));

@@ -1,4 +1,4 @@
-const baseUrl = process.env.UIE_BACKEND_BASE_URL || "http://127.0.0.1:8101";
+const baseUrl = process.env.UIE_BACKEND_BASE_URL || "http://127.0.0.1:28101";
 
 async function request(path, options = {}) {
   const res = await fetch(`${baseUrl}${path}`, {

@@ -358,7 +358,15 @@
       overflow: hidden !important;
       text-overflow: ellipsis !important;
     }
-  </style>
+  
+  /* UIE_PLAYER_HOME_MENU_VISIBLE_START */
+  #uie-main-menu #uie-btn-player-home {
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+  /* UIE_PLAYER_HOME_MENU_VISIBLE_END */
+</style>
 
   <div id="uie-menu-drag">
     <div class="uie-menu-mark"><i class="fa-solid fa-bars"></i></div>
@@ -391,6 +399,7 @@
           <button id="uie-btn-party" class="uie-menu-btn"><i class="fa-solid fa-users"></i><span>Party</span></button>
           <button id="uie-btn-social" class="uie-menu-btn"><i class="fa-solid fa-heart"></i><span>Social</span></button>
           <button id="uie-btn-you" class="uie-menu-btn"><i class="fa-solid fa-id-badge"></i><span>You</span></button>
+          <button id="uie-btn-player-home" class="uie-menu-btn"><i class="fa-solid fa-house-chimney"></i><span>Player Home</span></button>
         </div>
       </section>
 
@@ -2776,7 +2785,31 @@
     white-space: normal;
   }
 }
-</style>
+
+    /* UIE_PLAYER_HOME_MENU_NORMALIZE_START */
+    #uie-main-menu #uie-btn-player-home {
+      position: relative !important;
+      width: 100% !important;
+      padding: 0 10px !important;
+      gap: 8px !important;
+      overflow: hidden !important;
+    }
+    #uie-main-menu #uie-btn-player-home > i {
+      flex: 0 0 22px !important;
+      width: 22px !important;
+      margin: 0 !important;
+    }
+    #uie-main-menu #uie-btn-player-home > span {
+      min-width: 0 !important;
+      flex: 1 1 auto !important;
+      text-align: left !important;
+    }
+    #uie-main-menu #uie-btn-player-home .uie-home-menu-dot {
+      display: none !important;
+    }
+    /* UIE_PLAYER_HOME_MENU_NORMALIZE_END */
+
+  </style>
 
 <template id="uie-template-item-card">
   <div class="uie-item" style="border:1px solid rgba(255,255,255,0.1); border-radius:12px; padding:8px; background:rgba(0,0,0,0.22);">

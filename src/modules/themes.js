@@ -389,7 +389,7 @@ function editTheme(themeName) {
     $("#uie-theme-btn-hex").val(theme.buttonColor || "#3498db");
     $("#uie-theme-accent-color").val(theme.accentColor || "#cba35c");
     $("#uie-theme-accent-hex").val(theme.accentColor || "#cba35c");
-    $('#uie-theme-custom-css').val(theme.customCss || '');
+    $('#uie-theme-custom-css').val(theme.customCss || `/* Theme CSS template */\nbody {\n  /* letter-spacing: 0.01em; */\n}\n.uie-window {\n  /* border-width: 1px; */\n}`);
 }
 
 function resetThemeEditor() {
@@ -402,7 +402,7 @@ function resetThemeEditor() {
     $("#uie-theme-btn-hex").val("#3498db");
     $("#uie-theme-accent-color").val("#cba35c");
     $("#uie-theme-accent-hex").val("#cba35c");
-    $('#uie-theme-custom-css').val('');
+    $('#uie-theme-custom-css').val(`/* Theme CSS template */\nbody {\n  /* letter-spacing: 0.01em; */\n}\n.uie-window {\n  /* border-width: 1px; */\n}`);
 }
 
 function hideThemeEditor() {

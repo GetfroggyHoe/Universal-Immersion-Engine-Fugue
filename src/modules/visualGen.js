@@ -6,7 +6,7 @@
 import { getSettings, saveSettings } from "./core.js";
 import { notify } from "./notifications.js";
 
-const VISUAL_SERVICE_URL = "http://127.0.0.1:28101";
+const VISUAL_SERVICE_URL = "./api/backend";
 const POLL_INTERVAL = 2000;
 const MAX_POLL_ATTEMPTS = 60;
 

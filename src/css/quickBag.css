@@ -1,15 +1,15 @@
 #uie-quick-bag-overlay {
     position: fixed;
     z-index: 10500;
-    width: 290px;
-    max-height: 440px;
-    overflow-y: auto;
+    width: 270px;
+    max-height: min(78dvh, 640px);
+    overflow: hidden;
     background:
         linear-gradient(170deg, rgba(10, 28, 48, 0.97) 0%, rgba(6, 17, 31, 0.98) 40%, rgba(3, 10, 20, 0.99) 100%);
     backdrop-filter: blur(4px) saturate(140%);
     -webkit-backdrop-filter: blur(4px) saturate(140%);
     border: 1px solid rgba(125, 211, 252, 0.35);
-    border-radius: 6px;
+    border-radius: 14px;
     box-shadow:
         0 20px 60px rgba(0, 0, 0, 0.7),
         0 0 1px rgba(125, 211, 252, 0.4),
@@ -17,7 +17,7 @@
         inset 0 -1px 0 rgba(0, 0, 0, 0.3);
     color: #e0f2fe;
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
-    padding: 10px;
+    padding: 11px;
     box-sizing: border-box;
     display: flex;
     flex-direction: column;
@@ -26,7 +26,7 @@
     opacity: 0;
     transform: scale(0.96) translateY(8px);
     pointer-events: none;
-    clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px));
+    clip-path: none;
 }
 
 #uie-launcher {
@@ -35,18 +35,30 @@
     right: max(70px, calc(18px + env(safe-area-inset-right)));
     bottom: calc(42px + env(safe-area-inset-bottom));
     z-index: 10501;
-    width: 44px;
-    height: 44px;
+    width: 54px;
+    height: 54px;
     padding: 0;
-    place-items: center;
-    border: 1px solid rgba(125, 211, 252, .58);
-    border-radius: 10px;
+    align-items: center;
+    justify-content: center;
+    border: 0;
+    border-radius: 0;
     color: #bae6fd;
-    background: linear-gradient(145deg, rgba(14, 50, 78, .97), rgba(4, 18, 34, .98));
-    box-shadow: 0 9px 24px rgba(0,0,0,.48), inset 0 1px rgba(255,255,255,.1);
+    background: transparent;
+    box-shadow: none;
     cursor: pointer;
 }
-#uie-launcher:hover, #uie-launcher:focus-visible { border-color:#bae6fd; color:#fff; background:rgba(20, 72, 106, .98); outline:none; }
+#uie-launcher:hover, #uie-launcher:focus-visible { color:#fff; background:transparent; outline:none; filter:drop-shadow(0 0 8px rgba(125, 211, 252, .9)); }
+#uie-launcher .uie-launcher-img {
+    width: 100%;
+    height: 100%;
+    border: 0;
+    border-radius: 0;
+    background-color: transparent;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: contain;
+    box-shadow: none;
+}
 #uie-launcher i { font-size:16px; }
 @media (max-width: 620px) {
     #uie-launcher { right: max(64px, calc(12px + env(safe-area-inset-right))); bottom: calc(36px + env(safe-area-inset-bottom)); }
@@ -87,7 +99,11 @@
     align-items: center;
     border-bottom: 1px solid rgba(125, 211, 252, 0.2);
     padding-bottom: 8px;
+    cursor: grab;
+    user-select: none;
+    touch-action: none;
 }
+.quick-bag-header:active { cursor: grabbing; }
 
 .quick-bag-title {
     font-size: 13px;
@@ -216,24 +232,9 @@
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     gap: 4px;
-    min-height: 140px;
-    max-height: 210px;
-    overflow-y: auto;
-    scrollbar-width: thin;
-    scrollbar-color: rgba(125, 211, 252, 0.3) transparent;
-}
-
-.quick-bag-grid::-webkit-scrollbar {
-    width: 4px;
-}
-
-.quick-bag-grid::-webkit-scrollbar-track {
-    background: transparent;
-}
-
-.quick-bag-grid::-webkit-scrollbar-thumb {
-    background: rgba(125, 211, 252, 0.3);
-    border-radius: 2px;
+    min-height: 240px;
+    max-height: none;
+    overflow: visible;
 }
 
 .quick-bag-cell {
@@ -408,28 +409,26 @@
 }
 
 /* The quick bag is an overlay modal and retains its desktop geometry on mobile. */
-@media not all {
+@media (max-width: 640px) {
     #uie-quick-bag-overlay {
         position: fixed !important;
-        left: 8px !important;
-        right: 8px !important;
-        bottom: calc(8px + env(safe-area-inset-bottom)) !important;
-        top: auto !important;
-        width: auto !important;
-        max-width: none !important;
+        right: auto;
+        bottom: auto;
+        width: min(270px, calc(100vw - 20px)) !important;
+        max-width: calc(100vw - 20px) !important;
         height: auto !important;
-        max-height: 70dvh !important;
-        border-radius: 6px !important;
+        max-height: min(82dvh, 620px) !important;
+        border-radius: 14px !important;
         padding: 10px !important;
-        box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.6) !important;
-        clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%);
+        box-shadow: 0 18px 44px rgba(0, 0, 0, 0.62) !important;
+        clip-path: none;
     }
 
     #uie-quick-bag-grid {
         grid-template-columns: repeat(5, 1fr) !important;
         gap: 5px !important;
-        max-height: 240px !important;
-        overflow-y: auto !important;
+        max-height: none !important;
+        overflow: visible !important;
     }
 
     .quick-bag-equip-slot {
@@ -442,7 +441,7 @@
     }
 
     .quick-bag-grid {
-        min-height: 180px;
+        min-height: 240px;
         gap: 5px;
     }
 }

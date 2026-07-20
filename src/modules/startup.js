@@ -8,6 +8,7 @@ import { initNextBeat } from "./nextBeat.js";
 import { initCommunicationsManager } from "./CommunicationsManager.js";
 import { initTimeEngine } from "./TimeEngine.js";
 import { initReadableHtml } from "./readableHtml.js";
+import { initDynamicResponseBox } from "./dynamicResponseBox.js";
 import { initVisualGen } from "./visualGen.js";
 import { isSystemLockedOut, enforceLockoutScreen, runAsyncLockoutCheck } from "./safetyScanner.js";
 import { ensureProcessedAssetLibrary } from "./assetLibrary.js";
@@ -23,6 +24,7 @@ try {
     }).catch(() => {});
 } catch (_) {}
 try { initReadableHtml(); } catch (_) {}
+try { initDynamicResponseBox(); } catch (_) {}
 
 const baseUrl = (() => {
     try {
@@ -144,9 +146,10 @@ export async function loadTemplates() {
     })();
     for (const f of required) {
         const rootSelector = `#uie-${f === "menu" ? "main-menu" : `${f}-window`}`;
-        // Keep embedded standalone templates when local-file security prevents fetch().
-        const localStandalone = window.UIE_STANDALONE === true && window.location?.protocol === "file:";
-        if ($(rootSelector).length && (f !== "menu" || localStandalone)) continue;
+        // game.html embeds these standalone templates already. Re-fetching and
+        // replacing them can hold startup for minutes on a stalled connection.
+        const embeddedStandalone = window.UIE_STANDALONE === true && $(rootSelector).length > 0;
+        if (embeddedStandalone || ($(rootSelector).length && f !== "menu")) continue;
         const urls = f === "menu" ? [
             `${baseUrl}src/templates/hamburger_menu.html?v=${ts}`,
             `${baseUrl}templates/hamburger_menu.html?v=${ts}`,
@@ -195,14 +198,49 @@ export async function loadTemplates() {
                 }
                 if (String(diaryHtml || "").trim()) $("body").append(diaryHtml);
             }
+            if (!document.getElementById("uie-shop-window")) {
+                let shopHtml = "";
+                for (const url of [
+                    `${baseUrl}src/templates/shop.html?v=${ts}`,
+                    `./src/templates/shop.html?v=${ts}`,
+                    `/src/templates/shop.html?v=${ts}`,
+                ]) {
+                    try {
+                        shopHtml = await fetchTemplateHtml(url);
+                        if (String(shopHtml || "").trim()) break;
+                    } catch (_) {
+                        shopHtml = "";
+                    }
+                }
+                if (String(shopHtml || "").trim()) $("body").append(shopHtml);
+            }
+            if (!document.getElementById("uie-player-home-window")) {
+                let homeHtml = "";
+                for (const url of [
+                    `${baseUrl}src/templates/player_home.html?v=${ts}`,
+                    `./src/templates/player_home.html?v=${ts}`,
+                    `/src/templates/player_home.html?v=${ts}`,
+                ]) {
+                    try {
+                        homeHtml = await fetchTemplateHtml(url);
+                        if (String(homeHtml || "").trim()) break;
+                    } catch (_) { homeHtml = ""; }
+                }
+                if (String(homeHtml || "").trim()) $("body").append(homeHtml);
+            }
             setTimeout(() => { void applyI18nBatch(document); }, 0);
+            setTimeout(() => {
+                import("./npcManagementModal.js").then((mod) => mod.syncActiveCharacterCardsToNpcs?.({ source: "startup" })).catch((error) => console.warn("[UIE] Character Card NPC sync failed:", error));
+                import("./shop.js").then((mod) => mod.initShop?.()).catch((error) => console.warn("[UIE] Shop arrival system failed to initialize:", error));
+                import("./playerHome.js").then((mod) => mod.initPlayerHome?.()).catch((error) => console.warn("[UIE] Player-home arrival system failed to initialize:", error));
+            }, 0);
         } catch (err) {
             console.warn("[UIE] Standalone diary template failed to preload:", err);
         }
         return;
     }
 
-    const optional = ['phone', 'calendar', 'debug', 'journal', 'social', 'diary', 'party', 'databank', 'factions', 'chatbox', 'launcher_options', 'sprites', 'activities', 'stats', 'settings_window', 'newgame', 'tracker', 'atmosphere', 'helper_pet'];
+    const optional = ['phone', 'calendar', 'debug', 'journal', 'social', 'diary', 'party', 'databank', 'factions', 'chatbox', 'launcher_options', 'sprites', 'activities', 'stats', 'settings_window', 'newgame', 'tracker', 'atmosphere', 'helper_pet', 'shop', 'player_home'];
     const loadOptionalTemplates = () => {
         (async () => {
             const results = [];
@@ -227,13 +265,15 @@ export async function loadTemplates() {
                         newgame: "uie-newgame-overlay",
                         tracker: "uie-tracker-window",
                         atmosphere: "uie-atmosphere-window",
-                        helper_pet: "uie-helper-pet-template"
+                        helper_pet: "uie-helper-pet-template",
+                        shop: "uie-shop-window",
+                        player_home: "uie-player-home-window"
                     };
                     const existingId = optionalRootIds[f];
                     if (f === "factions") {
                         const existingFactionWindow = document.getElementById("uie-factions-window");
                         const tpl = existingFactionWindow?.getAttribute("data-uie-factions-template") || "";
-                        if (existingFactionWindow && tpl !== "organizations-v1") {
+                        if (existingFactionWindow && tpl !== "workspace-v5") {
                             existingFactionWindow.remove();
                         }
                     }
@@ -263,6 +303,9 @@ export async function loadTemplates() {
                 .map((r) => ({ file: r.file, error: r.reason }));
             if (failed.length) console.warn("[UIE] Optional template load failures:", failed, { baseUrl });
             try { setTimeout(() => { void applyI18nBatch(document); }, 0); } catch (_) {}
+            try { (await import("./npcManagementModal.js")).syncActiveCharacterCardsToNpcs?.({ source: "startup" }); } catch (error) { console.warn("[UIE] Character Card NPC sync failed:", error); }
+            try { (await import("./shop.js")).initShop?.(); } catch (error) { console.warn("[UIE] Shop arrival system failed to initialize:", error); }
+            try { (await import("./playerHome.js")).initPlayerHome?.(); } catch (error) { console.warn("[UIE] Player-home arrival system failed to initialize:", error); }
         })();
     };
     setTimeout(() => {

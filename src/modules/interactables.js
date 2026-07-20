@@ -5,6 +5,8 @@ import { advanceWorldTimeMinutes } from "./timeProgress.js";
 import { updateUiePrompt } from "./prompt_injection.js";
 import { inferItemType } from "./slot_types_infer.js";
 import { injectRpEvent } from "./features/rp_log.js";
+import { openAccessPanel, normalizeLock, initAccessControl } from "./accessControl.js";
+import { openContextActions, initContextualActions } from "./contextualActions.js";
 
 const CONTAINERS = new Map();
 const WORKSTATIONS = new Map();
@@ -36,6 +38,7 @@ function ensureWorldState(s) {
     if (!s.worldState.stashes || typeof s.worldState.stashes !== "object") s.worldState.stashes = {};
     if (!s.inventory || typeof s.inventory !== "object") s.inventory = {};
     if (!Array.isArray(s.inventory.items)) s.inventory.items = [];
+    if (!s.worldState.objectStates || typeof s.worldState.objectStates !== "object" || Array.isArray(s.worldState.objectStates)) s.worldState.objectStates = {};
 }
 
 function stashKey(object, s) {
@@ -96,6 +99,7 @@ function ensureModal() {
         <div style="width:min(860px,96vw);max-height:90vh;overflow:auto;border:1px solid rgba(111,211,255,0.32);background:rgba(8,13,25,0.96);color:#f8fafc;border-radius:14px;box-shadow:0 28px 90px rgba(0,0,0,0.7);">
             <div style="display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid rgba(255,255,255,0.1);">
                 <h3 id="uie-interactable-title" style="margin:0;flex:1;color:#7dd3fc;">Interactable</h3>
+                <button type="button" id="uie-interactable-tools" style="display:none;border:1px solid rgba(167,139,250,.35);background:rgba(124,58,237,.12);color:#ede9fe;border-radius:8px;padding:8px 12px;cursor:pointer;">Use tool</button>
                 <button type="button" id="uie-interactable-close" style="border:1px solid rgba(255,255,255,0.14);background:rgba(255,255,255,0.06);color:#fff;border-radius:8px;padding:8px 12px;cursor:pointer;">Close</button>
             </div>
             <div id="uie-interactable-body" style="padding:16px;"></div>
@@ -164,6 +168,11 @@ function renderContainer(object = {}) {
     const modal = ensureModal();
     modal.querySelector("#uie-interactable-title").textContent = name;
     const body = modal.querySelector("#uie-interactable-body");
+    const toolsButton = modal.querySelector("#uie-interactable-tools");
+    if (toolsButton) {
+        toolsButton.style.display = "inline-block";
+        toolsButton.onclick = () => openContextActions(object, { onUnlocked: () => renderContainer({ ...object, locked: false }) });
+    }
     
     body.innerHTML = `
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;max-height:60vh;overflow-y:auto;">
@@ -223,6 +232,11 @@ function renderWorkstation(object = {}) {
     const modal = ensureModal();
     modal.querySelector("#uie-interactable-title").textContent = name;
     const body = modal.querySelector("#uie-interactable-body");
+    const toolsButton = modal.querySelector("#uie-interactable-tools");
+    if (toolsButton) {
+        toolsButton.style.display = "inline-block";
+        toolsButton.onclick = () => openContextActions(object);
+    }
     body.innerHTML = recipes.map((recipe, idx) => {
         const ok = hasItems(s.inventory.items, recipe.inputs || recipe.requires || []);
         const inputs = (recipe.inputs || recipe.requires || []).map((r) => `${esc(r.name || r.item)} ×${esc(r.qty || 1)}`).join(", ") || "None";
@@ -422,8 +436,13 @@ export function openContainer(object = {}) {
     ensureWorldState(s);
     const merged = { ...(CONTAINERS.get(String(object.id || object.containerId || "")) || {}), ...object };
     
-    if (merged.locked || merged.obstacle) {
-        resolveObstacle(merged);
+    const lock = normalizeLock(merged, s);
+    if ((merged.locked || merged.lock || merged.accessLock) && lock.state !== "unlocked") {
+        openAccessPanel(merged, { onUnlocked: () => renderContainer({ ...merged, locked: false }) });
+        return true;
+    }
+    if (merged.obstacle) {
+        resolveObstacle(merged, merged.obstacle);
         return true;
     }
     renderContainer(merged);
@@ -445,12 +464,32 @@ export function openWorkstation(object = {}) {
     return true;
 }
 
+export function openWorldObject(object = {}) {
+    const kind = String(object.type || object.objectType || object.slotType || object.name || "").toLowerCase();
+    if (object.locked || object.lock || object.accessLock) {
+        openAccessPanel(object, {
+            onUnlocked: () => {
+                const unlocked = { ...object, locked: false };
+                if (/container|safe|chest|crate|locker|drawer|cabinet|mailbox/.test(kind)) renderContainer(unlocked);
+                else openContextActions(unlocked);
+            },
+        });
+        return true;
+    }
+    if (/container|safe|chest|crate|locker|drawer|cabinet|mailbox/.test(kind)) return openContainer(object);
+    if (/workstation|workbench|stove|kitchen|forge|craft|campfire|cauldron/.test(kind)) return openWorkstation(object);
+    return openContextActions(object);
+}
+
 export function initInteractables() {
     if (mounted) return;
     mounted = true;
+    initAccessControl();
+    initContextualActions();
     ensureModal();
     window.UIE_openContainer = openContainer;
     window.UIE_openWorkstation = openWorkstation;
+    window.UIE_interactObject = openWorldObject;
     window.UIE_registerContainer = registerContainer;
     window.UIE_registerWorkstation = registerWorkstation;
 }

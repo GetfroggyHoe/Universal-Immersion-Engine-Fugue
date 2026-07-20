@@ -135,6 +135,31 @@ export function normalizeStatusList(list, now = Date.now()) {
   return out;
 }
 
+export function mutateStatusEffects(target, mutation = {}, now = Date.now()) {
+  if (!target || typeof target !== "object") return { changed: false, added: [], removed: [], list: [] };
+  const current = normalizeStatusList(target.statusEffects, now);
+  const map = new Map(current.map((effect) => [statusKey(effect), effect]).filter(([key]) => key));
+  const removed = [];
+  const added = [];
+  for (const raw of (Array.isArray(mutation.remove) ? mutation.remove : [])) {
+    const key = statusKey(raw);
+    if (!key || !map.has(key)) continue;
+    removed.push(map.get(key));
+    map.delete(key);
+  }
+  for (const raw of (Array.isArray(mutation.add) ? mutation.add : [])) {
+    const effect = normalizeStatusEffect(raw, now);
+    const key = statusKey(effect);
+    if (!effect || !key) continue;
+    map.set(key, effect);
+    added.push(effect);
+  }
+  const list = Array.from(map.values()).slice(0, 40);
+  const changed = added.length > 0 || removed.length > 0 || list.length !== current.length;
+  if (changed) target.statusEffects = list;
+  return { changed, added, removed, list };
+}
+
 export function formatRemaining(expiresAt, now = Date.now()) {
   const t = Number(expiresAt);
   if (!Number.isFinite(t) || t <= 0) return "";
@@ -223,6 +248,14 @@ export function applyStatusTickToVitals(s, fxList, now = Date.now()) {
   const dAp = step("ap", "ap");
   s.character.fxTickCarry = carry;
   s.character.fxTickAt = now;
+  if (dHp < 0 && Number(s.hp || 0) <= 0) {
+    s.hp = 0;
+    try {
+      window.dispatchEvent(new CustomEvent("uie:status-lethal", {
+        detail: { hp: 0, effects: (Array.isArray(fxList) ? fxList : []).map(statusName).filter(Boolean) }
+      }));
+      window.dispatchEvent(new CustomEvent("uie:updateVitals", { detail: { source: "status-effects" } }));
+    } catch (_) {}
+  }
   return !!(dHp || dMp || dAp);
 }
-

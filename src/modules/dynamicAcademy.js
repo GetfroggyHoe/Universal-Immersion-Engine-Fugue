@@ -3,6 +3,7 @@ import { normalizeFactions } from "./factions.js";
 import { ensureGenericNpcsState } from "./genericNpcs.js";
 import { addInventoryItemWithStack } from "./inventoryItems.js";
 import { injectRpEvent } from "./features/rp_log.js";
+import { issueCredential } from "./credentialSystem.js";
 
 const SCHOOL_LOCATION_RE = /\b(school|academy|campus|university|college|classroom|homeroom|lecture hall|dormitory)\b/i;
 const DISCIPLINE_STEPS = ["Clear", "Warning", "Detention", "Suspension", "Expulsion"];
@@ -229,6 +230,26 @@ function injectIdCard(s, academy) {
     if (!s.inventory || typeof s.inventory !== "object") s.inventory = {};
     if (!Array.isArray(s.inventory.items)) s.inventory.items = [];
     const cardName = `${academy.profile.name} Student ID`;
+    const schoolKey = schoolSlug(academy.profile.name || academy.id || "academy");
+    issueCredential(s, {
+        type: "student_id",
+        issueKey: `academy:${academy.id}:student_id`,
+        issuerId: academy.id,
+        issuerName: academy.profile.name,
+        holderId: "player",
+        holderName: s.character?.name || "Student",
+        credentialNumber: academy.idCard.studentNumber,
+        title: `${academy.profile.major || "Undeclared"} Student`,
+        permissions: [
+            `${schoolKey}.student_entry`,
+            `${schoolKey}.clearance.${academy.idCard.clearanceLevel}`,
+            ...(Number(academy.idCard.clearanceLevel || 0) >= 3 ? [`${schoolKey}.club_access`] : []),
+            ...(Number(academy.idCard.clearanceLevel || 0) >= 5 ? [`${schoolKey}.faculty_lounge`] : [])
+        ],
+        linkedLocationIds: [academy.id, academy.profile.name],
+        appearance: { templateId: "modern_identity_student", theme: "academic", accent: "#38bdf8" },
+        security: { barcodeValue: academy.idCard.studentNumber, qrValue: `uie:academy:${academy.id}:${academy.idCard.studentNumber}`, hologram: true, scanDifficulty: 78 }
+    });
     const exists = s.inventory.items.some((it) => normKey(it?.name) === normKey(cardName) && it?._meta?.schoolId === academy.id);
     if (exists) return false;
     addInventoryItemWithStack(s.inventory.items, {

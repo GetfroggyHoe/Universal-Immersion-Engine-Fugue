@@ -7,7 +7,9 @@ function joinTextParts(parts = []) {
 
 /** Remove output that the UI must never surface, including structured JSON fields. */
 function sanitizeResponseText(value) {
-    return String(value || "").replace(/\bnana\b/ig, "").replace(/\s{2,}/g, " ").trim();
+    let clean = String(value || "").replace(/\bnana\b/ig, "").replace(/\s{2,}/g, " ").trim();
+    clean = clean.replace(/<think>[\s\S]*?(<\/think>|$)/gi, "").trim();
+    return clean;
 }
 
 export function extractApiResponseText(data) {

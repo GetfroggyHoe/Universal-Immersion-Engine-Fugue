@@ -131,6 +131,19 @@ function ensureEquipArrays(s) {
   if (!Array.isArray(s.inventory.items)) s.inventory.items = [];
   if (!Array.isArray(s.inventory.equipped)) s.inventory.equipped = [];
   if (!Array.isArray(s.inventory.outfits)) s.inventory.outfits = [];
+  if (!Array.isArray(s.inventory.customEquipmentSlots)) s.inventory.customEquipmentSlots = [];
+}
+
+function customEquipmentSlots(s) {
+  ensureEquipArrays(s);
+  return s.inventory.customEquipmentSlots
+    .map((slot, index) => {
+      const label = String(slot?.label || slot?.name || "").trim().slice(0, 40);
+      const id = String(slot?.id || "").trim().toLowerCase().replace(/[^a-z0-9_-]+/g, "_").replace(/^_+|_+$/g, "");
+      if (!label || !id) return null;
+      return { id, label, side: index % 2 ? "right" : "left", icon: String(slot?.icon || "fa-plus-circle"), custom: true };
+    })
+    .filter(Boolean);
 }
 
 function findEquippedBySlot(equippedArr, slotId) {
@@ -236,11 +249,13 @@ function syncOutfitModalPreview(img = "") {
     : '<i class="fa-solid fa-shirt" style="font-size:34px;color:#cba35c;"></i>';
 }
 
-function readOutfitEditorDraft() {
+function readOutfitEditorDraft(existing = null) {
   const category = normalizeOutfitCategory($("#equip-outfit-category-input").val() || "Everyday");
   const customCategory = String($("#equip-outfit-custom-category-input").val() || "").trim();
   const sprite = String($("#equip-outfit-sprite-input").val() || "").trim();
   return normalizeOutfit({
+    id: existing?.outfitId || existing?.id || "",
+    outfitId: existing?.outfitId || existing?.id || "",
     name: $("#equip-outfit-name-input").val(),
     category,
     customCategory,
@@ -338,7 +353,7 @@ function saveOutfitFromEditor() {
     : null;
   const source = existing?.source || (outfitEditorState.mode === "ai" ? "ai" : "manual");
   const readOnly = existing ? existing.readOnly === true : outfitEditorState.mode !== "ai";
-  const draft = normalizeOutfit({ ...existing, ...readOutfitEditorDraft(), source, readOnly, worn: existing?.worn === true });
+  const draft = normalizeOutfit({ ...existing, ...readOutfitEditorDraft(existing), source, readOnly, worn: existing?.worn === true });
   if (outfitEditorState.idx >= 0 && s.inventory.outfits[outfitEditorState.idx]) s.inventory.outfits[outfitEditorState.idx] = draft;
   else s.inventory.outfits.push(draft);
   if (draft.worn) upsertEquipped(s, { ...draft, id: draft.outfitId, outfitId: draft.outfitId, slotId: "outfit", equipmentKind: "outfit", worn: true });
@@ -585,7 +600,10 @@ function renderLayer() {
   ensureEquipArrays(s);
   syncOutfitMirrorState(s);
 
-  const layer = LAYERS[currentLayerIndex];
+  const baseLayer = LAYERS[currentLayerIndex];
+  const layer = baseLayer.name === "GEAR"
+    ? { ...baseLayer, slots: [...baseLayer.slots, ...customEquipmentSlots(s)] }
+    : baseLayer;
   const pageInfo = splitBySide(layer);
 
   $("#equip-layer-name").text(layer.name);
@@ -625,6 +643,9 @@ function renderLayer() {
   const compactMobile = isCompactMobileLayout();
   let leftSlice = [...pageInfo.left];
   let rightSlice = [...pageInfo.right];
+  if (layer.name === "GEAR") {
+    rightSlice.push({ id: "__add_custom_slot__", label: "Add Equipment Slot", side: "right", icon: "fa-plus", _add: true });
+  }
 
   // GLOBAL MAX LENGTH FIX:
   // The user wants "all paper dolls to be the longest one".
@@ -649,15 +670,16 @@ function renderLayer() {
 
   function makeWrap(slot) {
     const isPad = !!slot._pad || String(slot.id).startsWith("pad_");
-    const label = isPad ? "Empty Slot" : (SLOT_LABELS[slot.id] || String(slot.id || "").trim() || "Slot");
+    const isAdd = !!slot._add;
+    const label = isPad ? "Empty Slot" : (slot.label || SLOT_LABELS[slot.id] || String(slot.id || "").trim() || "Slot");
     const mobileLabel = isPad ? "EMPTY" : label.toUpperCase();
 
     let inner = `<i class="fa-solid ${slot.icon}" style="font-size:1.5em; color:rgba(255,255,255,0.5);"></i>`;
-    let itemName = isPad ? "" : "No item equipped";
+    let itemName = isPad ? "" : (isAdd ? "Create a custom equipment type" : "No item equipped");
     let isEquipped = false;
     let eqItem = null;
 
-    if (!isPad) {
+    if (!isPad && !isAdd) {
       const found = findEquippedBySlot(equipped, slot.id);
       eqItem = found.item;
 
@@ -678,7 +700,7 @@ function renderLayer() {
     // New Desktop-Friendly Row Structure
     // Uses 'equip-slot' class to match equipment.html CSS
     return $(`
-      <div class="equip-slot ${isPad ? 'pad' : ''} ${isEquipped ? 'filled' : ''}" data-id="${slot.id}">
+      <div class="equip-slot ${isPad ? 'pad' : ''} ${isAdd ? 'add-slot' : ''} ${isEquipped ? 'filled' : ''}" data-id="${slot.id}" ${isAdd ? 'data-add-slot="true"' : ''}>
         <div class="equip-icon">
           ${inner}
         </div>
@@ -858,6 +880,26 @@ export function init() {
 
         // ignore pad slots
         if ($(this).hasClass("pad")) return;
+
+        if ($(this).attr("data-add-slot") === "true") {
+          const label = String(window.prompt("Name the new equipment slot:", "") || "").trim().slice(0, 40);
+          if (!label) return;
+          const s = getSettings();
+          if (!s) return;
+          ensureEquipArrays(s);
+          const base = label.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "") || "custom_slot";
+          const used = new Set([
+            ...LAYERS.flatMap((layer) => layer.slots.map((slot) => slot.id)),
+            ...s.inventory.customEquipmentSlots.map((slot) => String(slot?.id || ""))
+          ]);
+          let id = `custom_${base}`;
+          let suffix = 2;
+          while (used.has(id)) id = `custom_${base}_${suffix++}`;
+          s.inventory.customEquipmentSlots.push({ id, label, icon: "fa-gem" });
+          saveSettings();
+          renderLayer();
+          return;
+        }
 
         const slotId = String($(this).data("id") || "");
         if (!slotId) return;

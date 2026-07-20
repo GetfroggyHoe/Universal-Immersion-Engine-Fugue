@@ -164,9 +164,21 @@ function parse(text) {
     for (const c of extractFencedCandidates(raw)) push(c);
     push(extractBalancedJson(raw));
     push(extractBalancedJson(stripped));
+    // Some providers return an otherwise valid JSON object as a JSON-encoded
+    // string. Unwrap that transport layer and feed it through the same repair
+    // and balanced-object extraction paths.
+    const encoded = tryParseJson(stripped);
+    if (typeof encoded === "string") {
+        push(encoded);
+        push(extractBalancedJson(encoded));
+    }
 
     for (const c of candidates) {
         const parsed = tryParseJson(c);
+        if (typeof parsed === "string") {
+            const unwrapped = tryParseJson(parsed);
+            if (unwrapped !== null) return unwrapped;
+        }
         if (parsed !== null) return parsed;
     }
 

@@ -42,10 +42,19 @@ let editingIndex = null;
 let activeProfileIndex = null;
 let socialLongPressTimer = null;
 let socialLongPressFired = false;
-let autoScanTimer = null;
-let autoScanInFlight = false;
-let autoScanLastAt = 0;
-let autoScanLastSig = "";
+const autoScanRuntime = (() => {
+    try {
+        window.__uieSocialAutoScanRuntime = window.__uieSocialAutoScanRuntime || {
+            timer: null,
+            inFlight: false,
+            lastAt: 0,
+            lastSig: "",
+        };
+        return window.__uieSocialAutoScanRuntime;
+    } catch (_) {
+        return { timer: null, inFlight: false, lastAt: 0, lastSig: "" };
+    }
+})();
 let avatarLookupCache = new Map();
 let avatarLookupSig = "";
 
@@ -550,10 +559,10 @@ function readSocialChatSignature() {
 }
 
 function stopSocialAutoScanLoop() {
-    if (!autoScanTimer) return;
-    try { clearInterval(autoScanTimer); } catch (_) {}
-    autoScanTimer = null;
-    autoScanLastSig = "";
+    if (!autoScanRuntime.timer) return;
+    try { clearInterval(autoScanRuntime.timer); } catch (_) {}
+    autoScanRuntime.timer = null;
+    autoScanRuntime.lastSig = "";
 }
 
 async function runSocialAutoScanPass() {
@@ -561,13 +570,13 @@ async function runSocialAutoScanPass() {
         const s = getSettings();
         normalizeSocial(s);
         if (s?.socialMeta?.autoScan !== true) return;
-        if (autoScanInFlight) return;
+        if (autoScanRuntime.inFlight) return;
 
         const sig = readSocialChatSignature();
-        if (!sig || sig === autoScanLastSig) return;
+        if (!sig || sig === autoScanRuntime.lastSig) return;
 
         await scanChatIntoSocial({ silent: true });
-        autoScanLastSig = sig;
+        autoScanRuntime.lastSig = sig;
     } catch (_) {}
 }
 
@@ -582,8 +591,8 @@ function syncSocialAutoScanLoop({ immediate = false } = {}) {
             return;
         }
 
-        if (!autoScanTimer) {
-            autoScanTimer = setInterval(() => {
+        if (!autoScanRuntime.timer) {
+            autoScanRuntime.timer = setInterval(() => {
                 void runSocialAutoScanPass();
             }, SOCIAL_AUTO_SCAN_INTERVAL_MS);
         }
@@ -936,7 +945,8 @@ function renderSylvanAlbum(s) {
 function trackLocationOnMap(personName, locationName) {
     $("#uie-social-window").hide();
     (window.importUieModule ? window.importUieModule("map.js") : import("./map.js")).then(m => {
-        m.openMap?.();
+        return m.focusTrackedLocation?.(locationName, { characterName: personName });
+    }).then(() => {
         if (typeof window.showToast === "function") {
             window.showToast(`📍 Tracking ${personName} at ${locationName || 'their last coordinates'}`, 3500);
         }
@@ -2140,17 +2150,17 @@ Rules:
 
 export async function scanChatIntoSocial({ silent, maxMessages, deep, allowMentionOnly } = {}) {
     const now = Date.now();
-    if (autoScanInFlight) {
+    if (autoScanRuntime.inFlight) {
         if (!silent) notify("info", "Social scan already running.", "Social", "social");
         return;
     }
-    if (now - autoScanLastAt < 1500) {
+    if (now - autoScanRuntime.lastAt < 1500) {
         if (!silent) notify("info", "Social scan already triggered. Please wait a moment.", "Social", "social");
         return;
     }
 
-    autoScanInFlight = true;
-    autoScanLastAt = now;
+    autoScanRuntime.inFlight = true;
+    autoScanRuntime.lastAt = now;
 
     try {
         const s = getSettings();
@@ -2498,7 +2508,7 @@ Rules:
 
         _publishOrgIntelFromSocialContacts(s);
     } finally {
-        autoScanInFlight = false;
+        autoScanRuntime.inFlight = false;
     }
 }
 

@@ -11,52 +11,109 @@ echo.
 
 set "NODE_CMD="
 where node >nul 2>nul && set "NODE_CMD=node"
-
-set "PY_CMD="
-where py >nul 2>nul && set "PY_CMD=py -3"
-if not defined PY_CMD (
-  where python >nul 2>nul && set "PY_CMD=python"
+if not defined NODE_CMD (
+  echo Node.js 18 or newer is required and was not found.
+  where winget >nul 2>nul
+  if not errorlevel 1 (
+    set /p "INSTALL_NODE=Download and install Node.js LTS automatically now? [Y/n]: "
+    if "!INSTALL_NODE!"=="" set "INSTALL_NODE=Y"
+    if /i "!INSTALL_NODE!"=="Y" (
+      winget install --id OpenJS.NodeJS.LTS -e --source winget --accept-package-agreements --accept-source-agreements --silent
+      if exist "%ProgramFiles%\nodejs\node.exe" set "NODE_CMD=%ProgramFiles%\nodejs\node.exe"
+      if exist "%LOCALAPPDATA%\Programs\nodejs\node.exe" set "NODE_CMD=%LOCALAPPDATA%\Programs\nodejs\node.exe"
+      if not defined NODE_CMD where node >nul 2>nul && set "NODE_CMD=node"
+    )
+  )
+  if not defined NODE_CMD (
+    echo ERROR: Automatic Node.js installation was declined, failed, or winget is unavailable.
+    echo Install Node.js 18 or newer, then run uie.bat again.
+    pause
+    exit /b 1
+  )
 )
 
-:: 1. Install Node dependencies if Node is available
-echo [1/3] Checking Node.js dependencies...
-if defined NODE_CMD (
-  echo Node.js found. Ensuring dependencies are installed...
-  call npm install
+set "PY_CMD="
+set "PYTHON="
+if exist "%ROOT%.venv\Scripts\python.exe" (
+  echo Local virtual environment .venv found. Using virtual environment python.
+  set "PY_CMD=%ROOT%.venv\Scripts\python.exe"
+  set "PYTHON=%ROOT%.venv\Scripts\python.exe"
+) else if exist "%ROOT%venv\Scripts\python.exe" (
+  echo Local virtual environment venv found. Using virtual environment python.
+  set "PY_CMD=%ROOT%venv\Scripts\python.exe"
+  set "PYTHON=%ROOT%venv\Scripts\python.exe"
 ) else (
-  echo Node.js not found. Skipping npm install.
+  where py >nul 2>nul && set "PY_CMD=py -3" && set "PYTHON=py"
+  if not defined PY_CMD (
+    where python >nul 2>nul && set "PY_CMD=python" && set "PYTHON=python"
+  )
+)
+
+if not defined PY_CMD (
+  echo Python 3.10-3.13 is needed to create .venv and enable all game systems.
+  where winget >nul 2>nul
+  if not errorlevel 1 (
+    set /p "INSTALL_PYTHON=Download and install Python 3.13 automatically now? [Y/n]: "
+    if "!INSTALL_PYTHON!"=="" set "INSTALL_PYTHON=Y"
+    if /i "!INSTALL_PYTHON!"=="Y" (
+      winget install --id Python.Python.3.13 -e --source winget --accept-package-agreements --accept-source-agreements --silent
+      if exist "%LOCALAPPDATA%\Programs\Python\Python313\python.exe" (
+        set "PY_CMD=%LOCALAPPDATA%\Programs\Python\Python313\python.exe"
+        set "PYTHON=%LOCALAPPDATA%\Programs\Python\Python313\python.exe"
+      )
+      if exist "%ProgramFiles%\Python313\python.exe" (
+        set "PY_CMD=%ProgramFiles%\Python313\python.exe"
+        set "PYTHON=%ProgramFiles%\Python313\python.exe"
+      )
+      if not defined PY_CMD where py >nul 2>nul && set "PY_CMD=py -3" && set "PYTHON=py"
+      if not defined PY_CMD where python >nul 2>nul && set "PY_CMD=python" && set "PYTHON=python"
+    )
+  )
+)
+
+:: 0. Check the configured GitHub remote and ask before updating.
+if defined NODE_CMD (
+  "%NODE_CMD%" "%ROOT%scripts\launcher-maintenance.mjs" --updates
 )
 echo.
 
-:: 2. Install Python dependencies if Python is available
-echo [2/3] Checking Python dependencies...
+:: 1. Install Node dependencies only when declared dependencies change.
+echo [1/3] Checking Node.js dependencies...
+if defined NODE_CMD (
+  "%NODE_CMD%" "%ROOT%scripts\launcher-maintenance.mjs" --npm
+) else (
+  echo Node.js not found. The launcher cannot start the main dev server.
+)
+echo.
+
+:: 2. Prepare and validate the isolated project-local .venv before the game opens.
+echo [2/3] Checking the project-local Python environment...
+set "VENV_READY=0"
 if defined PY_CMD (
-  if exist "%ROOT%python\requirements.txt" (
-    echo Python found.
-    set "PY_REQ_CHECK=%TEMP%\uie-pip-check-%RANDOM%.txt"
-    %PY_CMD% -m pip install --dry-run --disable-pip-version-check -r "%ROOT%python\requirements.txt" > "!PY_REQ_CHECK!" 2>&1
-    findstr /C:"Would install" /C:"Collecting " /C:"Downloading " /C:"ERROR:" "!PY_REQ_CHECK!" >nul 2>nul
-    if !ERRORLEVEL! equ 0 (
-      type "!PY_REQ_CHECK!"
-      set /p "INSTALL_PY=Python requirements have missing updates. Install/update them before starting the game? [Y/N]: "
-      if /i "!INSTALL_PY!"=="Y" (
-        echo Installing voice/backend dependencies...
-        %PY_CMD% -m pip install -r "%ROOT%python\requirements.txt"
-        if !ERRORLEVEL! neq 0 (
-          echo WARNING: Python pip install failed. Backend features may not be fully available.
-        )
-      ) else (
-        echo Skipping Python package installation by request.
-      )
+  "%NODE_CMD%" "%ROOT%dev-server.mjs" --prepare-only --no-image-service
+  if errorlevel 1 (
+    echo.
+    echo ERROR: .venv setup did not complete. VoiceBridge and backend game systems are not ready.
+    echo Run this launcher again or use: npm run backend:install
+    set /p "START_OFFLINE=Continue in reduced offline/procedural mode anyway? [y/N]: "
+    if /i "!START_OFFLINE!"=="Y" (
+      set "UIE_AUTO_START_BACKEND=0"
     ) else (
-      echo Python requirements are already satisfied.
+      echo Startup cancelled so the game does not open partially initialized.
+      pause
+      exit /b 1
     )
-    if exist "!PY_REQ_CHECK!" del "!PY_REQ_CHECK!" >nul 2>nul
   ) else (
-    echo python\requirements.txt not found.
+    if exist "%ROOT%.venv\Scripts\python.exe" (
+      set "PY_CMD=%ROOT%.venv\Scripts\python.exe"
+      set "PYTHON=%ROOT%.venv\Scripts\python.exe"
+      set "VENV_READY=1"
+    )
   )
 ) else (
-  echo Python not found. Skipping backend package installation.
+  echo Automatic Python installation was declined, failed, or winget is unavailable.
+  echo Install Python 3.10-3.13 and run uie.bat again. Continuing now uses reduced offline/procedural mode.
+  set "UIE_AUTO_START_BACKEND=0"
 )
 echo.
 
@@ -64,7 +121,7 @@ echo.
 :: Record the first response so startup never repeatedly asks about this optional download.
 set "KOJI_PROMPT_MARKER=%ROOT%data\.koji-install-choice-recorded"
 if not exist "%KOJI_PROMPT_MARKER%" (
-  if defined PY_CMD (
+  if "%VENV_READY%"=="1" (
     if not exist "%ROOT%models\koji\koji_v21.safetensors" if not exist "%ROOT%models\koji\koji_v21-q4_k_m.gguf" (
       echo.
       echo [Optional] KOJI Local Image Generation Model
@@ -74,7 +131,7 @@ if not exist "%KOJI_PROMPT_MARKER%" (
       > "%KOJI_PROMPT_MARKER%" echo choice-recorded
       if /i "!INSTALL_KOJI!"=="Y" (
         echo Starting KOJI download in the background. Check Settings - Visual Gen for progress.
-        start "" /B %PY_CMD% -c "import sys,logging,time; sys.path.insert(0, r'%ROOT%'); logging.basicConfig(level=logging.INFO); from python.visuals.download_koji import download_koji; download_koji(); time.sleep(1)"
+        start "" /B "%PY_CMD%" -c "import sys,logging,time; sys.path.insert(0, r'%ROOT%'); logging.basicConfig(level=logging.INFO); from python.visuals.download_koji import download_koji; download_koji(); time.sleep(1)"
       ) else (
         echo Skipping KOJI image gen install. You can install it later from Settings.
       )
@@ -85,32 +142,39 @@ echo.
 
 :: 3. Terminate port conflicts
 echo [3/3] Preparing server on port %PORT%...
-set "PORT_PID="
-for /f "tokens=5" %%P in ('netstat -ano ^| findstr /R /C:":%PORT% .*LISTENING"') do (
-  if not defined PORT_PID set "PORT_PID=%%P"
-)
-
-if defined PORT_PID (
-  echo Port %PORT% is already in use by PID %PORT_PID%.
-  echo Terminating conflicting process...
-  taskkill /F /PID %PORT_PID% >nul 2>&1
-  timeout /t 1 /nobreak >nul
-)
-
 echo Starting local dev server...
 echo Serving on: http://localhost:%PORT%/game.html
 echo.
-start "" "http://localhost:%PORT%/game.html"
 
 if defined NODE_CMD (
-  %NODE_CMD% "%ROOT%dev-server.mjs" --host 0.0.0.0 --port %PORT%
+  "%NODE_CMD%" "%ROOT%dev-server.mjs" --host 0.0.0.0 --port %PORT% --open
 ) else if defined PY_CMD (
   echo Node.js not found; using Python fallback server.
-  %PY_CMD% -m http.server %PORT% --bind localhost --directory "%ROOT%"
+  "%PY_CMD%" -m http.server %PORT% --bind localhost --directory "%ROOT%"
 ) else (
   echo Neither Node.js nor Python was found on PATH.
   echo Install Node.js or Python, then run this file again.
   pause
   exit /b 1
 )
+
+set "UIE_EXIT=%ERRORLEVEL%"
+if "%UIE_EXIT%"=="3" (
+  echo.
+  echo Existing UIE server reused successfully. Press any key when you are done reading this status.
+  pause
+  exit /b 0
+)
+
+if not "%UIE_EXIT%"=="0" (
+  echo.
+  echo UIE stopped with an error. Review any error shown above.
+  pause
+  exit /b %UIE_EXIT%
+)
+
+echo.
+echo UIE stopped normally.
+echo Press any key to close this launcher window.
 pause
+exit /b 0

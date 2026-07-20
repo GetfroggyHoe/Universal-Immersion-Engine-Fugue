@@ -1,0 +1,70 @@
+/*
+ * Full-screen application contract.
+ *
+ * This file controls only the viewport shell. It intentionally does not
+ * rewrite Inventory, Party, Organizations, Surroundings, Battle, Settings,
+ * Persona, Journal, Calendar, or other application internals.
+ */
+
+#game-overlay-root {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100dvh !important;
+  max-width: none !important;
+  max-height: none !important;
+  overflow: visible !important;
+  transform: none !important;
+  zoom: 1 !important;
+  pointer-events: none;
+  z-index: 2147483000;
+}
+
+#game-overlay-root > * {
+  box-sizing: border-box;
+}
+
+.uie-fullscreen-app {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100dvh !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  max-width: none !important;
+  max-height: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  transform: none !important;
+  transform-origin: initial !important;
+  zoom: 1 !important;
+  aspect-ratio: auto !important;
+  pointer-events: auto !important;
+}
+
+.uie-dialog-overlay {
+  position: fixed !important;
+  inset: 0 !important;
+  display: grid;
+  place-items: center;
+  padding: 12px;
+  overflow: auto;
+  pointer-events: auto;
+}
+
+.uie-dialog-panel {
+  width: min(var(--dialog-width, 680px), calc(100vw - 24px));
+  height: auto;
+  max-height: calc(100dvh - 24px);
+  overflow: auto;
+  box-sizing: border-box;
+}
+
+.uie-floating-panel {
+  position: fixed !important;
+  max-width: calc(100vw - 16px);
+  max-height: calc(100dvh - 16px);
+  pointer-events: auto;
+  box-sizing: border-box;
+}

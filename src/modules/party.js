@@ -6,12 +6,15 @@ import { applyItemGiftToContact } from "./social.js";
 import { MEDALLIONS } from "./inventory.js";
 import { SCAN_TEMPLATES } from "./scanTemplates.js";
 import { normalizeLifeTracker } from "./features/life.js";
-import { resolvePartyPortraitUrl } from "./partyPortraits.js";
+import { DEFAULT_PARTY_PORTRAITS, resolvePartyPortraitUrl } from "./partyPortraits.js";
 import { spawnStageSprite } from "./sprites.js";
+import { normalizeStatusList, formatRemaining, summarizeMods, statusKey } from "./statusFx.js";
+import { fitDesktopModal } from "./modalViewport.js";
 
 let selectedId = null;
 /** `"shared"` or `"member:<id>"` — party inventory tab target list */
 let partyInventoryTarget = "shared";
+let partyAttributeEditMode = false;
 let tab = "stats";
 let partyCurrentLayerIndex = 3; // ARMOR default
 
@@ -62,6 +65,32 @@ const COMPANION_LAYERS = [
     { id:"utility", side:"right", icon:"fa-toolbox" }
   ]}
 ];
+
+function getCustomEquipmentSlots(s) {
+    if (!s.inventory || typeof s.inventory !== "object") s.inventory = {};
+    if (!Array.isArray(s.inventory.customEquipmentSlots)) s.inventory.customEquipmentSlots = [];
+    return s.inventory.customEquipmentSlots
+        .map((slot, index) => {
+            const label = String(slot?.label || slot?.name || "").trim().slice(0, 40);
+            const id = String(slot?.id || "").trim().toLowerCase().replace(/[^a-z0-9_-]+/g, "_").replace(/^_+|_+$/g, "");
+            if (!label || !id) return null;
+            return { id, label, side: index % 2 ? "right" : "left", icon: String(slot?.icon || "fa-gem"), custom: true };
+        })
+        .filter(Boolean);
+}
+
+function addCustomEquipmentSlot(s, rawLabel) {
+    const label = String(rawLabel || "").trim().slice(0, 40);
+    if (!label) return null;
+    const current = getCustomEquipmentSlots(s);
+    const base = label.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "") || "custom_slot";
+    const used = new Set([...COMPANION_LAYERS.flatMap((layer) => layer.slots.map((slot) => slot.id)), ...current.map((slot) => slot.id)]);
+    let id = `custom_${base}`;
+    let suffix = 2;
+    while (used.has(id)) id = `custom_${base}_${suffix++}`;
+    s.inventory.customEquipmentSlots.push({ id, label, icon: "fa-gem" });
+    return id;
+}
 
 let memberModalOpen = false;
 let memberEdit = false;
@@ -122,7 +151,16 @@ function titleCaseWords(value) {
 }
 
 function normalizeTreeNode(raw, fallback = {}) {
-    const type = String(raw?.type || raw?.skillType || fallback.type || "active").toLowerCase() === "passive" ? "passive" : "active";
+    const rawType = String(raw?.type || raw?.skillType || fallback.type || "active").toLowerCase();
+    const type = ["active", "passive", "utility", "reaction", "toggle"].includes(rawType) ? rawType : "active";
+    const custom = raw?.custom === true || fallback.custom === true;
+    const category = ({
+        passive: "Passive",
+        utility: "Utility",
+        reaction: "Reaction",
+        toggle: "Toggle",
+        active: "Active"
+    }[type] || "Active");
     return {
         id: String(raw?.id || fallback.id || createTreeNodeId("skill")).trim(),
         name: String(raw?.name || raw?.title || fallback.name || "New Skill").trim().slice(0, 80) || "New Skill",
@@ -130,11 +168,13 @@ function normalizeTreeNode(raw, fallback = {}) {
         cost: Math.max(1, Math.min(9, Number.parseInt(raw?.cost ?? fallback.cost ?? 1, 10) || 1)),
         stats: String(raw?.stats || fallback.stats || "").trim(),
         desc: String(raw?.desc || raw?.description || fallback.desc || "").trim(),
-        branch: String(raw?.branch || fallback.branch || (type === "passive" ? "Passive" : "Active")).trim(),
+        // Categories are intentionally derived from skill behavior. Legacy branch
+        // names (Class Core, Known Skills, Scene Context) are migrated here.
+        branch: category,
         icon: String(raw?.icon || fallback.icon || (type === "passive" ? "fa-solid fa-shield" : "fa-solid fa-bolt")).trim(),
         requires: Array.isArray(raw?.requires) ? raw.requires.map(String).filter(Boolean) : (Array.isArray(fallback.requires) ? fallback.requires : []),
         unlocked: raw?.unlocked === true,
-        custom: raw?.custom === true || fallback.custom === true
+        custom
     };
 }
 
@@ -151,7 +191,7 @@ function generatedSkillTreeNodes(s, m) {
             cost: 1,
             stats: `${profile.stat}:+1, ${profile.support}:+1`,
             desc: `The core posture and habits of a ${key.toLowerCase()}.`,
-            branch: "Class Core",
+            branch: "Passive",
             icon: profile.icon
         })
     ];
@@ -165,7 +205,7 @@ function generatedSkillTreeNodes(s, m) {
             cost: idx < 1 ? 1 : 2,
             stats: idx % 2 ? `${profile.stat}:+${idx + 2}` : `${profile.support}:+${idx + 2}`,
             desc: `${key} class technique generated from class style.`,
-            branch: "Class Core",
+            branch: idx % 2 ? "Active" : "Passive",
             icon: idx % 2 ? "fa-solid fa-bolt" : profile.icon,
             requires: [idx === 0 ? rootId : `auto_${key.toLowerCase()}_core_${idx}`]
         }));
@@ -183,7 +223,7 @@ function generatedSkillTreeNodes(s, m) {
             cost: idx < 2 ? 1 : 2,
             stats: type === "passive" ? `${profile.support}:+2` : `${profile.stat}:+2`,
             desc: sk.description || sk.desc || "A known skill folded into this member's class tree.",
-            branch: "Known Skills",
+            branch: type === "passive" ? "Passive" : "Active",
             icon: type === "passive" ? "fa-solid fa-gem" : "fa-solid fa-bolt",
             requires: [idx === 0 ? rootId : `auto_${key.toLowerCase()}_known_${idx - 1}`]
         }));
@@ -198,7 +238,7 @@ function generatedSkillTreeNodes(s, m) {
             cost: idx === 2 ? 2 : 1,
             stats: idx === 1 ? `${profile.stat}:+2` : `${profile.support}:+1`,
             desc: `Context skill generated from the current story/world setup.`,
-            branch: "Scene Context",
+            branch: idx === 1 ? "Active" : "Passive",
             icon: idx === 1 ? "fa-solid fa-location-crosshairs" : "fa-solid fa-eye",
             requires: [idx === 0 ? rootId : `auto_${key.toLowerCase()}_context_${idx - 1}`]
         }));
@@ -310,7 +350,7 @@ function ensureNodeEditorModal() {
             </div>
             <div style="display:grid;grid-template-columns:1fr 130px 90px;gap:10px;">
                 <label style="grid-column:1 / -1;">Name<input id="uie-node-name" class="modal-input" style="width:100%;"></label>
-                <label>Type<select id="uie-node-type" class="modal-select" style="width:100%;"><option value="active">Active</option><option value="passive">Passive</option></select></label>
+                <label>Type<select id="uie-node-type" class="modal-select" style="width:100%;"><option value="active">Active</option><option value="passive">Passive</option><option value="utility">Utility</option><option value="reaction">Reaction</option><option value="toggle">Toggle</option></select></label>
                 <label>Cost<input id="uie-node-cost" class="modal-input" type="number" min="1" max="9" style="width:100%;"></label>
                 <label>Stats<input id="uie-node-stats" class="modal-input" placeholder="str:+2, hp:+10" style="width:100%;"></label>
                 <label style="grid-column:1 / -1;">Description<textarea id="uie-node-desc" class="modal-textarea" style="min-height:96px;"></textarea></label>
@@ -388,7 +428,7 @@ async function generatePartySkillTreeWithAi(s, m) {
     m.skillTree = {
         ...m.skillTree,
         className: key,
-        generatedVersion: 2,
+        generatedVersion: 3,
         aiGeneratedAt: Date.now(),
         nodes: [...generatedBase, ...aiNodes],
         pointsSpent: 0
@@ -402,11 +442,11 @@ function initMemberSkillTree(s, m) {
 
     const key = detectSkillTreeClass(m);
     if (!m.skillTree || typeof m.skillTree !== "object") m.skillTree = {};
-    if (m.skillTree.generatedVersion !== 2 || m.skillTree.className !== key || !Array.isArray(m.skillTree.nodes)) {
+    if (m.skillTree.generatedVersion !== 3 || m.skillTree.className !== key || !Array.isArray(m.skillTree.nodes)) {
         m.skillTree = {
             ...m.skillTree,
             className: key,
-            generatedVersion: 2,
+            generatedVersion: 3,
             nodes: mergeGeneratedSkillTree(s, m),
             pointsSpent: 0
         };
@@ -563,7 +603,10 @@ function renderSkillTree(container, s, m) {
     }
     
     const nodes = m.skillTree.nodes || [];
-    const width = Math.max(760, Math.min(1120, Math.round((container.get(0)?.getBoundingClientRect?.().width || 860) - 34)));
+    const board = view.find(".uie-skilltree-board").get(0);
+    const availableWidth = Math.round(board?.getBoundingClientRect?.().width || container.get(0)?.getBoundingClientRect?.().width || 860);
+    const availableHeight = Math.round(board?.getBoundingClientRect?.().height || 520);
+    const width = Math.max(300, availableWidth - 18);
     const branches = Array.from(new Set(nodes.map((n) => n.branch || "Skills")));
     const numBranches = Math.max(1, branches.length);
 
@@ -596,7 +639,7 @@ function renderSkillTree(container, s, m) {
         const d = depths.get(node.id) || 0;
         if (d > maxD) maxD = d;
     });
-    const height = Math.max(520, 120 + (maxD + 1) * 110);
+    const height = Math.max(300, availableHeight - 18, 120 + (maxD + 1) * 110);
 
     layoutSkillTreeNodes(nodes, width, height);
     nodesContainer.css({ width: `${width}px`, height: `${height}px` });
@@ -680,7 +723,7 @@ function renderSkillTree(container, s, m) {
                 <div class="node-label">
                     <div class="node-name-lbl">${esc(node.name)}</div>
                     <div class="node-cost-lbl">${node.cost || 1} SP</div>
-                    <div class="node-meta">${esc(node.type === "active" ? "Active" : "Passive")}${node.stats ? ` | ${esc(node.stats)}` : ""}</div>
+                    <div class="node-meta">${esc(titleCaseWords(node.type))}${node.stats ? ` | ${esc(node.stats)}` : ""}</div>
                 </div>
             </div>
         `);
@@ -748,7 +791,7 @@ function renderSkillTree(container, s, m) {
             tooltip.html(`
                 <div class="tooltip-name">${esc(node.name)}</div>
                 <div class="tooltip-meta">
-                    <span class="type-${node.type}">${node.type === "active" ? "Active" : "Passive"}</span>
+                    <span class="type-${node.type}">${esc(titleCaseWords(node.type))}</span>
                     <span>${node.cost || 1} SP</span>
                 </div>
                 ${node.desc ? `<div class="tooltip-desc">${esc(node.desc)}</div>` : ""}
@@ -1593,7 +1636,7 @@ function defaultMember(name) {
         customCSS: "",
         active: true,
         temporary: false,
-        followsUser: true,
+        followsUser: false,
         personalItems: [],
         tactics: { preset: "Balanced", focus: "auto", protectId: "", conserveMana: false }
     };
@@ -1666,6 +1709,7 @@ function ensureMember(m) {
 
     // Ensure stats object exists
     if (!m.stats) m.stats = {};
+    if (!Array.isArray(m.hiddenStats)) m.hiddenStats = [];
     // Fill missing stats with defaults
     const defaultStats = { str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10, per: 10, luk: 10, agi: 10, vit: 10, end: 10, spi: 10 };
     for (const k in defaultStats) {
@@ -1708,7 +1752,7 @@ function ensureMember(m) {
     if (!m.partyRole) m.partyRole = "DPS";
     if (!Array.isArray(m.personalItems)) m.personalItems = [];
     if (typeof m.temporary !== "boolean") m.temporary = false;
-    if (typeof m.followsUser !== "boolean") m.followsUser = true;
+    if (typeof m.followsUser !== "boolean") m.followsUser = false;
 }
 
 function resolvePartyStashList(s, target) {
@@ -1913,8 +1957,9 @@ export function savePartyOutfit(s, m, outfitName) {
     const paperDollSnapshot = String(m.images?.paperDoll || "").trim();
     
     const existingIdx = m.savedOutfits.findIndex(o => o.name.toLowerCase() === name.toLowerCase());
+    const previous = existingIdx >= 0 ? m.savedOutfits[existingIdx] : null;
     const outfitObj = {
-        id: `outfit_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`,
+        id: String(previous?.id || `outfit_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`),
         name,
         equipment: slotsSnapshot,
         portrait: portraitSnapshot,
@@ -1947,12 +1992,10 @@ export function loadPartyOutfit(s, m, outfitName) {
         }
     }
     
-    if (outfit.portrait) {
-        m.images.portrait = outfit.portrait;
-    }
-    if (outfit.paperDoll) {
-        m.images.paperDoll = outfit.paperDoll;
-    }
+    if (!m.images || typeof m.images !== "object") m.images = {};
+    // Restore the snapshot exactly, including a deliberately blank image.
+    m.images.portrait = String(outfit.portrait || "");
+    m.images.paperDoll = String(outfit.paperDoll || "");
     
     if (isUserMember(s, m)) {
         applyMemberToCore(s, m);
@@ -1992,15 +2035,36 @@ function memberInitials(m) {
 }
 
 function memberPortraitFallbackHtml(m, size = 60) {
-    const initials = memberInitials(m);
-    return `<div class="party-avatar-safe" style="position:relative;width:100%;height:100%;display:grid;place-items:center;overflow:hidden;border-radius:inherit;background:linear-gradient(145deg,rgba(40,26,14,0.8),rgba(20,12,6,0.9));"><span style="font-size:${Math.max(14, Math.round(size * 0.35))}px;font-weight:900;color:rgba(200,160,80,0.5);letter-spacing:1px;">${esc(initials)}</span></div>`;
+    return `<div class="party-avatar-safe" style="position:relative;width:100%;height:100%;display:grid;place-items:center;overflow:hidden;border-radius:inherit;background:linear-gradient(145deg,rgba(40,26,14,0.8),rgba(20,12,6,0.9));"><img src="${esc(DEFAULT_PARTY_PORTRAITS.party)}" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain;object-position:center bottom;"></div>`;
+}
+
+function partyStatusIcon(effect) {
+    const name = String(effect?.name || effect || "").toLowerCase();
+    if (/poison|toxic|venom/.test(name)) return "fa-flask-vial";
+    if (/burn|fire/.test(name)) return "fa-fire-flame-curved";
+    if (/bleed|hemorr/.test(name)) return "fa-droplet";
+    if (/stun|shock|paraly/.test(name)) return "fa-bolt";
+    if (/freeze|frost|cold/.test(name)) return "fa-snowflake";
+    if (/disease|sick|infect/.test(name)) return "fa-virus";
+    if (/curse|hex|doom/.test(name)) return "fa-skull";
+    if (/bless|inspir|energ|haste/.test(name)) return "fa-sun";
+    if (/regen|heal/.test(name)) return "fa-heart-pulse";
+    if (/sleep|tired|fatigue|exhaust/.test(name)) return "fa-bed";
+    return "fa-shield-halved";
+}
+
+function partyStatusDetail(effect, now = Date.now()) {
+    const remaining = formatRemaining(effect?.expiresAt, now) || "No set duration";
+    const description = String(effect?.desc || "No description recorded.").trim();
+    const modifiers = summarizeMods(effect?.mods).join(", ") || "No numeric modifiers";
+    return `${effect?.name || "Status effect"}\n${description}\nDuration: ${remaining}\nEffects: ${modifiers}`;
 }
 
 function memberPortraitHtml(s, m, size = 60, imgStyle = "") {
     const portraitUrl = resolvePortraitUrl(s, m);
     if (portraitUrl) {
         const style = imgStyle || "width:100%;height:100%;object-fit:contain;object-position:center bottom;";
-        return `<div class="party-avatar-safe" style="position:relative;width:100%;height:100%;display:grid;place-items:center;overflow:hidden;border-radius:inherit;background:linear-gradient(145deg,rgba(40,26,14,0.8),rgba(20,12,6,0.9));"><img src="${esc(portraitUrl)}" style="position:absolute;inset:0;${style}" onerror="this.style.display='none';"></div>`;
+        return `<div class="party-avatar-safe" style="position:relative;width:100%;height:100%;display:grid;place-items:center;overflow:hidden;border-radius:inherit;background:linear-gradient(145deg,rgba(40,26,14,0.8),rgba(20,12,6,0.9));"><img src="${esc(portraitUrl)}" style="position:absolute;inset:0;${style}" onerror="if(!this.dataset.partyFallback){this.dataset.partyFallback='1';this.src='${esc(DEFAULT_PARTY_PORTRAITS.party)}';}else{this.style.display='none';}"></div>`;
     }
     return memberPortraitFallbackHtml(m, size);
 }
@@ -2116,6 +2180,7 @@ function renderRoster(s) {
                 <div class="party-row-actions" style="display:flex;gap:4px;align-items:center;flex-shrink:0;">
                     <button class="party-mini" data-act="edit" data-id="${esc(String(m.id))}" title="Edit Member" style="padding:5px 8px;font-size:11px;"><i class="fa-solid fa-pen"></i></button>
                     <button class="party-mini" data-act="leader" data-id="${esc(String(m.id))}" title="Set Leader" style="padding:5px 8px;font-size:11px;color:${isLeader ? '#cba35c' : 'inherit'};"><i class="fa-solid fa-crown"></i></button>
+                    <button class="party-mini" data-act="toggleFollow" data-id="${esc(String(m.id))}" title="${m.followsUser === true ? 'Stop following user' : 'Follow user'}" style="padding:5px 8px;font-size:11px;color:${m.followsUser === true ? '#7dd3fc' : 'rgba(255,255,255,0.3)'};"><i class="fa-solid fa-shoe-prints"></i></button>
                     <button class="party-mini" data-act="toggleActive" data-id="${esc(String(m.id))}" title="${m.active !== false ? 'Deactivate' : 'Activate'}" style="padding:5px 8px;font-size:11px;color:${m.active !== false ? '#2ecc71' : 'rgba(255,255,255,0.3)'};"><i class="fa-solid fa-circle-check"></i></button>
                     <button class="party-mini" data-act="delete" data-id="${esc(String(m.id))}" title="Remove" style="padding:5px 8px;font-size:11px;color:var(--danger);"><i class="fa-solid fa-trash"></i></button>
                 </div>
@@ -2158,48 +2223,42 @@ function renderSheet(s) {
         });
     }
 
-    const allRows = getSheetTrackerRows(m);
-    const vitalsCompact = container.find(".sheet-vitals-compact");
-    const barTmpl = document.getElementById("uie-party-modal-bar")?.content || null;
-    allRows.forEach((b) => {
-        const max = Math.max(1, Number(b.max || 1));
-        const pct = Math.max(0, Math.min(100, (Number(b.current || 0) / max) * 100));
-        if (barTmpl) {
-            const el = $(barTmpl.cloneNode(true));
-            el.find(".bar-lbl").text(b.name);
-            el.find(".bar-text").text(`${Math.round(b.current)}/${Math.round(max)}`);
-            el.find(".bar-fill").css({ width: `${pct}%`, background: b.color });
-            el.addClass("sheet-vital-bar");
-            vitalsCompact.append(el);
-        }
-    });
-
     const statGrid = container.find(".stats-grid");
     const statTmpl = document.getElementById("uie-party-stat-row").content;
     const labels = { ...(s?.character?.statLabels || {}), ...(s?.statLabels || {}) };
     const defaultKeys = ["str", "dex", "con", "int", "wis", "cha", "per", "luk", "agi", "vit", "end", "spi"];
+    const hiddenStats = new Set((m.hiddenStats || []).map(String));
     const stats = Array.from(new Set([...defaultKeys, ...Object.keys(m.stats || {})]))
         .filter(Boolean)
+        .filter((k) => !hiddenStats.has(k))
         .map((k) => ({ l: String(labels[k] || k).toUpperCase(), k }));
     stats.forEach(st => {
         const el = $(statTmpl.cloneNode(true));
+        el.attr("data-stat-key", st.k);
         el.find(".stat-lbl").text(st.l);
         el.find(".stat-val").text(Number(m.stats[st.k] || 0));
+        if (partyAttributeEditMode) {
+            el.append(`<span class="party-sheet-stat-actions"><button type="button" class="party-sheet-stat-edit party-mini" data-stat="${esc(st.k)}" title="Edit ${esc(st.l)}"><i class="fa-solid fa-pen"></i><span class="sr-only">Edit ${esc(st.l)}</span></button><button type="button" class="party-sheet-stat-delete party-mini danger" data-stat="${esc(st.k)}" title="Remove ${esc(st.l)}"><i class="fa-solid fa-trash"></i><span class="sr-only">Remove ${esc(st.l)}</span></button></span>`);
+        }
         statGrid.append(el);
     });
+    container.find(".party-sheet-stat-add").toggle(partyAttributeEditMode);
+    container.find(".party-sheet-stat-mode")
+        .toggleClass("active", partyAttributeEditMode)
+        .attr("aria-pressed", partyAttributeEditMode ? "true" : "false")
+        .attr("title", partyAttributeEditMode ? "Finish editing attributes" : "Edit attributes");
 
     renderSheetTrackers(container, m);
-
-    container.find(".bio-text").text(m.bio || "-");
-    container.find(".css-text").text(m.customCSS || "-");
-
-    container.find(".uie-party-subtab").on("click", function() {
-        container.find(".uie-party-subtab").removeClass("active").css({background:"transparent", color:"#aaa"});
-        $(this).addClass("active").css({background:"rgba(255,255,255,0.1)", color:"#fff"});
-        const sub = $(this).data("sub");
-        container.find("#pm-sub-stats, #pm-sub-bio, #pm-sub-css").hide();
-        container.find(`#pm-sub-${sub}`).show();
-    });
+    const effects = container.find(".party-sheet-effects").empty();
+    const statusEffects = normalizeStatusList(m.statusEffects, Date.now());
+    if (!statusEffects.length) {
+        effects.append(`<div class="party-empty">No effects on this character.</div>`);
+    } else {
+        statusEffects.forEach((effect, index) => {
+            const remaining = formatRemaining(effect.expiresAt, Date.now());
+            effects.append(`<div class="party-tracker-card party-sheet-effect-row"><button type="button" class="party-fx party-status-summary" data-detail="${esc(partyStatusDetail(effect))}" title="Open ${esc(effect.name)} details"><i class="fa-solid ${partyStatusIcon(effect)}"></i><span>${esc(effect.name)}</span>${remaining ? `<small>${esc(remaining)}</small>` : ""}</button><button type="button" class="party-sheet-effect-delete party-mini" data-effect-key="${esc(statusKey(effect))}" title="Remove effect"><i class="fa-solid fa-xmark"></i></button></div>`);
+        });
+    }
 
     if (select.length) {
         select.on("change", function() {
@@ -2265,8 +2324,8 @@ function renderGear(s) {
         const outfitContainer = $(`<div class="party-outfits-container" style="display:grid;gap:12px;width:100%;"></div>`);
         
         // Toolbar
-        const toolbar = $(`<div style="display:flex;gap:8px;margin-bottom:12px;width:100%;"></div>`);
-        const saveCurrentBtn = $(`<button type="button" class="reply-tool-btn" style="flex:1;padding:8px 12px;font-weight:850;"><i class="fa-solid fa-floppy-disk"></i> Save Outfit (with Image)</button>`);
+        const toolbar = $(`<div class="party-outfit-toolbar"></div>`);
+        const saveCurrentBtn = $(`<button type="button" class="reply-tool-btn party-outfit-save"><i class="fa-solid fa-floppy-disk"></i> Save current outfit</button>`);
         saveCurrentBtn.on("click", () => {
             const name = window.prompt("Enter outfit name:", "Companion Fit");
             if (name && name.trim()) {
@@ -2283,18 +2342,20 @@ function renderGear(s) {
             outfitContainer.append(`<div style="opacity:0.75;text-align:center;padding:24px;border:1px dashed rgba(255,255,255,0.12);border-radius:8px;font-size:12px;background:rgba(0,0,0,0.12);">No saved outfits yet. Equip items in other layers and click Save Current Loadout above to store a preset.</div>`);
         } else {
             outfits.forEach((outfit) => {
-                const hasPortrait = !!outfit.portrait;
-                const hasPaperDoll = !!outfit.paperDoll;
-                const imageTag = (hasPortrait || hasPaperDoll) ? `<div style="font-size:10px;color:rgba(200,160,80,0.7);margin-top:2px;"><i class="fa-solid fa-image"></i> Image saved</div>` : "";
+                const outfitImage = String(outfit.paperDoll || outfit.portrait || "").trim();
+                const thumb = outfitImage
+                    ? `<img src="${esc(outfitImage)}" alt="${esc(outfit.name)} outfit preview">`
+                    : `<i class="fa-solid fa-shirt" aria-hidden="true"></i>`;
                 const card = $(`
-                    <div style="display:flex;align-items:center;justify-content:space-between;padding:12px;border:1px solid var(--party-border);border-radius:10px;background:rgba(255,255,255,0.025);margin-bottom:6px;">
-                        <div style="min-width:0;flex:1;">
-                            <strong style="font-size:14px;color:#fff;">${esc(outfit.name)}</strong>
-                            <div style="font-size:11px;color:var(--party-muted);margin-top:2px;">Outfit Preset${imageTag}</div>
+                    <div class="party-outfit-card">
+                        <div class="party-outfit-thumb">${thumb}</div>
+                        <div class="party-outfit-copy">
+                            <strong>${esc(outfit.name)}</strong>
+                            <span>${Object.keys(outfit.equipment || {}).length} equipped item${Object.keys(outfit.equipment || {}).length === 1 ? "" : "s"}</span>
                         </div>
-                        <div style="display:flex;gap:8px;">
-                            <button type="button" class="reply-tool-btn wear-btn" style="min-height:30px;padding:0 12px;font-weight:800;">Wear</button>
-                            <button type="button" class="reply-tool-btn delete-btn" style="min-height:30px;padding:0 12px;border-color:var(--party-red)!important;color:var(--party-red)!important;font-weight:800;">Delete</button>
+                        <div class="party-outfit-actions">
+                            <button type="button" class="reply-tool-btn wear-btn"><i class="fa-solid fa-shirt"></i> Wear</button>
+                            <button type="button" class="reply-tool-btn delete-btn" style="border-color:var(--party-red)!important;color:var(--party-red)!important;"><i class="fa-solid fa-trash"></i> Delete</button>
                         </div>
                     </div>
                 `);
@@ -2317,7 +2378,10 @@ function renderGear(s) {
     } else {
         grid.show();
         grid.empty();
-        const slots = COMPANION_LAYERS[partyCurrentLayerIndex].slots;
+        const activeLayer = COMPANION_LAYERS[partyCurrentLayerIndex];
+        const slots = activeLayer.name === "GEAR"
+            ? [...activeLayer.slots, ...getCustomEquipmentSlots(s), { id: "__add_custom_slot__", label: "Add Equipment Slot", icon: "fa-plus", _add: true }]
+            : activeLayer.slots;
         const SLOT_LABELS = {
             undies: "Undies", socks: "Socks", tattoo: "Tattoo", scar: "Scar",
             ears: "Ears", face: "Face", ink: "Ink", soul: "Soul",
@@ -2336,8 +2400,9 @@ function renderGear(s) {
             const el = $(slotTmpl.cloneNode(true));
             const slotEl = el.find(".party-slot");
             slotEl.attr("data-slot", slot);
+            if (slotObj._add) slotEl.attr("data-add-slot", "true").addClass("party-add-equipment-slot");
 
-            const item = m.equipment?.[slot];
+            const item = slotObj._add ? null : m.equipment?.[slot];
             const iconContainer = el.find(".slot-icon-container");
 
             if (item && typeof item === "object") {
@@ -2352,7 +2417,7 @@ function renderGear(s) {
                 iconContainer.html(`<i class="fa-solid ${slotObj.icon || 'fa-circle-question'}" style="opacity:0.3;font-size:22px;color:var(--party-muted);"></i>`);
             }
 
-            el.find(".slot-label").text(SLOT_LABELS[slot] || slot);
+            el.find(".slot-label").text(slotObj.label || SLOT_LABELS[slot] || slot);
             grid.append(el);
         });
     }
@@ -2386,8 +2451,15 @@ function renderInventory(s) {
         ? getMember(s, String(partyInventoryTarget).slice("member:".length))
         : null;
     container.find(".party-inv-title").text(partyInventoryTarget === "shared"
-        ? "Party Shared Treasury Vault"
-        : `${selectedMember?.identity?.name || "Member"} Personal Bag`);
+        ? "Shared Party Bag"
+        : `${selectedMember?.identity?.name || "Member"}'s Bag`);
+    container.find(".party-inv-tab").removeClass("active").attr("aria-selected", "false");
+    container.find(`.party-inv-tab[data-inventory-scope="${partyInventoryTarget === "shared" ? "shared" : "personal"}"]`)
+        .addClass("active").attr("aria-selected", "true");
+    container.find(".party-inv-description").text(partyInventoryTarget === "shared"
+        ? "Supplies available to the whole party. Transfer, equip, or gift them from here."
+        : `Items carried by ${selectedMember?.identity?.name || "this companion"}.`);
+    container.find(".party-inv-tab[data-inventory-scope='personal']").prop("disabled", !members.length);
     $targetSel.off("change.partyInvTgt").on("change.partyInvTgt", function () {
         partyInventoryTarget = String($(this).val() || "shared");
         render();
@@ -2422,7 +2494,74 @@ function renderInventory(s) {
             giftBtn.before(transferBtn);
             list.append(el);
         });
+        container.find(".party-inv-empty").hide();
+    } else {
+        container.find(".party-inv-empty")
+            .html(partyInventoryTarget === "shared"
+                ? `<i class="fa-solid fa-people-group"></i><strong>The shared bag is ready.</strong><span>Add supplies here so every companion can use them.</span>`
+                : `<i class="fa-solid fa-bag-shopping"></i><strong>This personal bag is empty.</strong><span>Add an item or transfer one from the shared bag.</span>`)
+            .css("display", "grid");
     }
+}
+
+function cropPartyImage(dataUrl, kind = "portrait") {
+    return new Promise((resolve) => {
+        const portraitMode = kind !== "paperDoll";
+        const outWidth = portraitMode ? 720 : 720;
+        const outHeight = portraitMode ? 720 : 960;
+        const modal = document.createElement("div");
+        modal.className = "party-cropper-overlay";
+        modal.innerHTML = `
+            <section class="party-cropper" role="dialog" aria-modal="true" aria-labelledby="party-crop-title">
+                <header><div><h3 id="party-crop-title">Fit ${portraitMode ? "portrait" : "paper doll"}</h3><p>Drag to reposition. Use the slider to zoom.</p></div><button type="button" data-crop-cancel aria-label="Cancel"><i class="fa-solid fa-xmark"></i></button></header>
+                <div class="party-crop-stage ${portraitMode ? "is-square" : "is-paperdoll"}"><canvas width="${outWidth}" height="${outHeight}"></canvas></div>
+                <label class="party-crop-zoom"><span>Zoom</span><input type="range" min="1" max="3" step="0.01" value="1"></label>
+                <footer><button type="button" data-crop-cancel>Cancel</button><button type="button" data-crop-save><i class="fa-solid fa-crop-simple"></i> Use image</button></footer>
+            </section>`;
+        document.body.appendChild(modal);
+        const canvas = modal.querySelector("canvas");
+        const ctx = canvas.getContext("2d");
+        const zoomInput = modal.querySelector("input[type=range]");
+        const img = new Image();
+        let zoom = 1;
+        let offsetX = 0;
+        let offsetY = 0;
+        let dragging = false;
+        let lastX = 0;
+        let lastY = 0;
+        const baseScale = () => Math.max(canvas.width / img.naturalWidth, canvas.height / img.naturalHeight);
+        const clamp = () => {
+            const sw = img.naturalWidth * baseScale() * zoom;
+            const sh = img.naturalHeight * baseScale() * zoom;
+            offsetX = Math.max((canvas.width - sw) / 2, Math.min((sw - canvas.width) / 2, offsetX));
+            offsetY = Math.max((canvas.height - sh) / 2, Math.min((sh - canvas.height) / 2, offsetY));
+        };
+        const draw = () => {
+            if (!img.naturalWidth) return;
+            clamp();
+            const scale = baseScale() * zoom;
+            const sw = img.naturalWidth * scale;
+            const sh = img.naturalHeight * scale;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(img, (canvas.width - sw) / 2 + offsetX, (canvas.height - sh) / 2 + offsetY, sw, sh);
+        };
+        const finish = (value) => { modal.remove(); resolve(value); };
+        img.onload = draw;
+        img.onerror = () => finish(null);
+        img.src = dataUrl;
+        zoomInput.addEventListener("input", () => { zoom = Number(zoomInput.value) || 1; draw(); });
+        canvas.addEventListener("pointerdown", (event) => { dragging = true; lastX = event.clientX; lastY = event.clientY; canvas.setPointerCapture(event.pointerId); });
+        canvas.addEventListener("pointermove", (event) => {
+            if (!dragging) return;
+            const rect = canvas.getBoundingClientRect();
+            offsetX += (event.clientX - lastX) * canvas.width / rect.width;
+            offsetY += (event.clientY - lastY) * canvas.height / rect.height;
+            lastX = event.clientX; lastY = event.clientY; draw();
+        });
+        canvas.addEventListener("pointerup", () => { dragging = false; });
+        modal.querySelectorAll("[data-crop-cancel]").forEach((button) => button.addEventListener("click", () => finish(null)));
+        modal.querySelector("[data-crop-save]").addEventListener("click", () => finish(canvas.toDataURL("image/jpeg", 0.9)));
+    });
 }
 
 function renderFormation(s) {
@@ -2574,6 +2713,7 @@ function renderFormation(s) {
             $list.html(`<div class="party-empty" style="padding:12px; font-size:11px; border:1.5px dashed rgba(255,255,255,0.06); background:transparent;">Empty Lane</div>`);
         }
     });
+
 }
 
 function moveMemberPosition(s, mid, newPos) {
@@ -2604,13 +2744,13 @@ function ensurePartyWindowClickable() {
         const props = {
             display: "grid",
             "pointer-events": "auto",
-            position: "fixed",
+            position: "absolute",
             left: "0px",
             top: "0px",
-            right: "auto",
-            bottom: "auto",
-            width: "100vw",
-            height: "100vh",
+            right: "0px",
+            bottom: "0px",
+            width: "100%",
+            height: "100%",
             "max-width": "none",
             "max-height": "none",
             "border-radius": "0",
@@ -2813,7 +2953,7 @@ function renderPartyFooter(s) {
                 <span><i class="fa-solid fa-shield-halved" style="color:var(--party-gold); margin-right:4px;"></i> Roles: <b style="color:#fff;">${roles.join(", ") || "None"}</b></span>
             </div>
             <div style="display:flex; align-items:center; gap:16px;">
-                <span><i class="fa-solid fa-burst" style="color:var(--party-red); margin-right:4px;"></i> Debuffs: <b style="color:var(--party-red);">${fxCount}</b></span>
+                <span><i class="fa-solid fa-burst" style="color:var(--party-red); margin-right:4px;"></i> Status Effects: <b style="color:var(--party-red);">${fxCount}</b></span>
                 <span style="opacity:0.3;">|</span>
                 <span style="color:var(--party-muted); font-size:10px;">${esc(weaponText)}</span>
             </div>
@@ -2942,9 +3082,10 @@ function render() {
         .addClass(`party-member-theme-${partyMode}`);
     const partyBg = String(s.ui.backgrounds.party || "assets/ui/generated/party_bg.png");
     $partyWindow.css({
-        backgroundImage: `linear-gradient(180deg, rgba(6, 10, 20, 0.55), rgba(8, 12, 24, 0.72)), url("${partyBg}")`,
+        backgroundImage: `linear-gradient(135deg, rgba(255, 244, 215, 0.94), rgba(225, 202, 164, 0.88) 52%, rgba(209, 229, 219, 0.88)), url("${partyBg}")`,
         backgroundSize: "cover",
         backgroundPosition: "center",
+        backgroundBlendMode: "normal, soft-light",
         pointerEvents: "auto",
         position: "fixed"
     });
@@ -2974,7 +3115,9 @@ function render() {
     else if (tab === "equipment") renderGear(s);
     else if (tab === "bag") {
         const m = getActiveOrFirstMember(s);
-        partyInventoryTarget = m ? `member:${m.id}` : "shared";
+        if (String(partyInventoryTarget).startsWith("member:") && !getMember(s, String(partyInventoryTarget).slice("member:".length))) {
+            partyInventoryTarget = m ? `member:${m.id}` : "shared";
+        }
         renderInventory(s);
     }
     else if (tab === "skills") renderSkillsWorkspace(s);
@@ -3275,6 +3418,7 @@ function renderMemberModal(s, m) {
 
     // Active Tab — use class-based active state
     container.find(".party-mm-tab").removeClass("active").css({ pointerEvents: "auto", touchAction: "manipulation" });
+    if (!container.find(`.party-mm-tab[data-tab="${memberModalTab}"]`).length) memberModalTab = "sheet";
     container.find(`.party-mm-tab[data-tab="${memberModalTab}"]`).addClass("active");
 
     container.find(`#party-mm-pane-${memberModalTab}`).show();
@@ -3318,19 +3462,17 @@ function renderMemberModal(s, m) {
 
     // Status FX
     const fxList = sheetPane.find(".status-fx-list");
-    const fx = Array.isArray(m.statusEffects) ? m.statusEffects : [];
+    const fx = normalizeStatusList(m.statusEffects, Date.now());
     if (fx.length === 0) fxList.html(`<div style="opacity:0.6; font-weight:900;">None</div>`);
     else {
         fx.slice(0, 16).forEach(x => {
-            const raw = String(x||"").trim();
-            const label = raw ? raw[0].toUpperCase() : "!";
-            const icon = $(`<div class="party-fx" title="${esc(raw)}" style="width:28px;height:28px;border-radius:8px;border:1px solid rgba(142,99,48,0.35);background:#fff5dc;display:grid;place-items:center;font-weight:900;color:#5b361b;user-select:none;">${esc(label)}</div>`);
+            const icon = $(`<button type="button" class="party-fx" data-detail="${esc(partyStatusDetail(x))}" title="Open ${esc(x.name)} details" style="width:32px;height:32px;border-radius:8px;border:1px solid rgba(142,99,48,0.35);background:#fff5dc;display:grid;place-items:center;font-weight:900;color:#5b361b;user-select:none;cursor:pointer;"><i class="fa-solid ${partyStatusIcon(x)}"></i></button>`);
             fxList.append(icon);
         });
     }
 
     if (memberEdit) {
-        sheetPane.find("#party-mm-fx").val(fx.join(", ")).show();
+        sheetPane.find("#party-mm-fx").val(fx.map((effect) => effect.name).join(", ")).show();
         const saveBtn = sheetPane.find("#party-mm-save");
         saveBtn.show();
         if (!sheetPane.find("#party-mm-profile-scan").length) {
@@ -3344,7 +3486,8 @@ function renderMemberModal(s, m) {
     const statInputTmpl = document.getElementById("uie-party-modal-stat-input").content;
     const defaultStatKeys = ["str","dex","con","int","wis","cha","per","luk","agi","vit","end","spi"];
     const statLabels = { ...(s?.character?.statLabels || {}), ...(s?.statLabels || {}) };
-    const statKeys = Array.from(new Set([...defaultStatKeys, ...Object.keys(m.stats || {})])).filter(Boolean);
+    const hiddenStats = new Set((m.hiddenStats || []).map(String));
+    const statKeys = Array.from(new Set([...defaultStatKeys, ...Object.keys(m.stats || {})])).filter(Boolean).filter((key) => !hiddenStats.has(key));
     
     if (memberEdit) {
         const addStatBtn = $(`<button type="button" id="party-mm-add-stat" class="reply-tool-btn" style="width:auto; padding:6px 12px; margin-bottom:8px; background:rgba(45,212,191,0.2); border:1px solid rgba(45,212,191,0.4); color:#2dd4bf; font-weight:700;"><i class="fa-solid fa-plus"></i> Add Stat</button>`);
@@ -3386,7 +3529,7 @@ function renderMemberModal(s, m) {
             pdPick.html(`<img class="party-paperdoll-img" src="${esc(portraitImg)}" alt="Paper Doll">`);
         } else {
             pdPick.removeClass("has-image");
-            pdPick.html(`<div style="display:grid;place-items:center;width:100%;height:100%;background:linear-gradient(145deg,rgba(40,26,14,0.8),rgba(20,12,6,0.9));color:rgba(200,160,80,0.4);font-weight:900;font-size:24px;">${esc(memberInitials(m))}</div>`);
+            pdPick.html(`<div class="party-paperdoll-empty" style="display:grid;place-items:center;width:100%;height:100%;color:#8a684d;font-weight:900;font-size:24px;">${esc(memberInitials(m))}</div>`);
         }
     }
     if (memberEdit) equipPane.find("#party-mm-pick-portrait-equip").show();
@@ -3551,8 +3694,10 @@ export function refreshParty() {
 async function pickPortraitForMember(s, m, kind) {
     const img = await pickLocalImage();
     if (!img) return;
-    if (kind === "paperDoll") m.images.paperDoll = img;
-    else m.images.portrait = img;
+    const cropped = await cropPartyImage(img, kind);
+    if (!cropped) return;
+    if (kind === "paperDoll") m.images.paperDoll = cropped;
+    else m.images.portrait = cropped;
     saveSettings();
     renderMemberModal(s, m);
 }
@@ -3812,6 +3957,97 @@ Do NOT wrap in markdown block. Return raw JSON text.`;
         const m = getSelectedTrackerMember(s2);
         if (!m) return;
         openMemberTrackerModal(m);
+    });
+
+    $(document).on("click.party", "#uie-party-window .party-sheet-stat-add", function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        const s2 = getSettings();
+        const m = getActiveOrFirstMember(s2);
+        if (!m) return;
+        ensureMember(m);
+        const label = String(prompt("Attribute name:") || "").trim();
+        if (!label) return;
+        const key = label.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+        if (!key) return;
+        if (m.stats[key] !== undefined && !(m.hiddenStats || []).includes(key)) {
+            notify("warning", "That attribute already exists.", "Party");
+            return;
+        }
+        const value = Number(prompt(`Starting value for ${label}:`, String(m.stats[key] ?? 0)));
+        m.stats[key] = Number.isFinite(value) ? value : 0;
+        m.hiddenStats = (m.hiddenStats || []).filter((item) => String(item) !== key);
+        saveSettings();
+        render();
+    });
+
+    $(document).on("click.party", "#uie-party-window .party-sheet-stat-mode", function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        partyAttributeEditMode = !partyAttributeEditMode;
+        render();
+    });
+
+    $(document).on("click.party", "#uie-party-window .party-inv-tab", function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        const scope = String($(this).attr("data-inventory-scope") || "shared");
+        const s2 = getSettings();
+        const member = getActiveOrFirstMember(s2);
+        partyInventoryTarget = scope === "personal" && member ? `member:${member.id}` : "shared";
+        render();
+    });
+
+    $(document).on("click.party", "#uie-party-window .party-sheet-stat-edit", function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        const key = String($(this).data("stat") || "");
+        const s2 = getSettings();
+        const m = getActiveOrFirstMember(s2);
+        if (!m || !key) return;
+        const value = Number(prompt(`Set ${key.toUpperCase()}:`, String(m.stats?.[key] ?? 0)));
+        if (!Number.isFinite(value)) return;
+        m.stats[key] = value;
+        saveSettings();
+        render();
+    });
+
+    $(document).on("click.party", "#uie-party-window .party-sheet-stat-delete", function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        const key = String($(this).data("stat") || "");
+        const s2 = getSettings();
+        const m = getActiveOrFirstMember(s2);
+        if (!m || !key || !confirm(`Remove attribute '${key}' from this character?`)) return;
+        m.hiddenStats = Array.from(new Set([...(m.hiddenStats || []), key]));
+        saveSettings();
+        render();
+    });
+
+    $(document).on("click.party", "#uie-party-window .party-sheet-effect-add", function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        const s2 = getSettings();
+        const m = getActiveOrFirstMember(s2);
+        if (!m) return;
+        ensureMember(m);
+        const effect = String(prompt("Add an effect, condition, buff, or debuff:") || "").trim();
+        if (!effect) return;
+        m.statusEffects.push(effect.slice(0, 120));
+        saveSettings();
+        render();
+    });
+
+    $(document).on("click.party", "#uie-party-window .party-sheet-effect-delete", function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        const key = String($(this).data("effect-key") || "").trim();
+        const s2 = getSettings();
+        const m = getActiveOrFirstMember(s2);
+        if (!m || !key) return;
+        m.statusEffects = (Array.isArray(m.statusEffects) ? m.statusEffects : []).filter((effect) => statusKey(effect) !== key);
+        saveSettings();
+        render();
     });
 
     $(document).on("click.party", "#uie-party-window .party-track-btn, #uie-party-member-modal .party-track-btn", function(e) {
@@ -4100,6 +4336,17 @@ Do NOT wrap in markdown block. Return raw JSON text.`;
     $(document).on("click.party", "#uie-party-window .party-slot", function(e) {
         e.preventDefault();
         e.stopPropagation();
+        if ($(this).attr("data-add-slot") === "true") {
+            const label = String(window.prompt("Name the new equipment slot:", "") || "").trim();
+            if (!label) return;
+            const s2 = getSettings();
+            ensureParty(s2);
+            if (addCustomEquipmentSlot(s2, label)) {
+                saveSettings();
+                render();
+            }
+            return;
+        }
         const slot = String($(this).attr("data-slot") || "").trim();
         if (!slot) return;
         const s2 = getSettings();
@@ -4326,11 +4573,12 @@ Do NOT wrap in markdown block. Return raw JSON text.`;
         const statName = prompt("Enter stat name (e.g., 'magic', 'stamina', 'luck'):");
         if (!statName || !statName.trim()) return;
         const key = statName.trim().toLowerCase().replace(/\s+/g, "_");
-        if (m.stats[key] !== undefined) {
+        if (m.stats[key] !== undefined && !(m.hiddenStats || []).includes(key)) {
             alert("Stat already exists!");
             return;
         }
         m.stats[key] = 0;
+        m.hiddenStats = (m.hiddenStats || []).filter((item) => String(item) !== key);
         saveSettings();
         renderMemberModal(s2, m);
     });
@@ -4345,7 +4593,7 @@ Do NOT wrap in markdown block. Return raw JSON text.`;
         if (!m) return;
         ensureMember(m);
         if (!confirm(`Delete stat '${statKey}'?`)) return;
-        delete m.stats[statKey];
+        m.hiddenStats = Array.from(new Set([...(m.hiddenStats || []), statKey]));
         saveSettings();
         renderMemberModal(s2, m);
     });
@@ -4428,7 +4676,6 @@ Do NOT wrap in markdown block. Return raw JSON text.`;
             ensureMember(m);
             
             let profileText = "";
-            if (m.bio) profileText += `Biography:\n${m.bio}\n\n`;
             if (m.notes) profileText += `Notes:\n${m.notes}\n\n`;
             
             const cardName = String(m.identity?.name || "").trim().toLowerCase();
@@ -4446,7 +4693,7 @@ Do NOT wrap in markdown block. Return raw JSON text.`;
             }
             
             if (!profileText.trim()) {
-                notify("warning", "Biography and character card are empty. Write some description first.", "Party");
+                notify("warning", "Character notes and character card are empty. Add some description first.", "Party");
                 return;
             }
             
@@ -4532,17 +4779,17 @@ Do NOT wrap in markdown block. Return raw JSON text.`;
         }
     });
 
-    $(document).on("click.party", "#uie-party-member-modal .party-fx", function (e) {
+    $(document).on("click.party", "#uie-party-member-modal .party-fx, #uie-party-window .party-fx", function (e) {
         e.preventDefault();
         e.stopPropagation();
-        const txt = String(this.getAttribute("title") || "").trim();
+        const txt = String(this.getAttribute("data-detail") || this.getAttribute("title") || "").trim();
         if (!txt) return;
         let box = document.getElementById("uie-party-fx-pop");
         const popZ = String(getMemberModalZIndex() + 2);
         if (!box) {
             box = document.createElement("div");
             box.id = "uie-party-fx-pop";
-            box.style.cssText = `position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:${popZ};max-width:min(380px,92vw);padding:12px 14px;border-radius:16px;border:1px solid rgba(255,255,255,0.12);background:rgba(15,10,8,0.96);color:#fff;font-weight:900;`;
+            box.style.cssText = `position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:${popZ};max-width:min(380px,92vw);padding:12px 14px;border-radius:16px;border:1px solid rgba(255,255,255,0.12);background:rgba(15,10,8,0.96);color:#fff;font-weight:750;white-space:pre-line;line-height:1.55;cursor:pointer;`;
             document.body.appendChild(box);
             box.addEventListener("click", () => { try { box.remove(); } catch (_) {} });
         }
@@ -4632,6 +4879,10 @@ Do NOT wrap in markdown block. Return raw JSON text.`;
             render();
         } else if (act === "toggleActive") {
             s.party.members[idx].active = s.party.members[idx].active === false;
+            saveSettings();
+            render();
+        } else if (act === "toggleFollow") {
+            s.party.members[idx].followsUser = s.party.members[idx].followsUser !== true;
             saveSettings();
             render();
         }
@@ -4795,7 +5046,6 @@ Do NOT wrap in markdown block. Return raw JSON text.`;
         m.vitals.mp = Number($("#pm-mp").val());
         m.vitals.maxMp = Number($("#pm-maxmp").val());
 
-        m.bio = $("#pm-bio").val();
         m.notes = $("#pm-notes").val();
         m.customCSS = $("#pm-css").val();
 

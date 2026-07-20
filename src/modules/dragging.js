@@ -165,7 +165,8 @@ export function initDragging() {
             ".uie-rpg-header",
             ".uie-sim-header",
             "#chatlog-modal .chatlog-window-head",
-            "#uie-inv-drag"
+            "#uie-inv-drag",
+            ".re-screen-minimap__bar"
         ].join(", ");
         document.querySelectorAll(dragSel).forEach((el) => {
             try {
@@ -184,8 +185,9 @@ export function initDragging() {
         const inStatsHeader = t.closest(".uie-rpg-header").length > 0;
         const inActivitiesHeader = t.closest(".uie-sim-header").length > 0;
         const inChatlogHeader = t.closest("#chatlog-modal .chatlog-window-head").length > 0;
+        const inMinimapHeader = t.closest(".re-screen-minimap__bar").length > 0;
         const inGenericHeader = t.closest(".uie-header, .uie-diary-header, .phone-status-bar, .uie-phone-drag-handle, .uie-p-header, .uie-party-member-header").length > 0;
-        const inDragHeader = inStatsHeader || inActivitiesHeader || inChatlogHeader || inGenericHeader;
+        const inDragHeader = inStatsHeader || inActivitiesHeader || inChatlogHeader || inMinimapHeader || inGenericHeader;
         const inHeaderButton = t.closest("button, .uie-rpg-close, .uie-sim-close, .uie-close-btn").length > 0;
         const inAnyWindow = t.closest(".uie-window").length > 0;
         const inPhoneWindow = t.closest("#uie-phone-window").length > 0;
@@ -258,6 +260,7 @@ export function initDragging() {
             else if (t.closest(".uie-rpg-header").length) target = $("#uie-stats-window");
             else if (t.closest(".uie-sim-header").length) target = $("#uie-activities-window");
             else if (t.closest("#chatlog-modal .chatlog-window-head").length) target = $("#chatlog-modal");
+            else if (t.closest(".re-screen-minimap__bar").length) target = $("#re-screen-minimap");
             else if (t.closest(".uie-header").length) target = t.closest(".uie-window");
         } else {
             // Desktop: only drag from headers
@@ -270,6 +273,7 @@ export function initDragging() {
             else if (t.closest(".uie-rpg-header").length) target = $("#uie-stats-window");
             else if (t.closest(".uie-sim-header").length) target = $("#uie-activities-window");
             else if (t.closest("#chatlog-modal .chatlog-window-head").length) target = $("#chatlog-modal");
+            else if (t.closest(".re-screen-minimap__bar").length) target = $("#re-screen-minimap");
             else if (t.closest(".uie-header").length) target = t.closest(".uie-window");
         }
 
@@ -353,7 +357,12 @@ export function initDragging() {
         const rawTop = pos.clientY - windowState.oy;
         const winId = windowState.target.attr("id") || "";
         const pad = winId === "uie-main-menu" ? 8 : 0;
-        const clamped = clampToViewport(rawLeft, rawTop, w, h, pad);
+        const clamped = winId === "uie-chatbox-window"
+            ? {
+                x: clamp(rawLeft, 0, Math.max(0, window.innerWidth - w)),
+                y: clamp(rawTop, 0, Math.max(0, window.innerHeight - h))
+            }
+            : clampToViewport(rawLeft, rawTop, w, h, pad);
         windowState.target.css({ left: `${clamped.x}px`, top: `${clamped.y}px`, right: "auto", bottom: "auto", position: "fixed" });
     };
 
@@ -377,6 +386,12 @@ export function initDragging() {
                 s.posY = rect.top;
                 saveSettings();
             }
+            if (id === "re-screen-minimap") {
+                if (!s.ui || typeof s.ui !== "object") s.ui = {};
+                s.ui.minimapX = rect.left;
+                s.ui.minimapY = rect.top;
+                saveSettings();
+            }
             if (id === "uie-main-menu") {
                 s.menuX = rect.left;
                 s.menuY = rect.top;
@@ -390,6 +405,11 @@ export function initDragging() {
             if (id === "chatlog-modal" && isDesktop) {
                 if (!s.ui || typeof s.ui !== "object") s.ui = {};
                 s.ui.chatlogDock = { x: rect.left, y: rect.top, moved: true };
+                saveSettings();
+            }
+            if (id === "uie-chatbox-window") {
+                if (!s.ui || typeof s.ui !== "object") s.ui = {};
+                s.ui.chatboxDock = { x: rect.left, y: rect.top, moved: true };
                 saveSettings();
             }
             
@@ -463,6 +483,7 @@ export function initDragging() {
     document.addEventListener("pointercancel", (e) => { if (!markHandled(e)) return; onWinEnd(e); }, { signal });
 
     document.addEventListener("touchstart", (e) => {
+        if (window.PointerEvent) return;
         if (!markHandled(e)) return;
         const t = $(e.target);
         // If clicking a button or icon inside button, don't interfere
@@ -476,8 +497,8 @@ export function initDragging() {
         onWinStart(e);
     }, { capture: true, passive: false, signal });
 
-    document.addEventListener("touchmove", (e) => { if (!markHandled(e)) return; onWinMove(e); }, { passive: false, signal });
-    document.addEventListener("touchend", (e) => { if (!markHandled(e)) return; onWinEnd(e); }, { signal });
+    document.addEventListener("touchmove", (e) => { if (window.PointerEvent || !markHandled(e)) return; onWinMove(e); }, { passive: false, signal });
+    document.addEventListener("touchend", (e) => { if (window.PointerEvent || !markHandled(e)) return; onWinEnd(e); }, { signal });
 
     // Some host/mobile builds register capture listeners on document and stopImmediatePropagation.
     // window-capture runs before document-capture, so it cannot be blocked the same way.
@@ -512,6 +533,7 @@ export function initDragging() {
     }, { capture: true, signal });
 
     window.addEventListener("touchstart", (e) => {
+        if (window.PointerEvent) return;
         if (!markHandled(e)) return;
         const t = $(e.target);
         if (t.is("button") || 
@@ -524,11 +546,13 @@ export function initDragging() {
     }, { capture: true, passive: false, signal });
 
     window.addEventListener("touchmove", (e) => {
+        if (window.PointerEvent) return;
         if (!markHandled(e)) return;
         onWinMove(e);
     }, { capture: true, passive: false, signal });
 
     window.addEventListener("touchend", (e) => {
+        if (window.PointerEvent) return;
         if (!markHandled(e)) return;
         onWinEnd(e);
     }, { capture: true, signal });

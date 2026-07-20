@@ -1,0 +1,195 @@
+/*
+ * UIE mobile landscape: exact desktop application composition.
+ *
+ * Desktop is untouched. On coarse-pointer landscape only, the original
+ * desktop application shell is given a 1536px logical width and is uniformly
+ * reduced to the live visual viewport. Internal DOM order, grids, panels,
+ * tabs, typography, and application-specific styling remain canonical.
+ */
+
+@media (pointer: coarse) and (orientation: landscape) {
+  html.uie-mobile-desktop-app body.uie-major-app-open #hud,
+  html.uie-mobile-desktop-app body.uie-major-app-open #vn-ui,
+  html.uie-mobile-desktop-app body.uie-major-app-open #uie-launcher,
+  html.uie-mobile-desktop-app body.uie-major-app-open .re-screen-minimap {
+    visibility: hidden !important;
+    pointer-events: none !important;
+  }
+
+  html.uie-mobile-desktop-app .uie-mobile-desktop-root {
+    position: fixed !important;
+    inset: auto !important;
+    width: var(--uie-physical-width) !important;
+    height: var(--uie-physical-height) !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    max-width: none !important;
+    max-height: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    transform: none !important;
+    zoom: 1 !important;
+    pointer-events: auto !important;
+    box-sizing: border-box !important;
+  }
+
+  html.uie-mobile-desktop-app .uie-mobile-desktop-canvas {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    right: auto !important;
+    bottom: auto !important;
+    width: var(--uie-design-width) !important;
+    height: var(--uie-design-height) !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    max-width: none !important;
+    max-height: none !important;
+    margin: 0 !important;
+    transform: scale(var(--uie-app-scale)) !important;
+    transform-origin: top left !important;
+    zoom: 1 !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Party: keep the canonical three-column ledger. Only the complete right
+     workspace scrolls; Attributes, Life Trackers, and Effects do not become
+     independent short mobile scrollers. */
+  html.uie-mobile-desktop-app #uie-party-window .party-shell {
+    width: var(--uie-design-width) !important;
+    height: var(--uie-design-height) !important;
+  }
+
+  html.uie-mobile-desktop-app #uie-party-window .sheet-grid {
+    min-height: calc(var(--uie-design-height) - 140px) !important;
+  }
+
+  html.uie-mobile-desktop-app #uie-party-window .sheet-right {
+    max-height: calc(var(--uie-design-height) - 100px) !important;
+    overflow-y: auto !important;
+  }
+
+  html.uie-mobile-desktop-app #uie-party-window :is(
+    .stats-grid,
+    .party-member-trackers,
+    .party-sheet-effects
+  ) {
+    max-height: none !important;
+    overflow: visible !important;
+    overscroll-behavior: auto !important;
+  }
+
+  /* Organizations: use its own real three columns and desktop measurements.
+     These declarations only neutralize viewport-unit shrinkage on the phone. */
+  html.uie-mobile-desktop-app #uie-factions-window .uie-org-shell {
+    width: var(--uie-design-width) !important;
+    height: var(--uie-design-height) !important;
+    padding: 24px !important;
+    gap: 18px !important;
+  }
+
+  html.uie-mobile-desktop-app #uie-factions-window .uie-org-top {
+    min-height: 78px !important;
+  }
+
+  html.uie-mobile-desktop-app #uie-factions-window .uie-org-heading h2 {
+    font-size: 48px !important;
+  }
+
+  html.uie-mobile-desktop-app #uie-factions-window .uie-org-board {
+    grid-template-columns: 160px minmax(280px, 360px) minmax(0, 1fr) !important;
+    grid-template-rows: minmax(0, 1fr) !important;
+    gap: 18px !important;
+    width: 100% !important;
+    height: 100% !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+  }
+
+  /* Surroundings: restore the desktop toolbar + map + fixed right details
+     panel even when max-width mobile queries match the physical viewport. */
+  html.uie-mobile-desktop-app #uie-map-window .uie-simple-map__shell {
+    width: var(--uie-design-width) !important;
+    height: var(--uie-design-height) !important;
+  }
+
+  html.uie-mobile-desktop-app #uie-map-window .uie-simple-map__header {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 11px !important;
+    min-height: 62px !important;
+    padding: 9px 16px !important;
+    flex-wrap: wrap !important;
+  }
+
+  html.uie-mobile-desktop-app #uie-map-window .uie-simple-map__brand {
+    flex: 0 1 auto !important;
+    max-width: none !important;
+    padding-top: 0 !important;
+  }
+
+  html.uie-mobile-desktop-app #uie-map-window .uie-simple-map__actions {
+    display: flex !important;
+    flex: 1 1 auto !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    flex-wrap: wrap !important;
+    overflow: visible !important;
+    padding: 0 !important;
+  }
+
+  html.uie-mobile-desktop-app #uie-map-window .uie-simple-map__body {
+    position: relative !important;
+    display: flex !important;
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+  }
+
+  html.uie-mobile-desktop-app #uie-map-window .uie-simple-map__canvas {
+    position: relative !important;
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+  }
+
+  html.uie-mobile-desktop-app #uie-map-window .uie-simple-map__panel {
+    position: relative !important;
+    inset: auto !important;
+    z-index: auto !important;
+    display: flex !important;
+    flex: 0 0 253px !important;
+    width: 253px !important;
+    height: auto !important;
+    max-width: none !important;
+    max-height: none !important;
+    padding: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+  }
+
+  /* Inventory: keep the desktop panel and use the selected desktop preset as
+     the full-window background. */
+  html.uie-mobile-desktop-app #uie-inventory-window {
+    background-color: #090d13 !important;
+    background-image: var(--inv-bg) !important;
+    background-position: center center !important;
+    background-size: cover !important;
+    background-repeat: no-repeat !important;
+  }
+
+  html.uie-mobile-desktop-app #uie-inventory-window .uie-inv-panel {
+    width: var(--uie-design-width) !important;
+    height: var(--uie-design-height) !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    max-width: none !important;
+    max-height: none !important;
+    aspect-ratio: auto !important;
+  }
+}

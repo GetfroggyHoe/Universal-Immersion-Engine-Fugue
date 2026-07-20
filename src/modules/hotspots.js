@@ -7,6 +7,7 @@ import { getSettings, saveSettings } from "./core.js";
 import { advanceWorldTimeMinutes } from "./timeProgress.js";
 import { injectRpEvent } from "./features/rp_log.js";
 import { generateContent } from "./apiClient.js";
+import { mutateStatusEffects } from "./statusFx.js";
 
 // Helper to safely parse JSON
 function parseStrictJsonObject(text = "") {
@@ -373,7 +374,7 @@ function injectSubsystemStyles() {
             grid-template-columns: 1.1fr 0.9fr;
             gap: 16px;
         }
-        @media(max-width: 768px) {
+        @media not all {
             .closet-designer-split {
                 grid-template-columns: 1fr;
             }
@@ -1123,7 +1124,15 @@ function wireClosetSplitPane() {
         populateClosetSlots();
         
         // Bind real-time preview listeners
+        const costumeCssTemplate = `/* Costume card CSS template — edit these declarations. */
+background: linear-gradient(145deg, rgba(35, 45, 64, .96), rgba(18, 24, 38, .98));
+border-color: #ffd166;
+box-shadow: 0 12px 30px rgba(0, 0, 0, .35);`;
+        if (!String($("#outfit-custom-css-editor").val() || "").trim()) {
+            $("#outfit-custom-css-editor").val(costumeCssTemplate);
+        }
         bindClosetPreviewSync();
+        syncOutfitLivePreview();
     });
 
     // Wire Outfit Create Cancel button
@@ -2206,7 +2215,11 @@ function openEditRoomModal(slotId = "", opts = {}) {
     populateInteractionSlotOptions(defaultInteraction);
     $("#edit-room-interaction-custom").val("");
     $("#edit-room-actions-json").val(Array.isArray(existing?.actions) && existing.actions.length ? JSON.stringify(existing.actions, null, 2) : "");
-    $("#edit-room-user-css").val(String(existing?.overrides?.user_custom_css || ""));
+    $("#edit-room-user-css").val(String(existing?.overrides?.user_custom_css || `/* Room-only CSS example */
+.room-slot[data-slot-id="${String(target.slotId || "room-slot")}"] {
+  background: rgba(24, 34, 48, .92);
+  border-color: #cba35c;
+}`));
     $("#edit-room-preview").text(existing ? JSON.stringify(existing, null, 2) : "");
     $("#edit-room-system-prompt").val(String(s.roomEditor?.systemPrompt || ""));
     $("#edit-room-modal").css("display", "flex");
@@ -2733,6 +2746,14 @@ function wireEditRoomSystem() {
         const placeId = card.data("placementId");
         const interactionSlot = card.data("interactionSlot");
         const placement = (ensureUiSettings().roomEditor?.placements || []).find(p => String(p?.id || "") === String(placeId));
+        const objectKind = `${placement?.objectType || ""} ${placement?.type || ""} ${placement?.slotType || ""} ${placement?.assetId || ""} ${interactionSlot || ""}`.toLowerCase();
+
+        if (placement && (placement.locked || placement.lock || placement.accessLock || /\b(container|safe|chest|crate|locker|drawer|cabinet|mailbox)\b/.test(objectKind))) {
+            import("./interactables.js")
+                .then((mod) => mod.openWorldObject?.({ ...placement, name: placement.name || placement.label || placement.assetId || "World object" }))
+                .catch((error) => showToast(`Interaction: ${String(error?.message || error)}`, 2600));
+            return;
+        }
 
         if (interactionSlot) {
             // Route to existing hotspot subsystems
@@ -2758,11 +2779,32 @@ function wireEditRoomSystem() {
                     if (a.hours) bumpTime(a.hours);
                     if (a.openComputer) openComputerModal();
                     if (a.openKitchen) openKitchenExperience();
+                    const settings = ensureUiSettings();
+                    settings.character = settings.character && typeof settings.character === "object" ? settings.character : {};
+                    const statusResult = mutateStatusEffects(settings.character, {
+                        add: Array.isArray(a.statusEffects) ? a.statusEffects : [],
+                        remove: [
+                            ...(Array.isArray(a.removeStatusEffects) ? a.removeStatusEffects : []),
+                            ...(Array.isArray(a.curesStatusEffects) ? a.curesStatusEffects : [])
+                        ]
+                    });
+                    if (statusResult.changed) {
+                        Core.saveSettings();
+                        statusResult.added.forEach((effect) => injectRpEvent(`[System: Gained status effect: ${effect.name}.]`));
+                        statusResult.removed.forEach((effect) => injectRpEvent(`[System: Cured status effect: ${effect.name}.]`));
+                        try { window.dispatchEvent(new CustomEvent("uie:updateVitals", { detail: { source: "hotspot" } })); } catch (_) {}
+                    }
                 }
             }));
+            runtimeActions.push({
+                label: "Use a carried tool",
+                desc: "Show only tools that have a valid action for this object.",
+                run: () => import("./contextualActions.js").then((mod) => mod.openContextActions?.(placement))
+            });
             openRoomAction(String(placement.assetId || "Room Component"), runtimeActions);
         } else {
-            showToast("No actions defined for this component.", 2000);
+            if (placement) import("./contextualActions.js").then((mod) => mod.openContextActions?.(placement)).catch(() => showToast("No actions defined for this component.", 2000));
+            else showToast("No actions defined for this component.", 2000);
         }
     });
 
