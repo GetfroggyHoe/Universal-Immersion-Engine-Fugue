@@ -7,6 +7,63 @@ import { openHelpManualWindow, installHelpManualGlobals } from "./helpManual.js"
 import { initVoiceLibraryPanel } from "./voiceLibraryPanel.js";
 
 let uieMenuTabSwitchedAt = 0;
+let uieAddNpcButtonBound = false;
+let uieAddNpcOpening = false;
+let uieAddNpcLastActivationAt = 0;
+
+async function openNpcRosterFromMenu(event) {
+    const now = Date.now();
+    if (now - uieAddNpcLastActivationAt < 650 || uieAddNpcOpening) {
+        try { event?.preventDefault?.(); } catch (_) {}
+        return false;
+    }
+    uieAddNpcLastActivationAt = now;
+    uieAddNpcOpening = true;
+
+    try {
+        event?.preventDefault?.();
+        $("#uie-main-menu").hide();
+
+        const mod = await (
+            typeof window.importUieModule === "function"
+                ? window.importUieModule("npcManagementModal.js")
+                : import("./npcManagementModal.js")
+        );
+        await mod?.initNPCManagementModal?.();
+        await mod?.openNPCRosterPanel?.();
+        return true;
+    } catch (e) {
+        console.error("[MainMenu] Failed to open NPC creator:", e);
+        try { notify("error", "NPC creator could not be opened.", "World"); } catch (_) {}
+        return false;
+    } finally {
+        uieAddNpcOpening = false;
+    }
+}
+
+function initAddNpcButton() {
+    if (uieAddNpcButtonBound) return;
+    uieAddNpcButtonBound = true;
+
+    const activate = function(event) {
+        const button = event?.target?.closest?.("#uie-btn-add-npc");
+        if (!button) return;
+
+        if (event.type === "pointerup") {
+            const pointerType = String(event.pointerType || "").toLowerCase();
+            if (pointerType && pointerType !== "touch" && pointerType !== "pen") return;
+        }
+
+        // Capture the real touch/pen release before draggable menu code can
+        // swallow the synthetic click. The click path remains for mouse and
+        // keyboard activation, and the shared timestamp prevents double opens.
+        try { event.preventDefault(); } catch (_) {}
+        void openNpcRosterFromMenu(event);
+    };
+
+    document.addEventListener("pointerup", activate, { capture: true, passive: false });
+    document.addEventListener("click", activate, true);
+}
 try { installHelpManualGlobals(); } catch (_) {}
 
 const STANDALONE_TEMPLATE_BY_WINDOW = {
@@ -246,6 +303,7 @@ export function initInteractions() {
     initLauncher();
     initMobileBackNav();
     initReplyKeyboard();
+    initAddNpcButton();
 
     // Settings drawer (and other delegated UI handlers) must work even if the launcher
     // is missing/hidden or the user never opens the main menu.
@@ -1588,18 +1646,6 @@ function initMenuButtons() {
             if (mod.initPhone) mod.initPhone();
         } catch (e) { console.error("Phone load error:", e); }
         $("#uie-main-menu").hide();
-    });
-
-    $menu.off("click.uieMenuAddNpc").on("click.uieMenuAddNpc", "#uie-btn-add-npc", async function() {
-        try {
-            $("#uie-main-menu").hide();
-            const mod = await import("./npcManagementModal.js");
-            mod.initNPCManagementModal?.();
-            mod.openNPCRosterPanel?.();
-        } catch (e) {
-            console.error("[MainMenu] Failed to open NPC creator:", e);
-            try { notify("error", "NPC creator could not be opened.", "World"); } catch (_) {}
-        }
     });
 
     // Map (fresh single-module atlas)
