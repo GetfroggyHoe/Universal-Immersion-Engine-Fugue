@@ -5683,6 +5683,14 @@ class KojiDownloadRequest(BaseModel):
 
 @app.post("/visuals/models/koji/download")
 def visuals_download_koji(payload: KojiDownloadRequest = None) -> dict[str, Any]:
+    # UIE_KOJI_DEPENDENCY_PREFLIGHT_V2
+    from .visuals.koji_dependencies import ensure_koji_dependencies
+    dependency_status = ensure_koji_dependencies(auto_repair=True)
+    if not dependency_status.get("ok"):
+        raise HTTPException(
+            status_code=500,
+            detail=dependency_status.get("error") or "Koji dependencies could not be prepared.",
+        )
     try:
         from .visuals.download_koji import download_koji
         payload = payload or KojiDownloadRequest()
@@ -5694,6 +5702,14 @@ def visuals_download_koji(payload: KojiDownloadRequest = None) -> dict[str, Any]
 
 @app.post("/visuals/models/koji/download-async")
 def visuals_download_koji_async() -> dict[str, Any]:
+    # UIE_KOJI_DEPENDENCY_PREFLIGHT_V2
+    from .visuals.koji_dependencies import ensure_koji_dependencies
+    dependency_status = ensure_koji_dependencies(auto_repair=True)
+    if not dependency_status.get("ok"):
+        raise HTTPException(
+            status_code=500,
+            detail=dependency_status.get("error") or "Koji dependencies could not be prepared.",
+        )
     try:
         from .visuals.download_koji import download_koji_async, get_download_state
         download_koji_async()

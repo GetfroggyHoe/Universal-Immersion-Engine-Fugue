@@ -1,0 +1,131 @@
+/* UIE_MOBILE_INTERACTION_FIXES_V1 */
+
+#uie-pet-chat-panel,
+#uie-pet-chat-panel.uie-pet-chat-panel {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden !important;
+  min-height: 240px;
+  max-height: calc(100dvh - 16px) !important;
+}
+
+#uie-pet-chat-panel #uie-pet-chat-log {
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+#uie-pet-chat-panel .uie-pet-quick-questions {
+  flex: 0 0 auto !important;
+}
+
+#uie-pet-chat-panel .uie-pet-chat-composer,
+#uie-pet-chat-panel > div:has(> #uie-pet-chat-input) {
+  display: flex !important;
+  flex: 0 0 auto !important;
+  align-items: center !important;
+  gap: 6px !important;
+  min-height: 54px !important;
+  padding: 10px !important;
+  position: relative !important;
+  inset: auto !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  z-index: 4 !important;
+  border-top: 1px solid rgba(255,255,255,.08) !important;
+  background: rgba(0,0,0,.28) !important;
+}
+
+#uie-pet-chat-input {
+  display: block !important;
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+  width: auto !important;
+  height: 34px !important;
+  padding: 0 12px !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+  border: 1px solid rgba(94,181,224,.4) !important;
+  border-radius: 17px !important;
+  background: rgba(2,12,24,.72) !important;
+  color: #fff !important;
+}
+
+#uie-pet-chat-send {
+  display: inline-flex !important;
+  flex: 0 0 34px !important;
+  width: 34px !important;
+  height: 34px !important;
+  align-items: center !important;
+  justify-content: center !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+}
+
+#uie-map-window:not([hidden]):not([aria-hidden="true"]) :is(
+  .uie-simple-map__header,
+  .uie-simple-map__canvas,
+  .uie-simple-map__stage,
+  .uie-simple-map__viewport,
+  [data-map-canvas],
+  [data-map-stage]
+) {
+  pointer-events: auto !important;
+}
+
+#uie-map-window:not([hidden]):not([aria-hidden="true"]) :is(
+  .uie-simple-map__canvas,
+  .uie-simple-map__stage,
+  .uie-simple-map__viewport,
+  [data-map-canvas],
+  [data-map-stage]
+) {
+  touch-action: none !important;
+}
+
+@media (pointer: coarse) and (orientation: landscape) {
+  #uie-pet-chat-panel {
+    width: min(360px, 48vw) !important;
+    height: min(460px, calc(100dvh - 16px)) !important;
+  }
+
+  :is(
+    #lorebook-modal,
+    #lorebook-window,
+    #lorebook-manager,
+    #uie-lorebook-window,
+    .lorebook-modal,
+    .lorebook-window,
+    .uie-lorebook-window,
+    [id*="lorebook" i][role="dialog"],
+    [id*="lorebook" i].uie-window,
+    [class*="lorebook" i][class*="modal" i],
+    [class*="lorebook" i][class*="window" i],
+    body > [id*="lorebook" i]
+  ) {
+    position: fixed !important;
+    inset: 4px 4px 4px auto !important;
+    left: auto !important;
+    right: 4px !important;
+    top: 4px !important;
+    bottom: 4px !important;
+    width: min(60vw, 760px) !important;
+    height: calc(100dvh - 8px) !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    max-width: 60vw !important;
+    max-height: calc(100dvh - 8px) !important;
+    margin: 0 !important;
+    transform: none !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    overscroll-behavior: contain !important;
+    -webkit-overflow-scrolling: touch !important;
+    touch-action: pan-y !important;
+  }
+}

@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
     <title>UIE: Fugue</title>
-    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 
     <script>
         window.UIE_gameOwnsPostReplyScan = true;
@@ -2517,6 +2517,9 @@
 <link rel="stylesheet" href="./src/styles/mobileLandscapeChrome.css?v=20260719-082339">
 <link rel="stylesheet" href="./src/styles/desktopAppMirror.css?v=20260719-074711">
     <link rel="stylesheet" href="./src/styles/replySendStatus.css?v=20260719-082010">
+<link rel="stylesheet" href="./src/styles/mobileInteractionFixes.css?v=20260721-184237">
+    <link rel="stylesheet" href="./src/styles/replyKeyboardMobile.css?v=20260722-094557">
+    <link rel="stylesheet" href="./src/styles/mobileWindowRecovery.css?v=20260722-160716">
 </head>
 <body>
     <div id="loading">
@@ -9617,14 +9620,110 @@ ${sanitizeModalLookCss(uiStyle.customCss)}
                 ? `${built.prompt}\n\nNegative prompt: ${built.negative}`
                 : built.prompt;
             const sImg = ensureUiSettings();
-            if (sImg.image?.confirmPromptBeforeGen === true) {
+            const instantGeneration =
+                o.instant === true
+                || o.autoStart === true
+                || o.skipPromptConfirm === true;
+
+            if (
+                !instantGeneration
+                && sImg.image?.confirmPromptBeforeGen === true
+            ) {
                 const edited = await openImagePromptConfirmModal(promptWithNeg);
-                if (edited == null) throw new Error("Image generation cancelled.");
+                if (edited == null) {
+                    throw new Error("Image generation cancelled.");
+                }
                 promptWithNeg = edited;
             }
-            const url = await ImageGen.generateImageAPI(promptWithNeg, built.mode === "background"
-                ? { mode: "background", location: getCurrentLocationName() }
-                : {});
+
+            const selectedProvider = String(
+                document.getElementById("q-img-provider")?.value
+                || sImg.image?.provider
+                || "openai"
+            ).trim().toLowerCase();
+
+            try {
+                window.UIE_ImageProviderEndpointSync?.apply?.(
+                    selectedProvider,
+                    String(sImg.image?.provider || "").trim().toLowerCase()
+                );
+            } catch (_) {}
+
+            const currentSettings = ensureUiSettings();
+            const imageSettings =
+                currentSettings.image
+                && typeof currentSettings.image === "object"
+                    ? currentSettings.image
+                    : {};
+
+            const firstDefined = (...values) => {
+                for (const value of values) {
+                    if (value == null) continue;
+                    if (typeof value === "string" && !value.trim()) continue;
+                    return value;
+                }
+                return "";
+            };
+
+            const backgroundWorkflow = firstDefined(
+                imageSettings.backgroundWorkflow,
+                imageSettings.workflowBackground,
+                imageSettings.workflows?.background,
+                imageSettings.background?.workflow,
+                imageSettings.workflow?.background,
+                imageSettings.comfy?.backgroundWorkflow,
+                imageSettings.comfy?.workflow
+            );
+
+            const backgroundPipeline = firstDefined(
+                imageSettings.backgroundPipeline,
+                imageSettings.pipelines?.background,
+                imageSettings.background?.pipeline,
+                imageSettings.pipeline?.background,
+                "background"
+            );
+
+            const generationOptions = {
+                provider: String(
+                    imageSettings.provider || selectedProvider
+                ).trim().toLowerCase(),
+                url: String(imageSettings.url || "").trim(),
+                endpoint: String(imageSettings.url || "").trim(),
+                model: String(imageSettings.model || "").trim(),
+                key: String(imageSettings.key || "").trim(),
+                apiKey: String(imageSettings.key || "").trim(),
+                immediate: instantGeneration,
+                autoStart: instantGeneration,
+                source: String(o.source || "").trim()
+            };
+
+            if (built.mode === "background") {
+                Object.assign(generationOptions, {
+                    mode: "background",
+                    type: "background",
+                    location: getCurrentLocationName(),
+                    pipeline: backgroundPipeline,
+                    backgroundPipeline,
+                    workflow: backgroundWorkflow,
+                    backgroundWorkflow,
+                    comfyWorkflow: backgroundWorkflow,
+                    useBackgroundPipeline: true,
+                    useBackgroundWorkflow: true,
+                    useWorkflow: true,
+                    usePipeline: true,
+                    followWorkflow: true,
+                    promptTemplate:
+                        String(
+                            imageSettings.promptTemplateBackground || ""
+                        ).trim(),
+                    imageSettings
+                });
+            }
+
+            const url = await ImageGen.generateImageAPI(
+                promptWithNeg,
+                generationOptions
+            );
             if (!url) throw new Error("No image URL returned by generator.");
             if (built.mode === "background" && String(url).trim() && /^https?:|^data:/i.test(String(url))) {
                 const loc = getCurrentLocationName();
@@ -16223,8 +16322,20 @@ ensureVnStageDom();
                 }
                 if (!action) return;
                 try {
-                    showToast("Generating image...", 2400);
-                    await generateImageFromSdRequest("", action);
+                    showToast(
+                        action === "background"
+                            ? "Generating location background..."
+                            : "Generating image...",
+                        2400
+                    );
+                    await generateImageFromSdRequest("", action, {
+                        instant: true,
+                        autoStart: true,
+                        skipPromptConfirm: true,
+                        source: "quick-dropdown",
+                        useBackgroundPipeline: action === "background",
+                        useBackgroundWorkflow: action === "background"
+                    });
                     showToast("Image generated.", 2200);
                 } catch (err) {
                     showToast(`Image failed: ${String(err?.message || err)}`, 4200);
@@ -22459,17 +22570,7 @@ function getMainProviderPreset(providerRaw = "") {
   </div>
 </div>
 
-<div id="uie-map-import-modal" class="uie-map-modal" hidden aria-hidden="true">
-  <div class="uie-map-modal__panel">
-    <div class="uie-map-modal__top">
-      <div><div class="uie-simple-map__eyebrow">Map Exchange</div><h3>Import Map JSON</h3></div>
-      <button type="button" data-map-modal-close class="uie-simple-map__close" aria-label="Close import">x</button>
-    </div>
-    <textarea id="uie-map-import-json" class="uie-map-modal__textarea" placeholder="Paste exported or shared map JSON here."></textarea>
-    <div class="uie-map-modal__actions"><button type="button" id="uie-map-import-apply" class="uie-simple-map__primary">Import Map</button></div>
-  </div>
-</div>
-
+<input id="uie-map-import-file" type="file" accept=".json,application/json,text/json" hidden aria-hidden="true">
 <div id="uie-rune-lock" class="uie-rune-lock" hidden aria-hidden="true">
   <div class="uie-rune-lock__panel">
     <div class="uie-rune-lock__top">
@@ -31487,5 +31588,8 @@ function getMainProviderPreset(providerRaw = "") {
 <script type="module" src="./src/js/mobileLandscapeChrome.js?v=20260719-061042"></script>
     <script type="module" src="./src/js/desktopAppMirror.js?v=20260719-074711"></script>
     <script type="module" src="./src/js/replySendStatus.js?v=20260719-081334"></script>
+    <script src="./src/modules/imageProviderEndpointSync.js?v=20260721-184237"></script>
+    <script src="./src/modules/replyKeyboardTouchFix.js?v=20260722-094557"></script>
+    <script src="./src/modules/mobileWindowRecovery.js?v=20260722-160716"></script>
 </body>
 </html>

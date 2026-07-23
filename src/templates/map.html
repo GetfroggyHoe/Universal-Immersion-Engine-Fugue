@@ -326,17 +326,7 @@
   </div>
 </div>
 
-<div id="uie-map-import-modal" class="uie-map-modal" hidden aria-hidden="true">
-  <div class="uie-map-modal__panel">
-    <div class="uie-map-modal__top">
-      <div><div class="uie-simple-map__eyebrow">Map Exchange</div><h3>Import Map JSON</h3></div>
-      <button type="button" data-map-modal-close class="uie-simple-map__close" aria-label="Close import">x</button>
-    </div>
-    <textarea id="uie-map-import-json" class="uie-map-modal__textarea" placeholder="Paste exported or shared map JSON here."></textarea>
-    <div class="uie-map-modal__actions"><button type="button" id="uie-map-import-apply" class="uie-simple-map__primary">Import Map</button></div>
-  </div>
-</div>
-
+<input id="uie-map-import-file" type="file" accept=".json,application/json,text/json" hidden aria-hidden="true">
 <div id="uie-rune-lock" class="uie-rune-lock" hidden aria-hidden="true">
   <div class="uie-rune-lock__panel">
     <div class="uie-rune-lock__top">

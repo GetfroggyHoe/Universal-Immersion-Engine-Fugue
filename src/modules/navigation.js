@@ -692,24 +692,67 @@ function bindImmersiveInputController() {
     let lastSwipeAt = 0;
     let swipeSequence = Promise.resolve();
 
-    const swipeTargetBlocked = (target) => isTextEntryTarget(target) || Boolean(target?.closest?.(
-        "button, a, input, textarea, select, [contenteditable='true'], #vn-ui, #hud, #nav-row, #game-overlay-root"
-    ));
+    const isScrollableGestureTarget = (target) => {
+        let element = target instanceof Element ? target : null;
+
+        while (element && element !== document.body && element !== document.documentElement) {
+            if (element.matches?.(
+                ".uie-window, .modal, [role='dialog'], [aria-modal='true'], " +
+                "[id*='lorebook' i], [class*='lorebook' i], " +
+                "#game-overlay-root, #uie-main-menu, #reply-menu-panel"
+            )) {
+                return true;
+            }
+
+            const style = window.getComputedStyle(element);
+            const canScrollY = /(auto|scroll|overlay)/.test(style.overflowY)
+                && element.scrollHeight > element.clientHeight + 8;
+            const canScrollX = /(auto|scroll|overlay)/.test(style.overflowX)
+                && element.scrollWidth > element.clientWidth + 8;
+
+            if (canScrollY || canScrollX) return true;
+            element = element.parentElement;
+        }
+
+        return false;
+    };
+
+    const swipeTargetBlocked = (target) => {
+        if (!(target instanceof Element)) return false;
+        if (isTextEntryTarget(target)) return true;
+        return Boolean(target.closest(
+            "button, a, input, textarea, select, [contenteditable='true'], " +
+            "#vn-ui, #hud, #nav-row, #game-overlay-root, .uie-window, .modal, " +
+            "[role='dialog'], [aria-modal='true'], " +
+            "[id*='lorebook' i], [class*='lorebook' i], " +
+            "[data-uie-mobile-recovered='1']"
+        ));
+    };
 
     const finishSwipe = (start, x, y) => {
-        if (!start || isBlockingOverlayOpen() || Date.now() - start.at > 1600) return false;
+        if (!start || isBlockingOverlayOpen()) return false;
+
+        const elapsed = Date.now() - start.at;
+        if (elapsed < 140 || elapsed > 1250) return false;
+
         const dx = x - start.x;
         const dy = y - start.y;
         const distance = Math.max(Math.abs(dx), Math.abs(dy));
-        if (distance < 36 || distance < Math.min(window.innerWidth, window.innerHeight) * 0.07) return false;
-        if (Date.now() - lastSwipeAt < 180) return false;
+        const crossAxis = Math.min(Math.abs(dx), Math.abs(dy));
+        const minimumDistance = Math.max(
+            96,
+            Math.min(window.innerWidth, window.innerHeight) * 0.16
+        );
+
+        if (distance < minimumDistance) return false;
+        if (crossAxis > distance * 0.72) return false;
+        if (Date.now() - lastSwipeAt < 650) return false;
+
         lastSwipeAt = Date.now();
         const direction = Math.abs(dx) > Math.abs(dy)
             ? (dx < 0 ? "west" : "east")
             : (dy < 0 ? "north" : "south");
-        // Serialize async previews so a quick second swipe cannot overtake the
-        // first one before it has installed pendingDestination. First swipe
-        // shows path info; the next matching swipe performs movement.
+
         swipeSequence = swipeSequence
             .catch(() => false)
             .then(() => activateDirection(direction));
@@ -743,8 +786,18 @@ function bindImmersiveInputController() {
 
     document.addEventListener("touchmove", function(event) {
         if (!touchSwipe || event.touches?.length !== 1) return;
+
         const touch = event.touches[0];
-        if (Math.max(Math.abs(touch.clientX - touchSwipe.x), Math.abs(touch.clientY - touchSwipe.y)) >= 18) {
+        const dx = Math.abs(touch.clientX - touchSwipe.x);
+        const dy = Math.abs(touch.clientY - touchSwipe.y);
+        const primary = Math.max(dx, dy);
+        const crossAxis = Math.min(dx, dy);
+        const captureDistance = Math.max(
+            78,
+            Math.min(window.innerWidth, window.innerHeight) * 0.13
+        );
+
+        if (primary >= captureDistance && crossAxis <= primary * 0.72) {
             event.preventDefault();
         }
     }, { capture: true, passive: false });

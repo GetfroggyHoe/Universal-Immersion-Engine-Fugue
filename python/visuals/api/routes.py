@@ -234,6 +234,18 @@ async def get_models_status() -> dict[str, Any]:
 @router.post("/models/{model_id}/install")
 async def install_model(model_id: str, request: ModelInstallRequest | None = None) -> dict[str, str]:
     if model_id == "koji":
+        # UIE_KOJI_PILLOW_PREFLIGHT
+        from python.visuals.koji_dependencies import ensure_koji_dependencies
+        dependency_status = ensure_koji_dependencies(auto_repair=True)
+        if not dependency_status.get('ok'):
+            raise RuntimeError(dependency_status.get('error') or 'Koji dependencies could not be prepared.')
+        # UIE_KOJI_DEPENDENCY_PREFLIGHT_V2
+        from python.visuals.koji_dependencies import ensure_koji_dependencies
+        dependency_status = ensure_koji_dependencies(auto_repair=True)
+        if not dependency_status.get("ok"):
+            raise RuntimeError(
+                dependency_status.get("error") or "Koji dependencies could not be prepared."
+            )
         from python.visuals.download_koji import download_koji_async
         download_koji_async()
         return {"status": "downloading", "model_id": model_id}

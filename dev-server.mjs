@@ -37,7 +37,7 @@ let backendProcess = null;
 let selectedBasePython = null;
 let backendStartupState = "pending";
 let backendStartupError = "";
-const CORE_IMPORT_CHECK = "import fastapi, uvicorn, pydantic, pydantic_core; import python.uie_backend";
+const CORE_IMPORT_CHECK = "import fastapi, uvicorn, pydantic, pydantic_core; import python.uie_backend; from PIL import Image, _imaging; import huggingface_hub";
 const PYTHON_VERSION_CHECK = "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')";
 
 async function askYesNo(question, defaultYes = false) {

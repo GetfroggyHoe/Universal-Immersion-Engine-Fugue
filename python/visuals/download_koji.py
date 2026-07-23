@@ -266,14 +266,24 @@ def _do_download(use_gguf: bool = False, gguf_quant: str | None = None) -> bool:
                     self.current = max(self.current, self.total)
                     self._report()
 
-            local_path = hf_hub_download(
-                repo_id=KOJI_HF_REPO,
-                filename=filename,
-                token=token,
-                local_dir=str(KOJI_DIR),
-                local_dir_use_symlinks=False,
-                tqdm_class=KojiDownloadProgress,
-            )
+            # UIE_HF_HUB_DOWNLOAD_COMPAT
+            # Do not pass tqdm_class to hf_hub_download; it is not accepted
+            # by several supported huggingface_hub releases. Only pass optional
+            # keywords that the installed version explicitly exposes.
+            download_kwargs = {
+                "repo_id": KOJI_HF_REPO,
+                "filename": filename,
+                "token": token,
+                "local_dir": str(KOJI_DIR),
+            }
+            try:
+                import inspect
+                hub_parameters = inspect.signature(hf_hub_download).parameters
+            except (TypeError, ValueError):
+                hub_parameters = {}
+            if "local_dir_use_symlinks" in hub_parameters:
+                download_kwargs["local_dir_use_symlinks"] = False
+            local_path = hf_hub_download(**download_kwargs)
             downloaded.append(filename)
             _update_state(files_downloaded=downloaded, current_file=None)
             log.info(f"Downloaded: {local_path}")
@@ -309,6 +319,13 @@ def _do_download(use_gguf: bool = False, gguf_quant: str | None = None) -> bool:
 
 
 def download_koji(use_gguf: bool = False, gguf_quant: str | None = None) -> dict[str, Any]:
+    # UIE_KOJI_DEPENDENCY_PREFLIGHT_V2
+    from .koji_dependencies import ensure_koji_dependencies
+    dependency_status = ensure_koji_dependencies(auto_repair=True)
+    if not dependency_status.get("ok"):
+        raise RuntimeError(
+            dependency_status.get("error") or "Koji dependencies could not be prepared."
+        )
     with _download_lock:
         current = get_download_state()
         if current.get("status") == "downloading":

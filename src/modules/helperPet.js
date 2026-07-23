@@ -1107,6 +1107,7 @@ function togglePetChatPanel() {
 
     panel = document.createElement("div");
     panel.id = "uie-pet-chat-panel";
+    panel.classList.add("uie-pet-chat-panel");
     panel.style.cssText = `
         position: fixed;
         left: 0;
@@ -1151,7 +1152,7 @@ function togglePetChatPanel() {
 
         <!-- Input Area -->
         <div style="display:flex; gap:6px; padding:10px; border-top: 1px solid rgba(255,255,255,0.08); background:rgba(0,0,0,0.15);">
-            <input type="text" id="uie-pet-chat-input" placeholder="Ask about controls..." style="flex:1;height:34px;border-radius:17px;border:1px solid rgba(94,181,224,.4);background:rgba(2,12,24,.72);color:#fff;padding:0 12px;outline:none;font-size:12px;" />
+            <input class="uie-pet-chat-input" type="text" id="uie-pet-chat-input" placeholder="Ask about controls..." style="flex:1;height:34px;border-radius:17px;border:1px solid rgba(94,181,224,.4);background:rgba(2,12,24,.72);color:#fff;padding:0 12px;outline:none;font-size:12px;" />
             <button id="uie-pet-chat-send" style="width:34px;height:34px;border-radius:50%;border:1px solid rgba(186,230,253,.55);background:linear-gradient(135deg,#5eb5e0,#3187bd);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;outline:none;"><i class="fas fa-paper-plane"></i></button>
         </div>
     `;
@@ -1165,6 +1166,28 @@ function togglePetChatPanel() {
         panel.style.display = "none";
         petState.chatVisible = false;
     });
+
+    /* UIE_HELPER_PET_COMPOSER_REPAIR */
+    let composerInput = panel.querySelector("#uie-pet-chat-input");
+    let composerButton = panel.querySelector("#uie-pet-chat-send");
+    let composer = composerInput?.parentElement || composerButton?.parentElement || null;
+
+    if (!composer || !composerInput || !composerButton) {
+        composer?.remove();
+        composer = document.createElement("div");
+        composer.className = "uie-pet-chat-composer";
+        composer.innerHTML = `
+            <input class="uie-pet-chat-input" type="text" id="uie-pet-chat-input"
+                placeholder="Ask about controls." autocomplete="off">
+            <button type="button" id="uie-pet-chat-send" aria-label="Send to Helper Pet">
+                <i class="fas fa-paper-plane"></i>
+            </button>
+        `;
+        panel.appendChild(composer);
+    } else {
+        composer.classList.add("uie-pet-chat-composer");
+        composerInput.classList.add("uie-pet-chat-input");
+    }
 
     const sendInput = document.getElementById("uie-pet-chat-input");
     const sendBtn = document.getElementById("uie-pet-chat-send");

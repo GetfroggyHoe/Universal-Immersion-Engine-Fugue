@@ -1,0 +1,68 @@
+/* UIE_REPLY_KEYBOARD_MOBILE_V4 */
+.floating-portrait-keyboard {
+  width: 308px;
+  height: 300px;
+  min-width: 242px !important;
+  min-height: 220px !important;
+  max-width: calc(100vw - 12px) !important;
+  max-height: calc(100dvh - 12px) !important;
+  resize: none !important;
+  overflow: auto !important;
+  touch-action: none !important;
+}
+
+.floating-portrait-keyboard .reply-keyboard-topbar {
+  min-height: 31px !important;
+  flex: 0 0 auto !important;
+}
+
+.floating-portrait-keyboard .reply-keyboard-grip {
+  min-height: 27px !important;
+  padding: 6px 9px !important;
+  font-size: 11px !important;
+  touch-action: none !important;
+}
+
+.floating-portrait-keyboard .reply-keyboard-resize {
+  width: 30px !important;
+  height: 30px !important;
+  min-width: 30px !important;
+  min-height: 30px !important;
+  font-size: 16px !important;
+  touch-action: none !important;
+}
+
+.floating-portrait-keyboard .reply-keyboard-mini {
+  height: 29px !important;
+  padding-inline: 9px !important;
+  font-size: 11px !important;
+}
+
+.floating-portrait-keyboard .reply-keyboard-key {
+  height: 35px !important;
+  min-height: 35px !important;
+  font-size: 14px !important;
+  touch-action: manipulation !important;
+}
+
+.floating-portrait-keyboard .reply-keyboard-space,
+.floating-portrait-keyboard .reply-keyboard-enter {
+  height: 37px !important;
+  min-height: 37px !important;
+}
+
+html.uie-virtual-keyboard-open #user-input[data-uie-virtual-locked="true"] {
+  caret-color: transparent !important;
+  cursor: default !important;
+  user-select: none !important;
+}
+
+html.uie-mobile-css-fullscreen,
+html.uie-mobile-css-fullscreen body,
+html.uie-mobile-css-fullscreen #game-root {
+  width: 100% !important;
+  height: 100dvh !important;
+  min-height: 100dvh !important;
+  max-height: 100dvh !important;
+  overflow: hidden !important;
+}

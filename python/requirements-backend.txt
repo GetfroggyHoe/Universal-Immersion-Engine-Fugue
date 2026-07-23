@@ -17,3 +17,5 @@ safetensors>=0.4,<1
 
 # Kokoro is installed automatically when its bundled model assets are present.
 kokoro-onnx>=0.5,<1
+Pillow>=10,<12
+huggingface-hub>=0.23,<1

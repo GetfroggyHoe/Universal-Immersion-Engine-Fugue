@@ -11,6 +11,10 @@ echo.
 
 set "NODE_CMD="
 where node >nul 2>nul && set "NODE_CMD=node"
+rem UIE_NODE_COMMON_PATH_COMPAT
+if not defined NODE_CMD if exist "%ProgramFiles%\nodejs\node.exe" set "NODE_CMD=%ProgramFiles%\nodejs\node.exe"
+if not defined NODE_CMD if exist "%ProgramFiles(x86)%\nodejs\node.exe" set "NODE_CMD=%ProgramFiles(x86)%\nodejs\node.exe"
+if not defined NODE_CMD if exist "%LOCALAPPDATA%\Programs\nodejs\node.exe" set "NODE_CMD=%LOCALAPPDATA%\Programs\nodejs\node.exe"
 if not defined NODE_CMD (
   echo Node.js 18 or newer is required and was not found.
   where winget >nul 2>nul

@@ -60,9 +60,29 @@ install_python_runtime() {
 }
 
 node_is_supported() {
-  command -v node >/dev/null 2>&1 || return 1
-  node_major=$(node -p "Number(process.versions.node.split('.')[0])" 2>/dev/null) || return 1
-  [ "$node_major" -ge 18 ] 2>/dev/null
+    # UIE_NODE_WINDOWS_SHELL_COMPAT
+    # Git Bash/MSYS may not inherit Explorer's refreshed PATH. Recover the
+    # installed Windows node.exe through cmd.exe before declaring Node absent.
+    if ! command -v node >/dev/null 2>&1; then
+        if command -v cmd.exe >/dev/null 2>&1 && command -v cygpath >/dev/null 2>&1; then
+            win_node="$(cmd.exe /d /c where node.exe 2>/dev/null | tr -d '' | head -n 1)"
+            if [ -n "$win_node" ]; then
+                unix_node="$(cygpath -u "$win_node" 2>/dev/null || true)"
+                if [ -x "$unix_node" ]; then
+                    PATH="$(dirname "$unix_node"):$PATH"
+                    export PATH
+                fi
+            fi
+        fi
+    fi
+
+    command -v node >/dev/null 2>&1 || return 1
+
+    # Test through Node's exit status. Parsing `node -p` output under Windows
+    # leaves a carriage return in command substitution and can make 22 look
+    # like a non-numeric value to `[ -ge ]`.
+    node -e "const n=Number(process.versions.node.split('.')[0]); process.exit(Number.isFinite(n) && n >= 18 ? 0 : 1)" \
+        >/dev/null 2>&1
 }
 
 python_is_supported() {

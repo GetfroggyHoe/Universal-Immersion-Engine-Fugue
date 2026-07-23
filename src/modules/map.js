@@ -1030,16 +1030,7 @@ function mapTemplate() {
     <div class="uie-map-modal__actions"><button type="button" id="uie-map-add-save" class="uie-simple-map__primary">Add To Map</button></div>
   </div>
 </div>
-<div id="uie-map-import-modal" class="uie-map-modal" hidden aria-hidden="true">
-  <div class="uie-map-modal__panel">
-    <div class="uie-map-modal__top">
-      <div><div class="uie-simple-map__eyebrow">Map Exchange</div><h3>Import Map JSON</h3></div>
-      <button type="button" data-map-modal-close class="uie-simple-map__close" aria-label="Close import">x</button>
-    </div>
-    <textarea id="uie-map-import-json" class="uie-map-modal__textarea" placeholder="Paste exported or shared map JSON here."></textarea>
-    <div class="uie-map-modal__actions"><button type="button" id="uie-map-import-apply" class="uie-simple-map__primary">Import Map</button></div>
-  </div>
-</div>
+<input id="uie-map-import-file" type="file" accept=".json,application/json,text/json" hidden aria-hidden="true">
 <div id="uie-rune-lock" class="uie-rune-lock" hidden aria-hidden="true">
   <div class="uie-rune-lock__panel">
     <div class="uie-rune-lock__top">
@@ -1456,9 +1447,19 @@ function bindEvents() {
             renderDetails();
             renderMap();
         })
-        .on("click.uieSimpleMap", "#uie-map-import-apply", (event) => {
-            event.preventDefault();
-            importMapJson();
+        .on("change.uieSimpleMap", "#uie-map-import-file", async function (event) {
+            const input = event.currentTarget;
+            const file = input?.files?.[0] || null;
+            if (!file) return;
+
+            try {
+                await importMapFile(file);
+            } catch (error) {
+                console.error("[map] Import failed", error);
+                notify?.("error", String(error?.message || "Map import failed."), "Map");
+            } finally {
+                if (input) input.value = "";
+            }
         })
         .on("click.uieSimpleMap", "#uie-map-scan-add", (event) => {
             event.preventDefault();
@@ -2169,7 +2170,16 @@ async function handleMapAction(action) {
         notify?.("info", "Click anywhere on the map to freely place any location, home, dock, or world.", "Map");
         return;
     }
-    if (action === "import") return openMapModal("uie-map-import-modal");
+    if (action === "import") {
+        const input = document.getElementById("uie-map-import-file");
+        if (!(input instanceof HTMLInputElement)) {
+            notify?.("error", "Map file picker is unavailable.", "Map");
+            return;
+        }
+        input.value = "";
+        input.click();
+        return;
+    }
     if (action === "export") return exportMapJson();
     if (action === "share") return shareMapJson();
     if (action === "blueprint") {
@@ -2371,13 +2381,23 @@ async function exportMapJson() {
 
 async function shareText(text) {
     if (navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(text);
-        notify?.("success", "Map JSON copied to clipboard.", "Map");
-    } else {
-        $("#uie-map-import-json").val(text);
-        openMapModal("uie-map-import-modal");
-        notify?.("info", "Clipboard unavailable; JSON placed in the import box.", "Map");
+        try {
+            await navigator.clipboard.writeText(text);
+            notify?.("success", "Map JSON copied to clipboard.", "Map");
+            return;
+        } catch (_) {}
     }
+
+    const blob = new Blob([text], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `uie-map-${slug(state?.world?.[0]?.name || "atlas")}.json`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 500);
+    notify?.("info", "Clipboard unavailable; the map JSON was downloaded instead.", "Map");
 }
 
 async function shareMapJson() {
@@ -2391,23 +2411,59 @@ async function shareMapJson() {
     await shareText(payload);
 }
 
-function importMapJson() {
-    const raw = String($("#uie-map-import-json").val() || "").trim();
-    const parsed = parseAiJson(raw);
+function applyImportedMapObject(parsed, fileName = "") {
     const next = parsed?.map || parsed;
-    if (!next || typeof next !== "object") {
-        notify?.("error", "That does not look like a valid map JSON export.", "Map");
-        return;
+    if (!next || typeof next !== "object" || Array.isArray(next)) {
+        throw new Error("This file does not contain a valid Fugue map.");
     }
+
+    const hasMapShape = ["world", "region", "area", "vicinity", "blueprint", "blueprints"]
+        .some((key) => Object.prototype.hasOwnProperty.call(next, key));
+    if (!hasMapShape) {
+        throw new Error("This JSON file is not a Fugue map export.");
+    }
+
     state = migrateState({ ...next, version: next.version || 2 });
     state.view = VIEW_ORDER.includes(state.view) ? state.view : "world";
     selected = firstNodeForView(state.view);
     state.selectedId = selected?.id || "";
+
     persist();
     syncStateToStoryGraph(state.generated?.prompt || "");
     closeMapModals();
     renderMap();
-    notify?.("success", "Map imported.", "Map");
+
+    const label = String(fileName || "").trim();
+    notify?.("success", label ? `Map imported from ${label}.` : "Map imported.", "Map");
+}
+
+async function importMapFile(file) {
+    if (!(file instanceof File)) {
+        throw new Error("No map file was selected.");
+    }
+
+    const fileName = String(file.name || "map.json");
+    if (!/\.json$/i.test(fileName) && !/json/i.test(String(file.type || ""))) {
+        throw new Error("Choose a .json map file.");
+    }
+
+    if (Number(file.size || 0) > 20 * 1024 * 1024) {
+        throw new Error("That map file is larger than 20 MB.");
+    }
+
+    let raw = "";
+    try {
+        raw = await file.text();
+    } catch (_) {
+        throw new Error("The selected file could not be read.");
+    }
+
+    const parsed = parseStrictJsonObject(raw) || parseAiJson(raw);
+    if (!parsed) {
+        throw new Error("The selected file contains invalid JSON.");
+    }
+
+    applyImportedMapObject(parsed, fileName);
 }
 
 function firstNodeForView(view) {

@@ -1,0 +1,460 @@
+/* UIE_MOBILE_WINDOW_RECOVERY_V1
+ * Final mobile-landscape ownership for Inventory, Diary and Lorebook.
+ */
+
+@media (pointer: coarse) and (orientation: landscape) {
+  /* ------------------------------------------------------------
+     INVENTORY: opaque themed surfaces and visible controls
+     ------------------------------------------------------------ */
+  #uie-inventory-window,
+  #uie-inventory-window[data-fullscreen="false"] {
+    opacity: 1 !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background:
+      linear-gradient(180deg, rgba(10, 14, 20, .985), rgba(5, 8, 13, .995)),
+      var(--inv-mode-bg, var(--inv-bg, #080d14)) center / cover no-repeat !important;
+  }
+
+  #uie-inventory-window[data-inv-theme="fantasy"] {
+    background:
+      linear-gradient(180deg, rgba(239, 220, 176, .975), rgba(199, 164, 104, .985)),
+      var(--inv-mode-bg, #d7b77b) center / cover no-repeat !important;
+  }
+
+  #uie-inventory-window[data-inv-theme="modern"],
+  #uie-inventory-window[data-inv-theme="lifesim"] {
+    background:
+      linear-gradient(180deg, rgba(35, 27, 23, .985), rgba(15, 12, 12, .995)),
+      var(--inv-mode-bg, #17120f) center / cover no-repeat !important;
+  }
+
+  #uie-inventory-window[data-inv-theme="futuristic"] {
+    background:
+      linear-gradient(180deg, rgba(8, 28, 39, .985), rgba(3, 12, 20, .995)),
+      var(--inv-mode-bg, #071923) center / cover no-repeat !important;
+  }
+
+  #uie-inventory-window .uie-inv-panel {
+    opacity: 1 !important;
+    isolation: isolate !important;
+    background: rgba(8, 12, 18, .975) !important;
+    border: 1px solid rgba(218, 232, 246, .24) !important;
+    box-shadow:
+      0 20px 60px rgba(0, 0, 0, .62),
+      inset 0 1px rgba(255, 255, 255, .08) !important;
+  }
+
+  #uie-inventory-window[data-inv-theme="fantasy"] .uie-inv-panel {
+    background: rgba(246, 232, 196, .975) !important;
+    border-color: rgba(92, 55, 22, .44) !important;
+  }
+
+  #uie-inventory-window .uie-inv-panel::before,
+  #uie-inventory-window .uie-inv-panel::after {
+    opacity: .08 !important;
+    pointer-events: none !important;
+  }
+
+  #uie-inventory-window .uie-inv-topbar,
+  #uie-inventory-window #tabs,
+  #uie-inventory-window .uie-inv-body,
+  #uie-inventory-window #pane,
+  #uie-inventory-window .uie-inv-content,
+  #uie-inventory-window .uie-view-pane,
+  #uie-inventory-window #uie-view-items,
+  #uie-inventory-window .uie-inv-card,
+  #uie-inventory-window #paper-doll,
+  #uie-inventory-window #bottom-stats {
+    opacity: 1 !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  #uie-inventory-window .uie-inv-body,
+  #uie-inventory-window #pane,
+  #uie-inventory-window .uie-view-pane,
+  #uie-inventory-window #uie-view-items {
+    background: rgba(8, 12, 18, .92) !important;
+  }
+
+  #uie-inventory-window[data-inv-theme="fantasy"] .uie-inv-body,
+  #uie-inventory-window[data-inv-theme="fantasy"] #pane,
+  #uie-inventory-window[data-inv-theme="fantasy"] .uie-view-pane,
+  #uie-inventory-window[data-inv-theme="fantasy"] #uie-view-items {
+    background: rgba(250, 241, 214, .94) !important;
+  }
+
+  #uie-inventory-window .uie-inv-actions {
+    position: relative !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    min-width: 0 !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    padding: 1px !important;
+  }
+
+  #uie-inventory-window .uie-inv-icon,
+  #uie-inventory-window .uie-inv-close,
+  #uie-inventory-window .window-bg-btn {
+    position: static !important;
+    inset: auto !important;
+    transform: none !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex: 0 0 36px !important;
+    width: 36px !important;
+    height: 36px !important;
+    min-width: 36px !important;
+    min-height: 36px !important;
+    max-width: 36px !important;
+    max-height: 36px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
+    overflow: hidden !important;
+    border: 1px solid rgba(255, 255, 255, .28) !important;
+    border-radius: 8px !important;
+    background: #1b2633 !important;
+    color: #f8fbff !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, .35) !important;
+  }
+
+  #uie-inventory-window[data-inv-theme="fantasy"] .uie-inv-icon,
+  #uie-inventory-window[data-inv-theme="fantasy"] .window-bg-btn {
+    background: #f5e3b7 !important;
+    color: #2b1a0d !important;
+    border-color: rgba(91, 54, 24, .5) !important;
+  }
+
+  #uie-inventory-window .uie-inv-close {
+    background: #742f33 !important;
+    color: #fff !important;
+  }
+
+  #uie-inventory-window .uie-inv-preset-select-wrap {
+    position: static !important;
+    flex: 0 1 190px !important;
+    width: min(190px, 35vw) !important;
+    min-width: 132px !important;
+    max-width: 190px !important;
+    height: 36px !important;
+    min-height: 36px !important;
+    padding: 0 8px !important;
+    overflow: hidden !important;
+    opacity: 1 !important;
+    background: #f8eed9 !important;
+    border: 1px solid rgba(86, 54, 30, .46) !important;
+    color: #1b120d !important;
+    color-scheme: light !important;
+  }
+
+  #uie-inventory-window #uie-inv-theme-select {
+    width: 100% !important;
+    min-width: 0 !important;
+    height: 34px !important;
+    border: 0 !important;
+    outline: 0 !important;
+    appearance: auto !important;
+    -webkit-appearance: menulist !important;
+    background: #f8eed9 !important;
+    color: #1b120d !important;
+    color-scheme: light !important;
+    opacity: 1 !important;
+    font-weight: 800 !important;
+  }
+
+  #uie-inventory-window #uie-inv-theme-select option,
+  #uie-inventory-window #uie-inv-theme-select optgroup {
+    background-color: #fff8e9 !important;
+    color: #17110c !important;
+  }
+
+  #uie-inventory-window #uie-view-items .uie-items-toolbar,
+  #uie-inventory-window #uie-view-items .uie-chip-select,
+  #uie-inventory-window #uie-view-items .uie-search,
+  #uie-inventory-window #uie-view-items .uie-btn,
+  #uie-inventory-window #uie-view-items input,
+  #uie-inventory-window #uie-view-items select,
+  #uie-inventory-window #uie-view-items button {
+    opacity: 1 !important;
+    visibility: visible !important;
+  }
+
+  /* ------------------------------------------------------------
+     DIARY: preserve an actual book ratio instead of stretching it
+     across the full ultra-wide mobile viewport.
+     ------------------------------------------------------------ */
+  #uie-diary-window {
+    position: fixed !important;
+    inset: 50% auto auto 50% !important;
+    width: min(
+      calc(100vw - 24px),
+      calc((100dvh - 20px) * 1.78)
+    ) !important;
+    height: min(
+      calc(100dvh - 20px),
+      calc((100vw - 24px) / 1.78)
+    ) !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    max-width: calc(100vw - 24px) !important;
+    max-height: calc(100dvh - 20px) !important;
+    margin: 0 !important;
+    transform: translate(-50%, -50%) !important;
+    transform-origin: center !important;
+    overflow: hidden !important;
+    border-radius: 18px !important;
+    box-sizing: border-box !important;
+  }
+
+  #uie-diary-window .uie-diary-cover {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+    grid-template-rows: minmax(0, 1fr) !important;
+    width: 100% !important;
+    height: 100% !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+    align-items: stretch !important;
+  }
+
+  #uie-diary-window .uie-diary-cover > * {
+    min-width: 0 !important;
+    min-height: 0 !important;
+    max-width: none !important;
+    max-height: 100% !important;
+    overflow: hidden !important;
+    box-sizing: border-box !important;
+  }
+
+  #uie-diary-window :is(
+    .uie-diary-page,
+    .uie-diary-left,
+    .uie-diary-right,
+    .diary-page,
+    [class*="diary-page"]
+  ) {
+    min-width: 0 !important;
+    min-height: 0 !important;
+    height: 100% !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    overscroll-behavior: contain !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
+  #uie-diary-window :is(input, select, textarea, button, [contenteditable="true"]) {
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  #uie-diary-window textarea,
+  #uie-diary-window [contenteditable="true"] {
+    min-height: 72px !important;
+    overflow-y: auto !important;
+    touch-action: pan-y !important;
+  }
+
+  #uie-diary-window :is(
+    .uie-diary-photo,
+    .uie-diary-photo-box,
+    .diary-photo-box,
+    [class*="photo-box"]
+  ) {
+    min-height: 0 !important;
+    max-height: 52% !important;
+    overflow: hidden !important;
+  }
+
+  /* ------------------------------------------------------------
+     LOREBOOK: remove the blanket 9px wildcard sizing and restore a
+     usable, scrolling right-side workspace.
+     ------------------------------------------------------------ */
+  :is(
+    #lorebook-modal,
+    #lorebook-window,
+    #lorebook-manager,
+    #uie-lorebook-window,
+    .lorebook-modal,
+    .lorebook-window,
+    .uie-lorebook-window,
+    [id*="lorebook" i][role="dialog"],
+    [id*="lorebook" i].uie-window,
+    [class*="lorebook" i][class*="modal" i],
+    [class*="lorebook" i][class*="window" i],
+    body > [id*="lorebook" i]
+  ) {
+    position: fixed !important;
+    inset: 6px 6px 6px auto !important;
+    left: auto !important;
+    right: 6px !important;
+    top: 6px !important;
+    bottom: 6px !important;
+    width: min(74vw, 1120px) !important;
+    height: calc(100dvh - 12px) !important;
+    min-width: min(620px, calc(100vw - 12px)) !important;
+    min-height: 0 !important;
+    max-width: calc(100vw - 12px) !important;
+    max-height: calc(100dvh - 12px) !important;
+    margin: 0 !important;
+    padding: 8px !important;
+    transform: none !important;
+    transform-origin: center !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 6px !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
+    overscroll-behavior: contain !important;
+    touch-action: pan-y !important;
+    font-size: 11px !important;
+    line-height: 1.28 !important;
+    pointer-events: auto !important;
+  }
+
+  :is(
+    #lorebook-modal,
+    #lorebook-window,
+    #lorebook-manager,
+    #uie-lorebook-window,
+    .lorebook-modal,
+    .lorebook-window,
+    .uie-lorebook-window,
+    [id*="lorebook" i][role="dialog"],
+    [id*="lorebook" i].uie-window,
+    [class*="lorebook" i][class*="modal" i],
+    [class*="lorebook" i][class*="window" i],
+    body > [id*="lorebook" i]
+  ) * {
+    box-sizing: border-box !important;
+  }
+
+  :is(
+    #lorebook-modal,
+    #lorebook-window,
+    #lorebook-manager,
+    #uie-lorebook-window,
+    .lorebook-modal,
+    .lorebook-window,
+    .uie-lorebook-window,
+    [id*="lorebook" i][role="dialog"],
+    [id*="lorebook" i].uie-window,
+    [class*="lorebook" i][class*="modal" i],
+    [class*="lorebook" i][class*="window" i],
+    body > [id*="lorebook" i]
+  ) :is(
+    .modal-content,
+    .modal-body,
+    .window-content,
+    .window-body,
+    .lorebook-content,
+    .lorebook-body,
+    .lorebook-main,
+    .lorebook-sidebar,
+    .lorebook-list,
+    .lorebook-entries,
+    .entry-list,
+    [data-lorebook-scroll],
+    [class*="scroll"]
+  ) {
+    min-width: 0 !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    overscroll-behavior: contain !important;
+    -webkit-overflow-scrolling: touch !important;
+    touch-action: pan-y !important;
+  }
+
+  :is(
+    #lorebook-modal,
+    #lorebook-window,
+    #lorebook-manager,
+    #uie-lorebook-window,
+    .lorebook-modal,
+    .lorebook-window,
+    .uie-lorebook-window,
+    [id*="lorebook" i][role="dialog"],
+    [id*="lorebook" i].uie-window,
+    [class*="lorebook" i][class*="modal" i],
+    [class*="lorebook" i][class*="window" i],
+    body > [id*="lorebook" i]
+  ) :is(h1, h2, .modal-title, .window-title, [class*="title"]) {
+    font-size: 15px !important;
+    line-height: 1.15 !important;
+  }
+
+  :is(
+    #lorebook-modal,
+    #lorebook-window,
+    #lorebook-manager,
+    #uie-lorebook-window,
+    .lorebook-modal,
+    .lorebook-window,
+    .uie-lorebook-window,
+    [id*="lorebook" i][role="dialog"],
+    [id*="lorebook" i].uie-window,
+    [class*="lorebook" i][class*="modal" i],
+    [class*="lorebook" i][class*="window" i],
+    body > [id*="lorebook" i]
+  ) :is(
+    button,
+    input:not([type="checkbox"]):not([type="radio"]),
+    select,
+    textarea
+  ) {
+    min-width: 0 !important;
+    min-height: 30px !important;
+    height: auto !important;
+    padding: 5px 7px !important;
+    font-size: 11px !important;
+    line-height: 1.2 !important;
+  }
+
+  :is(
+    #lorebook-modal,
+    #lorebook-window,
+    #lorebook-manager,
+    #uie-lorebook-window,
+    .lorebook-modal,
+    .lorebook-window,
+    .uie-lorebook-window,
+    [id*="lorebook" i][role="dialog"],
+    [id*="lorebook" i].uie-window,
+    [class*="lorebook" i][class*="modal" i],
+    [class*="lorebook" i][class*="window" i],
+    body > [id*="lorebook" i]
+  ) textarea {
+    min-height: 96px !important;
+    max-height: none !important;
+    resize: vertical !important;
+    overflow-y: auto !important;
+  }
+
+  :is(
+    .lorebook-overlay,
+    .lorebook-backdrop,
+    [id*="lorebook" i][class*="overlay" i],
+    [class*="lorebook" i][class*="backdrop" i]
+  ) {
+    background: transparent !important;
+    pointer-events: none !important;
+  }
+
+  :is(
+    .lorebook-overlay,
+    .lorebook-backdrop,
+    [id*="lorebook" i][class*="overlay" i],
+    [class*="lorebook" i][class*="backdrop" i]
+  ) > * {
+    pointer-events: auto !important;
+  }
+}
